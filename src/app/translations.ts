@@ -70,7 +70,7 @@ export const translations = {
                 },
                 {
                     title: "Flexible Budgets",
-                    desc: "Start from just GEL 300/month. Scale up or down anytime. No long-term commitments required."
+                    desc: "Start from just GEL 100/week or GEL 400/month. Scale up or down anytime. No long-term commitments required."
                 }
             ],
             dashboard: {
@@ -113,8 +113,8 @@ export const translations = {
                     desc: "Show ads near your store, in specific neighborhoods, or along popular routes. Reach customers where they live and work."
                 },
                 {
-                    title: "10x Better Value",
-                    desc: "Get citywide coverage for a fraction of billboard costs. Start with just GEL 300/month and scale as you grow."
+                    title: "Better Value",
+                    desc: "Get citywide coverage for a fraction of billboard costs. Start with just GEL 100/week and scale as you grow."
                 },
                 {
                     title: "Real Analytics",
@@ -136,7 +136,7 @@ export const translations = {
             driversBenefits: [
                 {
                     title: "Passive Income",
-                    desc: "Earn GEL 300-800 extra per month just by driving. No extra work required - the display runs automatically."
+                    desc: "Earn GEL 400-800 extra per month just by driving. No extra work required - the display runs automatically."
                 },
                 {
                     title: "Zero Investment",
@@ -162,73 +162,101 @@ export const translations = {
         },
         pricing: {
             titlePrefix: "Simple,",
-            titleGradient: "Transparent Pricing",
-            subtitle: "No hidden fees. Start small and scale as you grow.",
-            month: "/month",
-            starter: {
-                title: "Starter",
-                desc: "Perfect for testing the waters",
+            titleGradient: "Flexible Pricing",
+            subtitle: "Choose the perfect package for your needs or customize your own.",
+            switch: {
+                standard: "Standard Packages",
+                custom: "Custom Calculator"
+            },
+            calculator: {
+                title: "Custom Campaign Builder",
+                subtitle: "Design a package that fits your exact needs",
+                durationLabel: "Campaign Duration (Days)",
+                hoursLabel: "Hours per Day",
+                quantityLabel: "Number of Displays",
+                total: "Estimated Total",
+                perDay: "Daily Rate",
+                displayUnit: "P4 LED Screen",
+                totalHours: "Total Hours",
+                hoursUnit: "Hours",
+                daysUnit: "Days",
+                dayUnit: "Day",
+                displayLabel: "Display",
+                displaysLabel: "Displays",
+                coverage: "Coverage",
+                coverageValue: "Tbilisi City Center",
+                matchMessage: "This matches our",
+                packageWord: "package",
+                requestQuote: "Request Quote"
+            },
+            standard1: {
+                title: "Start",
+                price: "400",
+                period: "/ Month",
+                desc: "1 Hour daily for 30 days",
                 btn: "Get Started",
                 features: [
-                    "5,000 impressions/month",
-                    "1 ad creative",
-                    "Basic analytics",
-                    "Email support",
-                    "Citywide coverage"
+                    "P4 LED Screen (1000x360mm)",
+                    "1 Hour Daily Exposure",
+                    "30 Days Campaign",
+                    "City Center Coverage",
+                    "Real-time Monitoring"
                 ]
             },
-            growth: {
-                badge: "Most Popular",
-                title: "Growth",
-                desc: "For businesses ready to grow",
+            standard2: {
+                title: "Optimal",
+                price: "800",
+                period: "/ Month",
+                desc: "2 Hours daily for 30 days",
                 btn: "Get Started",
                 features: [
-                    "15,000 impressions/month",
-                    "3 ad creatives",
-                    "Advanced analytics",
-                    "Priority support",
-                    "GPS zone targeting",
-                    "Time-based scheduling"
+                    "P4 LED Screen (1000x360mm)",
+                    "2 Hours Daily Exposure",
+                    "30 Days Campaign",
+                    "Priority Scheduling",
+                    "Detailed Analytics"
                 ]
             },
-            enterprise: {
-                title: "Enterprise",
-                desc: "Maximum visibility and control",
+            event: {
+                title: "Promo",
+                price: "100",
+                period: "/ Week",
+                desc: "1 Hour daily for 7 days",
                 btn: "Contact Sales",
                 features: [
-                    "50,000 impressions/month",
-                    "Unlimited creatives",
-                    "Real-time dashboard",
-                    "Dedicated account manager",
-                    "Custom targeting rules",
-                    "API access"
+                    "P4 LED Screen (1000x360mm)",
+                    "1 Hour Daily Exposure",
+                    "7 Days Campaign",
+                    "Quick Setup",
+                    "Event Targeting"
                 ]
             }
         },
-        testimonials: {
-            titlePrefix: "What People Are",
-            titleGradient: "Saying",
-            subtitle: "Early feedback from our pilot partners",
+        comparison: {
+            titlePrefix: "Why Choose",
+            titleGradient: "Gzad?",
+            subtitle: "How we compare to traditional outdoor advertising",
+            headers: ["Feature", "Static Billboard", "Gzad Network"],
             items: [
                 {
-                    text: "\"I was spending GEL 4,000/month on a billboard near Rustaveli. Now I spend GEL 600 and get better coverage across the whole city. The targeting feature is amazing - I can focus my ads near my restaurant during lunch hours.\"",
-                    name: "Giorgi K.",
-                    role: "Restaurant Owner, Vera District"
+                    feature: "Coverage",
+                    traditional: "Fixed (1 Location)",
+                    gzad: "City-wide Reach"
                 },
                 {
-                    text: "\"Extra GEL 450 last month just for having the display on my taxi. I don't have to do anything - it runs automatically. Best decision I made this year. Already told three other drivers to sign up.\"",
-                    name: "Davit M.",
-                    role: "Taxi Driver, 5 years experience"
+                    feature: "Cost Efficiency",
+                    traditional: "Premium / Rigid",
+                    gzad: "Flexible / Targeted"
                 },
                 {
-                    text: "\"We run events every weekend and needed flexible advertising. With Gzad, we can update our promotions the same day. The real-time tracking lets us see exactly where our ads are being shown.\"",
-                    name: "Nino B.",
-                    role: "Event Promoter"
+                    feature: "Updates",
+                    traditional: "Weeks (Manual)",
+                    gzad: "Instant (Digital)"
                 },
                 {
-                    text: "\"As a marketing agency, we're always looking for innovative channels for our clients. TaxiAds gives us programmatic capabilities in outdoor advertising - something that didn't exist in Georgia before.\"",
-                    name: "Lasha T.",
-                    role: "Marketing Agency Director"
+                    feature: "Analytics",
+                    traditional: "Estimated",
+                    gzad: "Real-time Data"
                 }
             ]
         },
@@ -352,7 +380,7 @@ export const translations = {
                 },
                 {
                     title: "მოქნილი ბიუჯეტი",
-                    desc: "დაიწყეთ თვეში სულ რაღაც 300 ლარიდან. გაზარდეთ ან შეამცირეთ ნებისმიერ დროს. არანაირი გრძელვადიანი ვალდებულება."
+                    desc: "დაიწყეთ კვირაში სულ რაღაც 100 ლარიდან. გაზარდეთ ან შეამცირეთ ნებისმიერ დროს. არანაირი გრძელვადიანი ვალდებულება."
                 }
             ],
             dashboard: {
@@ -395,8 +423,8 @@ export const translations = {
                     desc: "აჩვენე რეკლამა შენს მაღაზიასთან, კონკრეტულ უბნებში ან პოპულარულ გზებზე."
                 },
                 {
-                    title: "10x უკეთესი ფასი",
-                    desc: "მიიღე ქალაქის დაფარვა ბილბორდის ფასის ნაწილად. დაიწყე 300 ლარიდან."
+                    title: "უკეთესი ფასი",
+                    desc: "მიიღე ქალაქის დაფარვა ბილბორდის ფასის ნაწილად. დაიწყე კვირაში სულ რაღაც 100 ლარიდან."
                 },
                 {
                     title: "რეალური ანალიტიკა",
@@ -418,7 +446,7 @@ export const translations = {
             driversBenefits: [
                 {
                     title: "პასიური შემოსავალი",
-                    desc: "გამოიმუშავე 300-800 ლარი დამატებით მხოლოდ ტარებით. ეკრანი მუშაობს ავტომატურად."
+                    desc: "გამოიმუშავე 400-800 ლარი დამატებით მხოლოდ ტარებით. ეკრანი მუშაობს ავტომატურად."
                 },
                 {
                     title: "ნოლი ინვესტიცია",
@@ -444,73 +472,101 @@ export const translations = {
         },
         pricing: {
             titlePrefix: "მარტივი,",
-            titleGradient: "გამჭვირვალე ფასები",
-            subtitle: "ფარული გადასახადების გარეშე.",
-            month: "/თვეში",
-            starter: {
-                title: "სტარტერი",
-                desc: "იდეალურია საცდელად",
+            titleGradient: "მოქნილი ფასები",
+            subtitle: "აირჩიეთ სტანდარტული პაკეტი ან შექმენით თქვენი საკუთარი.",
+            switch: {
+                standard: "სტანდარტული",
+                custom: "კალკულატორი"
+            },
+            calculator: {
+                title: "კამპანიის კონსტრუქტორი",
+                subtitle: "ააწყვეთ პაკეტი თქვენი ზუსტი საჭიროებებისთვის",
+                durationLabel: "კამპანიის ხანგრძლივობა (დღეები)",
+                hoursLabel: "საათები დღეში",
+                quantityLabel: "ეკრანების რაოდენობა",
+                total: "ჯამური ღირებულება",
+                perDay: "დღიური ტარიფი",
+                displayUnit: "P4 LED ეკრანი",
+                totalHours: "ჯამური საათები",
+                hoursUnit: "საათი",
+                daysUnit: "დღე",
+                dayUnit: "დღე",
+                displayLabel: "ეკრანი",
+                displaysLabel: "ეკრანი",
+                coverage: "დაფარვა",
+                coverageValue: "თბილისის ცენტრი",
+                matchMessage: "ეს შეესაბამება ჩვენს",
+                packageWord: "პაკეტს",
+                requestQuote: "შეკვეთა"
+            },
+            standard1: {
+                title: "სტარტი",
+                price: "400",
+                period: "/ თვე",
+                desc: "1 საათი დღიურად 30 დღე",
                 btn: "დაწყება",
                 features: [
-                    "5,000 ნახვა/თვეში",
-                    "1 სარეკლამო კრეატივი",
-                    "საბაზისო ანალიტიკა",
-                    "მეილის მხარდაჭერა",
-                    "ქალაქის დაფარვა"
+                    "P4 LED ეკრანი (1000x360მმ)",
+                    "1 საათი დღიური ჩვენება",
+                    "30 დღიანი კამპანია",
+                    "ქალაქის ცენტრის დაფარვა",
+                    "ლაივ მონიტორინგი"
                 ]
             },
-            growth: {
-                badge: "პოპულარული",
-                title: "ზრდა",
-                desc: "ბიზნესის ზრდისთვის",
+            standard2: {
+                title: "ოპტიმალური",
+                price: "800",
+                period: "/ თვე",
+                desc: "2 საათი დღიურად 30 დღე",
                 btn: "დაწყება",
                 features: [
-                    "15,000 ნახვა/თვეში",
-                    "3 სარეკლამო კრეატივი",
-                    "დეტალური ანალიტიკა",
-                    "პრიორიტეტული მხარდაჭერა",
-                    "GPS ზონების ტარგეტირება",
-                    "დროის მიხედვით განრიგი"
+                    "P4 LED ეკრანი (1000x360მმ)",
+                    "2 საათი დღიური ჩვენება",
+                    "30 დღიანი კამპანია",
+                    "პრიორიტეტული დაგეგმვა",
+                    "დეტალური ანალიტიკა"
                 ]
             },
-            enterprise: {
-                title: "ენტერპრაიზი",
-                desc: "მაქსიმალური ხილვადობა",
+            event: {
+                title: "პრომო",
+                price: "100",
+                period: "/ კვირა",
+                desc: "1 საათი დღიურად 7 დღე",
                 btn: "დაგვიკავშირდით",
                 features: [
-                    "50,000 ნახვა/თვეში",
-                    "ულიმიტო კრეატივები",
-                    "ლაივ დესკტოპი",
-                    "პირადი მენეჯერი",
-                    "პერსონალური ტარგეტირება",
-                    "API წვდომა"
+                    "P4 LED ეკრანი (1000x360მმ)",
+                    "1 საათი დღიური ჩვენება",
+                    "7 დღიანი კამპანია",
+                    "სწრაფი გაშვება",
+                    "ტარგეტირება"
                 ]
             }
         },
-        testimonials: {
-            titlePrefix: "რას",
-            titleGradient: "ამბობენ ჩვენზე",
-            subtitle: "უკუკავშირი ჩვენი პარტნიორებისგან",
+        comparison: {
+            titlePrefix: "რატომ",
+            titleGradient: "Gzad?",
+            subtitle: "როგორ შევედრებით ტრადიციულ გარე რეკლამას",
+            headers: ["მახასიათებელი", "სტატიკური ბილბორდი", "Gzad-ის ქსელი"],
             items: [
                 {
-                    text: "\"ვიხდიდი 4000 ლარს ბილბორდში რუსთაველზე. ახლა ვიხდი 600-ს და მაქვს უკეთესი დაფარვა მთელ ქალაქში. ტარგეტირება საოცრებაა - შემიძლია ვაჩვენო რეკლამა ჩემს რესტორანთან ლანჩის დროს.\"",
-                    name: "გიორგი კ.",
-                    role: "რესტორნის მფლობელი"
+                    feature: "დაფარვა",
+                    traditional: "ფიქსირებული (1 ლოკაცია)",
+                    gzad: "მთელი ქალაქის მასშტაბით"
                 },
                 {
-                    text: "\"დამატებით 450 ლარი გასულ თვეს მხოლოდ იმიტომ რომ ეკრანი მქონდა. არაფრის გაკეთება არ მჭირდება. საუკეთესო გადაწყვეტილება რაც მივიღე. სამ მეგობარს უკვე ვურჩიე.\"",
-                    name: "დავით მ.",
-                    role: "ტაქსის მძღოლი"
+                    feature: "ეფექტურობა",
+                    traditional: "მაღალი / ხისტი",
+                    gzad: "მოქნილი / ტარგეტირებული"
                 },
                 {
-                    text: "\"ივენთებს ვაკეთებთ ყოველ კვირას. Gzad-ით, შეგვიძლია პრომოები შევცვალოთ იმავე დღეს. ლაივ ტრეკინგი გვაჩვენებს ზუსტად სად ჩანს ჩვენი რეკლამა.\"",
-                    name: "ნინო ბ.",
-                    role: "ივენთ პრომოუტერი"
+                    feature: "განახლება",
+                    traditional: "კვირები (მექანიკური)",
+                    gzad: "მყისიერი (ციფრული)"
                 },
                 {
-                    text: "\"როგორც მარკეტინგული სააგენტო, სულ ვეძებთ სიახლეებს. TaxiAds გვაძლევს პროგრამატიკ შესაძლებლობებს გარე რეკლამაში - რაც აქამდე საქართველოში არ იყო.\"",
-                    name: "ლაშა თ.",
-                    role: "სააგენტოს დირექტორი"
+                    feature: "ანალიტიკა",
+                    traditional: "მიახლოებითი",
+                    gzad: "რეალური მონაცემები"
                 }
             ]
         },
