@@ -9,7 +9,7 @@ export default function CTA() {
     <section id="get-started" className="relative py-24 lg:py-32 overflow-hidden">
       {/* Background glow */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-[600px] h-[600px] bg-[var(--amber)] rounded-full opacity-[0.04] blur-[120px]" />
+        <div className="w-[600px] h-[600px] bg-[var(--primary)] rounded-full opacity-[0.04] blur-[120px]" />
       </div>
 
       <div className="container-custom relative z-10">
@@ -30,7 +30,7 @@ export default function CTA() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-lg text-[var(--text-secondary)] mb-10"
+            className="text-lg text-muted-foreground mb-10"
           >
             Join Georgia&apos;s mobile digital advertising network. Whether you want to advertise
             your business or earn extra income as a driver, we&apos;re here to help.
@@ -45,14 +45,14 @@ export default function CTA() {
           >
             <Link
               href="mailto:hello@gzad.ge"
-              className="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[var(--amber)] to-[var(--amber-dark)] text-[var(--bg-primary)] font-medium rounded-xl hover:shadow-lg hover:shadow-[var(--amber)]/25 transition-all duration-300 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-6 py-3.5 bg-[#CCF381] text-black font-bold rounded-xl hover:shadow-[0_8px_32px_rgba(204,243,129,0.5)] transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110"
             >
               <Mail size={18} />
               Contact Us
             </Link>
             <Link
               href="tel:+995555123456"
-              className="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[var(--blue)] to-[var(--violet)] text-white font-medium rounded-xl hover:shadow-lg hover:shadow-[var(--blue)]/25 transition-all duration-300 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-6 py-3.5 bg-black text-[#CCF381] border border-[#CCF381] font-bold rounded-xl hover:bg-[#CCF381] hover:text-black hover:shadow-[0_0_20px_rgba(204,243,129,0.4)] transition-all duration-300 hover:-translate-y-0.5"
             >
               <Phone size={18} />
               Call Us

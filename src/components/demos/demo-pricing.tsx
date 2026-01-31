@@ -68,6 +68,31 @@ function PricingBasic() {
                 plans={demoPlans}
                 title="Simple, Transparent Pricing"
                 description="Choose the plan that works for you\nAll plans include access to our platform, lead generation tools, and dedicated support."
+                calculatorLabels={{
+                    title: "Calculate your reach",
+                    subtitle: "Adjust parameters to estimate your cost.",
+                    durationLabel: "Duration",
+                    hoursLabel: "Hours per Day",
+                    quantityLabel: "Number of Displays",
+                    total: "Estimated Total",
+                    perDay: "per day",
+                    displayUnit: "P4 LED Screen",
+                    totalHours: "Total Hours",
+                    hoursUnit: "Hours",
+                    daysUnit: "Days",
+                    dayUnit: "Day",
+                    displayLabel: "Display",
+                    displaysLabel: "Displays",
+                    coverage: "Coverage",
+                    coverageValue: "Tbilisi City Center",
+                    matchMessage: "This matches our",
+                    packageWord: "package",
+                    requestQuote: "Request Quote"
+                }}
+                switchLabels={{
+                    standard: "Standard",
+                    custom: "Calculator"
+                }}
             />
         </div>
     );
