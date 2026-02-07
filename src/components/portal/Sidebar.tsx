@@ -2,10 +2,10 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Megaphone, Upload, Receipt, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Megaphone, Upload, Receipt, LogOut, Menu, X, Shield } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const navItems = [
   { href: '/portal/dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -19,6 +19,21 @@ export default function Sidebar() {
   const router = useRouter()
   const supabase = createClient()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    async function checkAdmin() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('clients')
+        .select('is_admin')
+        .eq('auth_user_id', user.id)
+        .single()
+      if (data?.is_admin) setIsAdmin(true)
+    }
+    checkAdmin()
+  }, [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -63,11 +78,23 @@ export default function Sidebar() {
           })}
         </div>
 
-        {/* Sign Out */}
-        <button onClick={handleLogout} className="sidebar-logout">
-          <LogOut size={20} />
-          <span>Sign Out</span>
-        </button>
+        {/* Footer */}
+        <div style={{ borderTop: '1px solid #141414', padding: '8px 12px', flexShrink: 0 }}>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setMobileOpen(false)}
+              className="nav-item"
+            >
+              <Shield size={20} />
+              <span>Admin View</span>
+            </Link>
+          )}
+          <button onClick={handleLogout} className="sidebar-logout">
+            <LogOut size={20} />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </aside>
 
       {mobileOpen && (

@@ -34,11 +34,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Protect /admin routes
-  if (request.nextUrl.pathname.startsWith('/admin') && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/portal/login'
-    return NextResponse.redirect(url)
+  // Protect /admin routes — must be logged in AND be admin
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/portal/login'
+      return NextResponse.redirect(url)
+    }
+
+    // Check if user is admin
+    const { data: client } = await supabase
+      .from('clients')
+      .select('is_admin')
+      .eq('auth_user_id', user.id)
+      .single()
+
+    if (!client?.is_admin) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/portal/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   // Redirect logged-in users away from login page
