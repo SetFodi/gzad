@@ -6,6 +6,8 @@ import { Upload, CheckCircle, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 const NAME_REGEX = /^[a-z0-9][a-z0-9 ]*[a-z0-9]$|^[a-z0-9]$/
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024 // 100MB for videos
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024  // 10MB for images
 
 function validateName(value: string): string | null {
   if (!value.trim()) return 'Campaign name is required'
@@ -27,7 +29,18 @@ export default function SubmitAdPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles(Array.from(e.target.files))
+      const selected = Array.from(e.target.files)
+      const invalid = selected.find(f => {
+        const limit = f.type.startsWith('video/') ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE
+        return f.size > limit
+      })
+      if (invalid) {
+        const isVideo = invalid.type.startsWith('video/')
+        setError(`${invalid.name} is too large (${(invalid.size / 1024 / 1024).toFixed(1)}MB). Max ${isVideo ? '100MB for videos' : '10MB for images'}.`)
+        return
+      }
+      setError('')
+      setFiles(selected)
     }
   }
 
@@ -171,7 +184,8 @@ export default function SubmitAdPage() {
             <label htmlFor="files" className="file-upload-label">
               <Upload size={32} />
               <span>Click to upload or drag files here</span>
-              <span className="file-hint">PNG, JPG, GIF, MP4 (max 50MB)</span>
+              <span className="file-hint">PNG, JPG, GIF (max 10MB) | MP4 (max 100MB)</span>
+              <span className="file-hint">Video: H.264/AVC codec, max 1280x1080, 320p-720p recommended</span>
             </label>
           </div>
 

@@ -11,21 +11,25 @@ function getSupabase() {
 export async function POST(request: NextRequest) {
   const supabase = getSupabase()
   try {
+    // Auth: check shared secret
+    const callbackKey = request.nextUrl.searchParams.get('key')
+    if (process.env.CALLBACK_SECRET && callbackKey !== process.env.CALLBACK_SECRET) {
+      return NextResponse.json({ _type: 'Error', message: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
 
     // GPS callback can be array or single object
-    // Format: [{ type: "gps", lat, lng, beginAt, ... }] or { lat, lng }
     const entries = Array.isArray(body) ? body : [body]
 
-    const deviceId = request.nextUrl.searchParams.get('device')
-      || request.headers.get('x-device-id')
+    const deviceId = request.headers.get('card-id')
+      || request.nextUrl.searchParams.get('device')
       || 'unknown'
 
     const rows = entries
       .map((entry: Record<string, unknown>) => {
         const lat = (entry.lat as number) || 0
         const lng = (entry.lng as number) || 0
-        // Skip entries with no real GPS data
         if (lat === 0 && lng === 0) return null
         return {
           device_id: deviceId,
@@ -46,18 +50,24 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: insertError.message }, { status: 500 })
       }
 
-      // Update device last position
+      // Upsert device with last position (create if doesn't exist)
       const latest = rows[rows.length - 1]!
-      await supabase.from('devices').update({
-        last_seen_at: new Date().toISOString(),
-        last_lat: latest.lat,
-        last_lng: latest.lng,
-      }).eq('id', deviceId)
+      await supabase
+        .from('devices')
+        .upsert(
+          {
+            id: deviceId,
+            last_seen_at: new Date().toISOString(),
+            last_lat: latest.lat,
+            last_lng: latest.lng,
+          },
+          { onConflict: 'id' }
+        )
     }
 
-    return NextResponse.json({ ok: true, count: rows.length })
+    return NextResponse.json({ _type: 'success', count: rows.length })
   } catch (err) {
     console.error('GPS callback error:', err)
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    return NextResponse.json({ _type: 'Error', message: 'Invalid request' }, { status: 400 })
   }
 }

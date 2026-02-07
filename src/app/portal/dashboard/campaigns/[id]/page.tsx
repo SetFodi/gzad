@@ -116,15 +116,17 @@ export default function CampaignDetailPage() {
             <span className="stat-card-label">Screen Time</span>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(251,191,36,0.1)' }}>
-            <MapPin size={24} color="#FBBF24" />
+        {totalKm > 0 && (
+          <div className="stat-card">
+            <div className="stat-card-icon" style={{ background: 'rgba(251,191,36,0.1)' }}>
+              <MapPin size={24} color="#FBBF24" />
+            </div>
+            <div className="stat-card-info">
+              <span className="stat-card-value">{totalKm.toFixed(0)} km</span>
+              <span className="stat-card-label">Distance Covered</span>
+            </div>
           </div>
-          <div className="stat-card-info">
-            <span className="stat-card-value">{totalKm.toFixed(0)} km</span>
-            <span className="stat-card-label">Distance Covered</span>
-          </div>
-        </div>
+        )}
         <div className="stat-card">
           <div className="stat-card-icon" style={{ background: 'rgba(163,230,53,0.1)' }}>
             <Car size={24} color="#A3E635" />
@@ -148,7 +150,7 @@ export default function CampaignDetailPage() {
                   <th>Plays</th>
                   <th>Duration</th>
                   <th>Taxis</th>
-                  <th>KM</th>
+                  {totalKm > 0 && <th>KM</th>}
                 </tr>
               </thead>
               <tbody>
@@ -158,7 +160,7 @@ export default function CampaignDetailPage() {
                     <td>{s.play_count}</td>
                     <td>{Math.round(s.total_duration_seconds / 60)} min</td>
                     <td>{s.unique_taxis}</td>
-                    <td>{s.km_covered} km</td>
+                    {totalKm > 0 && <td>{s.km_covered} km</td>}
                   </tr>
                 ))}
               </tbody>
