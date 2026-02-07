@@ -270,7 +270,7 @@ export const translations = {
                 },
                 {
                     question: "What size should my ad creative be?",
-                    answer: "Our displays support various formats. The recommended size is 256x64 pixels for scrolling text or 512x128 for static images. Our design team can help optimize your creative for best visibility."
+                    answer: "Our displays support various formats. The required size is 280x80 pixels for all video and image content. Our design team can help optimize your creative for best visibility."
                 },
                 {
                     question: "How do you calculate impressions?",
@@ -580,7 +580,7 @@ export const translations = {
                 },
                 {
                     question: "რა ზომის უნდა იყოს ბანერი?",
-                    answer: "გვაქვს სხვადასხვა ფორმატები. რეკომენდირებულია 256x64 პიქსელი ტექსტისთვის ან 512x128 სურათებისთვის. ჩვენი დიზაინერები დაგეხმარებიან."
+                    answer: "გვაქვს სხვადასხვა ფორმატები. სავალდებულო ზომაა 280x80 პიქსელი ყველა ვიდეო და სურათისთვის. ჩვენი დიზაინერები დაგეხმარებიან."
                 },
                 {
                     question: "როგორ ითვლება ნახვები?",

@@ -11,7 +11,7 @@ const faqs = [
   },
   {
     question: 'What size should my ad creative be?',
-    answer: 'Our displays support various formats. The recommended size is 256x64 pixels for scrolling text or 512x128 for static images. Our design team can help optimize your creative for best visibility.',
+    answer: 'Our displays support various formats. The required size is 280x80 pixels for all video and image content. Our design team can help optimize your creative for best visibility.',
   },
   {
     question: 'How do you calculate impressions?',
@@ -70,17 +70,15 @@ export default function FAQ() {
                   {faq.question}
                 </h3>
                 <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center transition-all duration-300 ${
-                    openIndex === i
+                  className={`flex-shrink-0 w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center transition-all duration-300 ${openIndex === i
                       ? 'bg-[var(--amber)] border-[var(--amber)] rotate-45'
                       : 'group-hover:border-[var(--amber)]'
-                  }`}
+                    }`}
                 >
                   <Plus
                     size={16}
-                    className={`transition-colors ${
-                      openIndex === i ? 'text-[var(--bg-primary)]' : 'text-[var(--text-muted)]'
-                    }`}
+                    className={`transition-colors ${openIndex === i ? 'text-[var(--bg-primary)]' : 'text-[var(--text-muted)]'
+                      }`}
                   />
                 </div>
               </button>
