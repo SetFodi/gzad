@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Check, X, DollarSign } from 'lucide-react'
+import { ArrowLeft, Check, X, DollarSign, Copy, Download } from 'lucide-react'
 import Link from 'next/link'
 
 interface Campaign {
@@ -32,6 +32,7 @@ export default function AdminCampaignDetailPage() {
   const [media, setMedia] = useState<Media[]>([])
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [form, setForm] = useState({
     start_date: '',
     end_date: '',
@@ -98,6 +99,30 @@ export default function AdminCampaignDetailPage() {
     alert('Invoice created')
   }
 
+  const copyName = () => {
+    if (!campaign) return
+    navigator.clipboard.writeText(campaign.name)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const downloadFile = async (url: string, fileName: string) => {
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+    } catch {
+      window.open(url, '_blank')
+    }
+  }
+
   if (loading) return <div className="portal-loading">Loading...</div>
   if (!campaign) return <div className="portal-loading">Campaign not found</div>
 
@@ -120,6 +145,49 @@ export default function AdminCampaignDetailPage() {
             {editMode ? 'Cancel' : 'Edit Details'}
           </button>
         </div>
+      </div>
+
+      {/* vehhub.top helper */}
+      <div style={{
+        background: 'rgba(96,165,250,0.08)',
+        border: '1px solid rgba(96,165,250,0.2)',
+        borderRadius: '12px',
+        padding: '16px 20px',
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+      }}>
+        <div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px', fontWeight: 500 }}>
+            Use this name in vehhub.top &quot;Ad Name&quot; field:
+          </div>
+          <div style={{ fontSize: '18px', fontWeight: 700, color: '#60A5FA', fontFamily: 'monospace' }}>
+            {campaign.name}
+          </div>
+        </div>
+        <button
+          onClick={copyName}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: '1px solid rgba(96,165,250,0.3)',
+            background: copied ? 'rgba(204,243,129,0.15)' : 'rgba(96,165,250,0.1)',
+            color: copied ? '#CCF381' : '#60A5FA',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 500,
+            transition: 'all 0.15s',
+          }}
+        >
+          {copied ? <Check size={16} /> : <Copy size={16} />}
+          {copied ? 'Copied!' : 'Copy Name'}
+        </button>
       </div>
 
       {editMode ? (
@@ -207,16 +275,39 @@ export default function AdminCampaignDetailPage() {
                     {m.status.replace('_', ' ')}
                   </span>
                 </div>
-                {m.status === 'pending_review' && (
-                  <div className="admin-media-actions">
-                    <button className="action-btn approve" onClick={() => updateMedia(m.id, 'approved')}>
-                      <Check size={16} /> Approve
-                    </button>
-                    <button className="action-btn reject" onClick={() => updateMedia(m.id, 'rejected')}>
-                      <X size={16} /> Reject
-                    </button>
-                  </div>
-                )}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {/* Download button */}
+                  <button
+                    onClick={() => downloadFile(m.file_url, m.file_name)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #27272a',
+                      background: 'rgba(255,255,255,0.05)',
+                      color: '#d4d4d8',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <Download size={14} /> Download
+                  </button>
+                  {/* Approve/Reject */}
+                  {m.status === 'pending_review' && (
+                    <>
+                      <button className="action-btn approve" onClick={() => updateMedia(m.id, 'approved')}>
+                        <Check size={16} /> Approve
+                      </button>
+                      <button className="action-btn reject" onClick={() => updateMedia(m.id, 'rejected')}>
+                        <X size={16} /> Reject
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>

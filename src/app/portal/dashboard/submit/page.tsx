@@ -5,8 +5,19 @@ import { createClient } from '@/lib/supabase/client'
 import { Upload, CheckCircle, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
+const NAME_REGEX = /^[a-z0-9][a-z0-9 ]*[a-z0-9]$|^[a-z0-9]$/
+
+function validateName(value: string): string | null {
+  if (!value.trim()) return 'Campaign name is required'
+  if (value.trim().length < 2) return 'Name must be at least 2 characters'
+  if (value.trim().length > 50) return 'Name must be under 50 characters'
+  if (!NAME_REGEX.test(value.trim())) return 'Only lowercase English letters, numbers, and spaces allowed'
+  return null
+}
+
 export default function SubmitAdPage() {
   const [name, setName] = useState('')
+  const [nameError, setNameError] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -24,10 +35,23 @@ export default function SubmitAdPage() {
     setFiles(files.filter((_, i) => i !== index))
   }
 
+  const handleNameChange = (value: string) => {
+    // Force lowercase, strip non-allowed characters
+    const cleaned = value.toLowerCase().replace(/[^a-z0-9 ]/g, '')
+    setName(cleaned)
+    const err = validateName(cleaned)
+    setNameError(err || '')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name || files.length === 0) {
-      setError('Please provide a campaign name and at least one file')
+    const nameErr = validateName(name)
+    if (nameErr) {
+      setNameError(nameErr)
+      return
+    }
+    if (files.length === 0) {
+      setError('Please upload at least one file')
       return
     }
 
@@ -46,10 +70,21 @@ export default function SubmitAdPage() {
 
       if (!client) throw new Error('Client profile not found')
 
+      // Check for duplicate campaign name
+      const { data: existing } = await supabase
+        .from('campaigns')
+        .select('id')
+        .ilike('name', name.trim())
+        .limit(1)
+
+      if (existing && existing.length > 0) {
+        throw new Error('A campaign with this name already exists. Please choose a different name.')
+      }
+
       // Create campaign
       const { data: campaign, error: campError } = await supabase
         .from('campaigns')
-        .insert({ client_id: client.id, name, status: 'pending_review' })
+        .insert({ client_id: client.id, name: name.trim(), status: 'pending_review' })
         .select()
         .single()
 
@@ -112,10 +147,14 @@ export default function SubmitAdPage() {
             id="name"
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Summer Sale Promo"
+            onChange={(e) => handleNameChange(e.target.value)}
+            placeholder="e.g. summer sale promo"
             required
           />
+          {nameError && <span style={{ color: '#EF4444', fontSize: '13px', marginTop: '4px', display: 'block' }}>{nameError}</span>}
+          <span style={{ color: '#525252', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+            Lowercase English letters, numbers, and spaces only
+          </span>
         </div>
 
         <div className="portal-input-group">
