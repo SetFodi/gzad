@@ -1,14 +1,16 @@
+import type { Metadata } from 'next'
 import AdminSidebar from '@/components/admin/AdminSidebar'
+import '../portal/portal.css'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Gzad Admin',
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#050505', fontFamily: "'Inter', sans-serif" }}>
+    <div className="portal-layout">
       <AdminSidebar />
-      <main style={{ flex: '1 1 auto', padding: '40px', marginLeft: 260, minHeight: '100vh', boxSizing: 'border-box' as const }}>
+      <main className="portal-main">
         {children}
       </main>
     </div>
