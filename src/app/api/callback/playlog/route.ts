@@ -128,9 +128,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, count: rows.length })
+    // Controller expects {"_type":"success"} per SDK protocol
+    return NextResponse.json({ _type: 'success', count: rows.length })
   } catch (err) {
     console.error('Playlog callback error:', err)
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    return NextResponse.json({ _type: 'Error', message: 'Invalid request' }, { status: 400 })
   }
 }
