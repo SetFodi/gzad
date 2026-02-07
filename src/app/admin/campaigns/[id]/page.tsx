@@ -1,0 +1,227 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useParams } from 'next/navigation'
+import { ArrowLeft, Check, X, DollarSign } from 'lucide-react'
+import Link from 'next/link'
+
+interface Campaign {
+  id: string
+  name: string
+  status: string
+  start_date: string
+  end_date: string
+  daily_hours: number
+  taxi_count: number
+  monthly_price: number
+  clients: { company_name: string; id: string } | null
+}
+
+interface Media {
+  id: string
+  file_url: string
+  file_type: string
+  file_name: string
+  status: string
+}
+
+export default function AdminCampaignDetailPage() {
+  const params = useParams()
+  const [campaign, setCampaign] = useState<Campaign | null>(null)
+  const [media, setMedia] = useState<Media[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editMode, setEditMode] = useState(false)
+  const [form, setForm] = useState({
+    start_date: '',
+    end_date: '',
+    daily_hours: 1,
+    taxi_count: 1,
+    monthly_price: 0,
+  })
+  const supabase = createClient()
+
+  async function load() {
+    const id = params.id as string
+
+    const { data: campaignData } = await supabase
+      .from('campaigns')
+      .select('*, clients(company_name, id)')
+      .eq('id', id)
+      .single()
+
+    const { data: mediaData } = await supabase
+      .from('ad_media')
+      .select('*')
+      .eq('campaign_id', id)
+      .order('uploaded_at', { ascending: false })
+
+    setCampaign(campaignData)
+    if (campaignData) {
+      setForm({
+        start_date: campaignData.start_date || '',
+        end_date: campaignData.end_date || '',
+        daily_hours: campaignData.daily_hours,
+        taxi_count: campaignData.taxi_count,
+        monthly_price: campaignData.monthly_price || 0,
+      })
+    }
+    setMedia(mediaData || [])
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [params.id])
+
+  const updateMedia = async (mediaId: string, status: string) => {
+    await supabase.from('ad_media').update({ status }).eq('id', mediaId)
+    await load()
+  }
+
+  const saveCampaign = async () => {
+    await supabase.from('campaigns').update(form).eq('id', params.id as string)
+    setEditMode(false)
+    await load()
+  }
+
+  const createInvoice = async () => {
+    if (!campaign?.clients?.id || !campaign.monthly_price) return
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + 30)
+
+    await supabase.from('invoices').insert({
+      client_id: campaign.clients.id,
+      campaign_id: campaign.id,
+      amount: campaign.monthly_price,
+      status: 'pending',
+      due_date: dueDate.toISOString().split('T')[0],
+    })
+    alert('Invoice created')
+  }
+
+  if (loading) return <div className="portal-loading">Loading...</div>
+  if (!campaign) return <div className="portal-loading">Campaign not found</div>
+
+  return (
+    <div className="portal-page">
+      <Link href="/admin/campaigns" className="portal-back-link">
+        <ArrowLeft size={16} /> Back to Campaigns
+      </Link>
+
+      <div className="portal-page-header">
+        <div>
+          <h1 className="portal-page-title">{campaign.name}</h1>
+          <p className="portal-subtitle">{campaign.clients?.company_name}</p>
+        </div>
+        <div className="admin-header-actions">
+          <button onClick={createInvoice} className="portal-btn-secondary">
+            <DollarSign size={16} /> Create Invoice
+          </button>
+          <button onClick={() => setEditMode(!editMode)} className="portal-btn-primary">
+            {editMode ? 'Cancel' : 'Edit Details'}
+          </button>
+        </div>
+      </div>
+
+      {editMode ? (
+        <div className="portal-section">
+          <h2>Campaign Details</h2>
+          <div className="admin-edit-form">
+            <div className="admin-form-row">
+              <div className="portal-input-group">
+                <label>Start Date</label>
+                <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+              </div>
+              <div className="portal-input-group">
+                <label>End Date</label>
+                <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+              </div>
+            </div>
+            <div className="admin-form-row">
+              <div className="portal-input-group">
+                <label>Daily Hours</label>
+                <input type="number" value={form.daily_hours} onChange={(e) => setForm({ ...form, daily_hours: parseInt(e.target.value) })} min={1} max={24} />
+              </div>
+              <div className="portal-input-group">
+                <label>Taxi Count</label>
+                <input type="number" value={form.taxi_count} onChange={(e) => setForm({ ...form, taxi_count: parseInt(e.target.value) })} min={1} />
+              </div>
+              <div className="portal-input-group">
+                <label>Monthly Price (GEL)</label>
+                <input type="number" value={form.monthly_price} onChange={(e) => setForm({ ...form, monthly_price: parseFloat(e.target.value) })} min={0} />
+              </div>
+            </div>
+            <button onClick={saveCampaign} className="portal-btn-primary">Save Changes</button>
+          </div>
+        </div>
+      ) : (
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-card-info">
+              <span className="stat-card-value">{campaign.start_date || '—'}</span>
+              <span className="stat-card-label">Start Date</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-info">
+              <span className="stat-card-value">{campaign.end_date || '—'}</span>
+              <span className="stat-card-label">End Date</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-info">
+              <span className="stat-card-value">{campaign.daily_hours}h / {campaign.taxi_count} taxis</span>
+              <span className="stat-card-label">Coverage</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-info">
+              <span className="stat-card-value">{campaign.monthly_price ? `${campaign.monthly_price} GEL` : '—'}</span>
+              <span className="stat-card-label">Monthly Price</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Media Review */}
+      <div className="portal-section">
+        <h2>Ad Media ({media.length})</h2>
+        {media.length === 0 ? (
+          <p className="portal-empty-text">No media uploaded yet.</p>
+        ) : (
+          <div className="admin-media-review">
+            {media.map((m) => (
+              <div key={m.id} className="admin-media-card">
+                <div className="admin-media-preview">
+                  {m.file_type.startsWith('image') ? (
+                    <img src={m.file_url} alt={m.file_name} />
+                  ) : (
+                    <video src={m.file_url} controls />
+                  )}
+                </div>
+                <div className="admin-media-info">
+                  <span className="admin-media-name">{m.file_name}</span>
+                  <span className="status-badge" style={{
+                    color: m.status === 'approved' ? '#CCF381' : m.status === 'rejected' ? '#EF4444' : '#FBBF24',
+                    borderColor: m.status === 'approved' ? '#CCF381' : m.status === 'rejected' ? '#EF4444' : '#FBBF24',
+                  }}>
+                    {m.status.replace('_', ' ')}
+                  </span>
+                </div>
+                {m.status === 'pending_review' && (
+                  <div className="admin-media-actions">
+                    <button className="action-btn approve" onClick={() => updateMedia(m.id, 'approved')}>
+                      <Check size={16} /> Approve
+                    </button>
+                    <button className="action-btn reject" onClick={() => updateMedia(m.id, 'rejected')}>
+                      <X size={16} /> Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
