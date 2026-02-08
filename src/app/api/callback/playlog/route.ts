@@ -11,9 +11,12 @@ function getSupabase() {
 export async function POST(request: NextRequest) {
   const supabase = getSupabase()
   try {
-    // Auth: check shared secret (set in controller callback URL as ?key=...)
+    // Auth: check shared secret via query param OR Authorization header
     const callbackKey = request.nextUrl.searchParams.get('key')
-    if (process.env.CALLBACK_SECRET && callbackKey !== process.env.CALLBACK_SECRET) {
+    const authHeader = request.headers.get('authorization')
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+
+    if (process.env.CALLBACK_SECRET && callbackKey !== process.env.CALLBACK_SECRET && bearerToken !== process.env.CALLBACK_SECRET) {
       return NextResponse.json({ _type: 'Error', message: 'Unauthorized' }, { status: 401 })
     }
 

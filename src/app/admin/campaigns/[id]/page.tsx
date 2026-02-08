@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Check, X, DollarSign, Copy, Download } from 'lucide-react'
+import { ArrowLeft, Check, X, DollarSign, Copy, Download, Send, Monitor } from 'lucide-react'
 import Link from 'next/link'
 
 interface Campaign {
@@ -26,6 +26,11 @@ interface Media {
   status: string
 }
 
+interface Device {
+  cardId: string
+  online: boolean
+}
+
 export default function AdminCampaignDetailPage() {
   const params = useParams()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
@@ -33,6 +38,10 @@ export default function AdminCampaignDetailPage() {
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [devices, setDevices] = useState<Device[]>([])
+  const [selectedDevice, setSelectedDevice] = useState('')
+  const [pushing, setPushing] = useState(false)
+  const [pushResult, setPushResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const [form, setForm] = useState({
     start_date: '',
     end_date: '',
@@ -123,6 +132,62 @@ export default function AdminCampaignDetailPage() {
     }
   }
 
+  const loadDevices = useCallback(async () => {
+    try {
+      const res = await fetch('/api/devices')
+      const data = await res.json()
+      const list = Array.isArray(data) ? data : data.devices || []
+      const onlineDevices = list.filter((d: Device) => d.online)
+      setDevices(onlineDevices)
+      if (onlineDevices.length > 0 && !selectedDevice) {
+        setSelectedDevice(onlineDevices[0].cardId)
+      }
+    } catch {
+      // Realtime Server not running — that's ok
+    }
+  }, [selectedDevice])
+
+  useEffect(() => { loadDevices() }, [loadDevices])
+
+  const pushToDevice = async () => {
+    if (!campaign || !selectedDevice) return
+    // Find the first approved media file
+    const approvedMedia = media.find(m => m.status === 'approved')
+    if (!approvedMedia) {
+      setPushResult({ ok: false, msg: 'No approved media to push. Approve a media file first.' })
+      return
+    }
+
+    setPushing(true)
+    setPushResult(null)
+    try {
+      const res = await fetch('/api/devices/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardId: selectedDevice,
+          action: 'push-program',
+          name: campaign.name,
+          duration: 10,
+          mediaUrl: approvedMedia.file_url,
+          mediaType: approvedMedia.file_type,
+          width: 960,
+          height: 320,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setPushResult({ ok: true, msg: `"${campaign.name}" pushed to ${selectedDevice}` })
+      } else {
+        setPushResult({ ok: false, msg: data.error || 'Push failed' })
+      }
+    } catch {
+      setPushResult({ ok: false, msg: 'Cannot reach Realtime Server' })
+    } finally {
+      setPushing(false)
+    }
+  }
+
   if (loading) return <div className="portal-loading">Loading...</div>
   if (!campaign) return <div className="portal-loading">Campaign not found</div>
 
@@ -188,6 +253,70 @@ export default function AdminCampaignDetailPage() {
           {copied ? <Check size={16} /> : <Copy size={16} />}
           {copied ? 'Copied!' : 'Copy Name'}
         </button>
+      </div>
+
+      {/* Push to Display */}
+      <div style={{
+        background: 'rgba(204,243,129,0.06)',
+        border: '1px solid rgba(204,243,129,0.15)',
+        borderRadius: '12px',
+        padding: '16px 20px',
+        marginBottom: '24px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <Monitor size={18} style={{ color: '#CCF381' }} />
+          <span style={{ fontWeight: 600, color: '#CCF381', fontSize: 15 }}>Push to Display</span>
+        </div>
+
+        {devices.length === 0 ? (
+          <p style={{ color: '#525252', fontSize: 13, margin: 0 }}>
+            No devices online. Connect a device via the Realtime Server first.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <select
+              value={selectedDevice}
+              onChange={(e) => setSelectedDevice(e.target.value)}
+              style={{
+                background: '#0A0A0A',
+                border: '1px solid #27272a',
+                borderRadius: 8,
+                color: '#e4e4e7',
+                padding: '8px 12px',
+                fontSize: 14,
+              }}
+            >
+              {devices.map(d => (
+                <option key={d.cardId} value={d.cardId}>{d.cardId}</option>
+              ))}
+            </select>
+            <button
+              onClick={pushToDevice}
+              disabled={pushing || !media.some(m => m.status === 'approved')}
+              className="portal-btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: pushing ? 0.6 : 1 }}
+            >
+              <Send size={16} />
+              {pushing ? 'Pushing...' : 'Push Ad'}
+            </button>
+            {!media.some(m => m.status === 'approved') && (
+              <span style={{ color: '#FBBF24', fontSize: 12 }}>Approve a media file first</span>
+            )}
+          </div>
+        )}
+
+        {pushResult && (
+          <div style={{
+            marginTop: 10,
+            padding: '8px 12px',
+            borderRadius: 8,
+            fontSize: 13,
+            background: pushResult.ok ? 'rgba(204,243,129,0.1)' : 'rgba(239,68,68,0.1)',
+            color: pushResult.ok ? '#CCF381' : '#EF4444',
+          }}>
+            {pushResult.msg}
+          </div>
+        )}
       </div>
 
       {editMode ? (

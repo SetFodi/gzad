@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Users, Megaphone, BarChart3, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, Megaphone, BarChart3, Monitor, MapPin, LogOut, Menu, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -12,6 +12,8 @@ const navItems = [
   { href: '/admin/clients', label: 'Clients', icon: Users },
   { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
   { href: '/admin/stats', label: 'Stats Upload', icon: BarChart3 },
+  { href: '/admin/devices', label: 'Devices', icon: Monitor },
+  { href: '/admin/map', label: 'GPS Map', icon: MapPin },
 ]
 
 export default function AdminSidebar() {

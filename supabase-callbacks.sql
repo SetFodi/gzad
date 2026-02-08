@@ -2,7 +2,7 @@
 -- Adds tables for live controller callback data
 
 -- Raw play logs from controller callbacks
-create table public.play_logs (
+create table if not exists public.play_logs (
   id uuid default gen_random_uuid() primary key,
   device_id text not null,
   campaign_id uuid references public.campaigns(id) on delete set null,
@@ -17,16 +17,17 @@ create table public.play_logs (
 );
 
 -- GPS position tracking
-create table public.gps_tracks (
+create table if not exists public.gps_logs (
   id uuid default gen_random_uuid() primary key,
-  device_id text not null,
+  device_serial text not null,
   lat numeric(10,7) not null,
   lng numeric(10,7) not null,
+  speed numeric(6,2) default 0,
   recorded_at timestamptz default now()
 );
 
 -- Devices (controllers) registry
-create table public.devices (
+create table if not exists public.devices (
   id text primary key,
   name text,
   api_key text unique default encode(gen_random_bytes(24), 'hex'),
@@ -36,16 +37,16 @@ create table public.devices (
   created_at timestamptz default now()
 );
 
--- Index for fast lookups
-create index idx_play_logs_device on public.play_logs(device_id);
-create index idx_play_logs_campaign on public.play_logs(campaign_id);
-create index idx_play_logs_began on public.play_logs(began_at);
-create index idx_gps_tracks_device on public.gps_tracks(device_id);
-create index idx_gps_tracks_recorded on public.gps_tracks(recorded_at);
+-- Indexes for fast lookups
+create index if not exists idx_play_logs_device on public.play_logs(device_id);
+create index if not exists idx_play_logs_campaign on public.play_logs(campaign_id);
+create index if not exists idx_play_logs_began on public.play_logs(began_at);
+create index if not exists idx_gps_logs_device on public.gps_logs(device_serial);
+create index if not exists idx_gps_logs_recorded on public.gps_logs(recorded_at);
 
 -- RLS
 alter table public.play_logs enable row level security;
-alter table public.gps_tracks enable row level security;
+alter table public.gps_logs enable row level security;
 alter table public.devices enable row level security;
 
 -- Admins can see everything
@@ -54,7 +55,7 @@ create policy "Admins manage play_logs" on public.play_logs
     exists (select 1 from public.clients where auth_user_id = auth.uid() and is_admin = true)
   );
 
-create policy "Admins manage gps_tracks" on public.gps_tracks
+create policy "Admins manage gps_logs" on public.gps_logs
   for all using (
     exists (select 1 from public.clients where auth_user_id = auth.uid() and is_admin = true)
   );
@@ -75,4 +76,10 @@ create policy "Clients view own play_logs" on public.play_logs
   );
 
 -- Insert a device record for the Y12 controller
-insert into public.devices (id, name) values ('y1c-825-61009', 'Taxi #1 - Y12 Controller');
+insert into public.devices (id, name) values ('y1c-825-61009', 'Taxi #1 - Y12 Controller')
+on conflict (id) do nothing;
+
+-- MIGRATION: If you already ran the old SQL with gps_tracks, run this to migrate:
+-- alter table public.gps_tracks rename to gps_logs;
+-- alter table public.gps_logs rename column device_id to device_serial;
+-- alter table public.gps_logs add column if not exists speed numeric(6,2) default 0;

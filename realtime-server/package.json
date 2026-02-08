@@ -1,0 +1,15 @@
+{
+  "name": "gzad-realtime-server",
+  "version": "1.0.0",
+  "description": "Gzad Realtime Server - bridges LED controllers to the Gzad platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "ws": "^8.18.0",
+    "uuid": "^10.0.0"
+  }
+}

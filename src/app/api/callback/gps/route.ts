@@ -11,9 +11,12 @@ function getSupabase() {
 export async function POST(request: NextRequest) {
   const supabase = getSupabase()
   try {
-    // Auth: check shared secret
+    // Auth: check shared secret via query param OR Authorization header
     const callbackKey = request.nextUrl.searchParams.get('key')
-    if (process.env.CALLBACK_SECRET && callbackKey !== process.env.CALLBACK_SECRET) {
+    const authHeader = request.headers.get('authorization')
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+
+    if (process.env.CALLBACK_SECRET && callbackKey !== process.env.CALLBACK_SECRET && bearerToken !== process.env.CALLBACK_SECRET) {
       return NextResponse.json({ _type: 'Error', message: 'Unauthorized' }, { status: 401 })
     }
 
@@ -22,7 +25,7 @@ export async function POST(request: NextRequest) {
     // GPS callback can be array or single object
     const entries = Array.isArray(body) ? body : [body]
 
-    const deviceId = request.headers.get('card-id')
+    const deviceSerial = request.headers.get('card-id')
       || request.nextUrl.searchParams.get('device')
       || 'unknown'
 
@@ -32,31 +35,34 @@ export async function POST(request: NextRequest) {
         const lng = (entry.lng as number) || 0
         if (lat === 0 && lng === 0) return null
         return {
-          device_id: deviceId,
+          device_serial: deviceSerial,
           lat,
           lng,
-          recorded_at: entry.beginAt
-            ? new Date(entry.beginAt as number).toISOString()
-            : new Date().toISOString(),
+          speed: (entry.speed as number) || 0,
+          recorded_at: entry.timestamp
+            ? new Date(entry.timestamp as string | number).toISOString()
+            : entry.beginAt
+              ? new Date(entry.beginAt as number).toISOString()
+              : new Date().toISOString(),
         }
       })
       .filter(Boolean)
 
     if (rows.length > 0) {
-      const { error: insertError } = await supabase.from('gps_tracks').insert(rows)
+      const { error: insertError } = await supabase.from('gps_logs').insert(rows)
 
       if (insertError) {
         console.error('GPS insert error:', insertError)
         return NextResponse.json({ error: insertError.message }, { status: 500 })
       }
 
-      // Upsert device with last position (create if doesn't exist)
+      // Upsert device with last position
       const latest = rows[rows.length - 1]!
       await supabase
         .from('devices')
         .upsert(
           {
-            id: deviceId,
+            id: deviceSerial,
             last_seen_at: new Date().toISOString(),
             last_lat: latest.lat,
             last_lng: latest.lng,
