@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Monitor, Wifi, WifiOff, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock } from 'lucide-react'
+import { Monitor, Wifi, WifiOff, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock, RotateCcw, HardDrive, MapPin, Search } from 'lucide-react'
 
 interface Device {
   cardId: string
@@ -60,8 +60,7 @@ export default function DevicesPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        // Show the actual response data so user can see info/callback results
-        const detail = data.result
+        const detail = data.result !== undefined
           ? (typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2))
           : (data.success ? 'Done' : JSON.stringify(data, null, 2))
         setActionResult({ ok: true, msg: `${action}: Success`, data: detail })
@@ -87,24 +86,24 @@ export default function DevicesPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        // The response could be nested in various ways depending on SDK version
-        const result = data.result
-          ? (typeof data.result === 'string' ? JSON.parse(data.result) : data.result)
-          : data
-        // Look for base64 image data in common fields
-        const imgData = result.screenshot || result.data || result.img || result.base64
+        // SDK returns: {"result":"/9j/4AAQSkZJRg..."} — result IS the base64 string directly
+        const imgData = typeof data.result === 'string' && data.result.startsWith('/9j/')
+          ? data.result
+          : data.result?.screenshot || data.result?.data || data.result?.img || null
+
         if (imgData) {
-          setScreenshotUrl(`data:image/jpeg;base64,${imgData}`)
+          // SDK docs: remove \n line breaks from base64 string
+          const cleanBase64 = imgData.replace(/\n/g, '')
+          setScreenshotUrl(`data:image/png;base64,${cleanBase64}`)
           setActionResult({ ok: true, msg: 'Screenshot captured' })
         } else {
-          // Show raw response so we can debug the format
-          setActionResult({ ok: false, msg: 'Screenshot: Unexpected response format', data: JSON.stringify(data, null, 2) })
+          setActionResult({ ok: false, msg: 'Screenshot: No image data', data: JSON.stringify(data, null, 2) })
         }
       } else {
         setActionResult({ ok: false, msg: `Screenshot: ${data.error || 'Failed'}` })
       }
     } catch (err) {
-      setActionResult({ ok: false, msg: `Screenshot: ${err instanceof Error ? err.message : 'Failed to connect'}` })
+      setActionResult({ ok: false, msg: `Screenshot: ${err instanceof Error ? err.message : 'Failed'}` })
     } finally {
       setActionLoading(null)
     }
@@ -121,17 +120,8 @@ export default function DevicesPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        // Try to extract program name from various response shapes
-        const result = data.result
-          ? (typeof data.result === 'string' ? JSON.parse(data.result) : data.result)
-          : data
-        const name = result.name || result.programName || result.taskName
-        if (name) {
-          setPlayingInfo(name)
-        } else {
-          // Show raw so we can see the actual format
-          setPlayingInfo(JSON.stringify(result))
-        }
+        const name = data.name || data.result?.name || data.programName
+        setPlayingInfo(name || JSON.stringify(data))
       } else {
         setPlayingInfo(data.error || 'No program playing')
       }
@@ -141,6 +131,40 @@ export default function DevicesPage() {
       setActionLoading(null)
     }
   }
+
+  const getGpsLocation = async (cardId: string) => {
+    setActionLoading(`${cardId}-get-gps`)
+    setActionResult(null)
+    try {
+      const res = await fetch('/api/devices/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardId, action: 'get-gps' }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const lat = data.lat || data.result?.lat || 0
+        const lng = data.lng || data.result?.lng || 0
+        if (lat && lng && !(lat === 0 && lng === 0)) {
+          setActionResult({
+            ok: true,
+            msg: `GPS Location`,
+            data: `Lat: ${lat}, Lng: ${lng}\nhttps://www.google.com/maps?q=${lat},${lng}`,
+          })
+        } else {
+          setActionResult({ ok: false, msg: 'GPS: No fix (0,0) — device may be indoors or no GPS antenna' })
+        }
+      } else {
+        setActionResult({ ok: false, msg: `GPS: ${data.error || 'Failed'}` })
+      }
+    } catch {
+      setActionResult({ ok: false, msg: 'GPS: Failed to connect' })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const btnStyle = { padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 } as const
 
   if (loading) return <div className="portal-loading">Loading...</div>
 
@@ -270,71 +294,71 @@ export default function DevicesPage() {
                     </button>
                   </div>
 
-                  {/* Action Buttons Row 1 */}
+                  {/* Row 1: Core Controls */}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button
-                      onClick={() => sendAction(d.cardId, 'screen', { on: true })}
-                      disabled={!!actionLoading}
-                      className="portal-btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
+                    <button onClick={() => sendAction(d.cardId, 'screen', { on: true })} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
                       <Power size={14} /> Screen On
                     </button>
-                    <button
-                      onClick={() => sendAction(d.cardId, 'screen', { on: false })}
-                      disabled={!!actionLoading}
-                      className="portal-btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
+                    <button onClick={() => sendAction(d.cardId, 'screen', { on: false })} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
                       <Power size={14} /> Screen Off
                     </button>
-                    <button
-                      onClick={() => takeScreenshot(d.cardId)}
-                      disabled={!!actionLoading}
-                      className="portal-btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
+                    <button onClick={() => takeScreenshot(d.cardId)} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
                       <Camera size={14} /> Screenshot
                     </button>
-                    <button
-                      onClick={() => sendAction(d.cardId, 'info')}
-                      disabled={!!actionLoading}
-                      className="portal-btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
+                    <button onClick={() => sendAction(d.cardId, 'info')} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
                       <Settings size={14} /> Get Info
                     </button>
                   </div>
 
-                  {/* Action Buttons Row 2 */}
+                  {/* Row 2: Callbacks & Program */}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button
-                      onClick={() => sendAction(d.cardId, 'setup-callbacks')}
-                      disabled={!!actionLoading}
-                      className="portal-btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
+                    <button onClick={() => sendAction(d.cardId, 'setup-callbacks')} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
                       <Send size={14} /> Setup Callbacks
                     </button>
-                    <button
-                      onClick={() => checkPlaying(d.cardId)}
-                      disabled={!!actionLoading}
-                      className="portal-btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
+                    <button onClick={() => checkPlaying(d.cardId)} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
                       <Play size={14} /> Check Playing
+                    </button>
+                    <button onClick={() => getGpsLocation(d.cardId)} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
+                      <MapPin size={14} /> Where Is It?
                     </button>
                     <button
                       onClick={() => sendAction(d.cardId, 'clear-program')}
                       disabled={!!actionLoading}
                       style={{
-                        padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4,
+                        ...btnStyle,
                         border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)',
                         color: '#EF4444', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
                       }}
                     >
                       <Trash2 size={14} /> Clear Program
                     </button>
+                  </div>
+
+                  {/* Row 3: Query Buttons */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid #1a1a1a',
+                    borderRadius: 8, padding: '10px 14px',
+                  }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Search size={12} /> Query Device State
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button onClick={() => sendAction(d.cardId, 'get-brightness')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
+                        Brightness
+                      </button>
+                      <button onClick={() => sendAction(d.cardId, 'is-screen-on')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
+                        Screen Status
+                      </button>
+                      <button onClick={() => sendAction(d.cardId, 'get-disk-space')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
+                        <HardDrive size={12} /> Disk Space
+                      </button>
+                      <button onClick={() => sendAction(d.cardId, 'get-upload-log-url')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
+                        PlayLog Config
+                      </button>
+                      <button onClick={() => sendAction(d.cardId, 'get-sub-gps')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
+                        GPS Config
+                      </button>
+                    </div>
                   </div>
 
                   {/* Scheduled Brightness */}
@@ -373,6 +397,23 @@ export default function DevicesPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Reboot — separate, dangerous */}
+                  <button
+                    onClick={() => {
+                      if (confirm('Reboot this device? It will disconnect for ~30 seconds.')) {
+                        sendAction(d.cardId, 'reboot')
+                      }
+                    }}
+                    disabled={!!actionLoading}
+                    style={{
+                      ...btnStyle,
+                      border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)',
+                      color: '#EF4444', cursor: 'pointer', borderRadius: 8, fontWeight: 500, width: 'fit-content',
+                    }}
+                  >
+                    <RotateCcw size={14} /> Reboot Device
+                  </button>
 
                   {/* Screenshot Preview */}
                   {screenshotUrl && (

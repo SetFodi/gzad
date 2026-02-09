@@ -259,6 +259,94 @@ app.post('/devices/:cardId/scheduled-brightness', requireAuth, async (req, res) 
   }
 })
 
+// Reboot device (SDK: callCardService + reboot)
+app.post('/devices/:cardId/reboot', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'callCardService',
+      fn: 'reboot',
+      arg1: 1, // delay in seconds
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get current brightness (SDK: callCardService + getBrightness)
+app.post('/devices/:cardId/get-brightness', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'callCardService',
+      fn: 'getBrightness',
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get screen status (SDK: callCardService + isScreenOpen)
+app.post('/devices/:cardId/is-screen-on', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'callCardService',
+      fn: 'isScreenOpen',
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get GPS location one-shot (SDK: getGpsLocation)
+app.post('/devices/:cardId/get-gps', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'getGpsLocation',
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get disk space (SDK: getDiskSpace)
+app.post('/devices/:cardId/get-disk-space', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'getDiskSpace',
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get play log upload config (SDK: getUploadLogUrl)
+app.post('/devices/:cardId/get-upload-log-url', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'getUploadLogUrl',
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get GPS subscription config (SDK: getSubGPS)
+app.post('/devices/:cardId/get-sub-gps', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      _type: 'getSubGPS',
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // Configure play log + GPS callback URLs
 app.post('/devices/:cardId/setup-callbacks', requireAuth, async (req, res) => {
   const results = {}

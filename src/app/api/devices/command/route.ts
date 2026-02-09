@@ -46,6 +46,13 @@ export async function POST(request: NextRequest) {
     'screenshot': `/devices/${cardId}/screenshot`,
     'volume': `/devices/${cardId}/volume`,
     'scheduled-brightness': `/devices/${cardId}/scheduled-brightness`,
+    'reboot': `/devices/${cardId}/reboot`,
+    'get-brightness': `/devices/${cardId}/get-brightness`,
+    'is-screen-on': `/devices/${cardId}/is-screen-on`,
+    'get-gps': `/devices/${cardId}/get-gps`,
+    'get-disk-space': `/devices/${cardId}/get-disk-space`,
+    'get-upload-log-url': `/devices/${cardId}/get-upload-log-url`,
+    'get-sub-gps': `/devices/${cardId}/get-sub-gps`,
     'raw': `/command/${cardId}`,
   }
 
