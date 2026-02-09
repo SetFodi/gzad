@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Check, X, DollarSign, Copy, Download, Send, Monitor } from 'lucide-react'
+import { ArrowLeft, Check, X, DollarSign, Copy, Download, Send, Monitor, Upload } from 'lucide-react'
 import Link from 'next/link'
 
 interface Campaign {
@@ -185,6 +185,50 @@ export default function AdminCampaignDetailPage() {
       setPushResult({ ok: false, msg: 'Cannot reach Realtime Server' })
     } finally {
       setPushing(false)
+    }
+  }
+
+  const [uploadingMedia, setUploadingMedia] = useState(false)
+  const [uploadMsg, setUploadMsg] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  const handleAdminUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !campaign) return
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
+
+    setUploadingMedia(true)
+    setUploadMsg(null)
+    try {
+      for (const file of files) {
+        const ext = file.name.split('.').pop()
+        const path = `admin/${campaign.id}/${Date.now()}.${ext}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('ad-media')
+          .upload(path, file)
+
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('ad-media')
+          .getPublicUrl(path)
+
+        await supabase.from('ad_media').insert({
+          campaign_id: campaign.id,
+          file_url: publicUrl,
+          file_type: file.type,
+          file_name: file.name,
+          status: 'approved', // Admin uploads are auto-approved
+        })
+      }
+      setUploadMsg({ ok: true, msg: `${files.length} file(s) uploaded and auto-approved` })
+      await load()
+    } catch (err) {
+      setUploadMsg({ ok: false, msg: err instanceof Error ? err.message : 'Upload failed' })
+    } finally {
+      setUploadingMedia(false)
+      // Reset the input so same file can be re-uploaded
+      e.target.value = ''
     }
   }
 
@@ -379,11 +423,54 @@ export default function AdminCampaignDetailPage() {
         </div>
       )}
 
-      {/* Media Review */}
+      {/* Media Upload + Review */}
       <div className="portal-section">
-        <h2>Ad Media ({media.length})</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+          <h2 style={{ margin: 0 }}>Ad Media ({media.length})</h2>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 16px',
+              borderRadius: 8,
+              border: '1px solid #27272a',
+              background: 'rgba(255,255,255,0.05)',
+              color: '#e4e4e7',
+              cursor: uploadingMedia ? 'wait' : 'pointer',
+              fontSize: 14,
+              fontWeight: 500,
+              opacity: uploadingMedia ? 0.6 : 1,
+            }}
+          >
+            <Upload size={16} />
+            {uploadingMedia ? 'Uploading...' : 'Upload Media'}
+            <input
+              type="file"
+              multiple
+              accept="image/*,video/mp4"
+              onChange={handleAdminUpload}
+              disabled={uploadingMedia}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </div>
+
+        {uploadMsg && (
+          <div style={{
+            marginBottom: 12,
+            padding: '8px 12px',
+            borderRadius: 8,
+            fontSize: 13,
+            background: uploadMsg.ok ? 'rgba(204,243,129,0.1)' : 'rgba(239,68,68,0.1)',
+            color: uploadMsg.ok ? '#CCF381' : '#EF4444',
+          }}>
+            {uploadMsg.msg}
+          </div>
+        )}
+
         {media.length === 0 ? (
-          <p className="portal-empty-text">No media uploaded yet.</p>
+          <p className="portal-empty-text">No media uploaded yet. Use the button above to add files.</p>
         ) : (
           <div className="admin-media-review">
             {media.map((m) => (

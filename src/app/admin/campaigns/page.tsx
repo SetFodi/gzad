@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { Plus, X } from 'lucide-react'
 
 interface CampaignWithClient {
   id: string
@@ -19,11 +20,69 @@ interface CampaignWithClient {
   pending_media?: number
 }
 
+interface ClientOption {
+  id: string
+  company_name: string
+}
+
+const NAME_REGEX = /^[a-z0-9][a-z0-9 ]*[a-z0-9]$|^[a-z0-9]$/
+
 export default function AdminCampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignWithClient[]>([])
   const [filter, setFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+  const [clients, setClients] = useState<ClientOption[]>([])
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [newCampaign, setNewCampaign] = useState({ name: '', client_id: '' })
   const supabase = createClient()
+
+  async function loadClients() {
+    const { data } = await supabase.from('clients').select('id, company_name').order('company_name')
+    setClients(data || [])
+  }
+
+  const createCampaign = async () => {
+    const name = newCampaign.name.trim()
+    if (!name || !NAME_REGEX.test(name)) {
+      setCreateError('Only lowercase English letters, numbers, and spaces allowed')
+      return
+    }
+    if (!newCampaign.client_id) {
+      setCreateError('Select a client')
+      return
+    }
+
+    setCreating(true)
+    setCreateError('')
+    try {
+      const { data: existing } = await supabase
+        .from('campaigns')
+        .select('id')
+        .ilike('name', name)
+        .limit(1)
+
+      if (existing && existing.length > 0) {
+        setCreateError('A campaign with this name already exists')
+        setCreating(false)
+        return
+      }
+
+      await supabase.from('campaigns').insert({
+        client_id: newCampaign.client_id,
+        name: name,
+        status: 'active',
+      })
+      setShowCreate(false)
+      setNewCampaign({ name: '', client_id: '' })
+      await loadCampaigns()
+    } catch {
+      setCreateError('Failed to create campaign')
+    } finally {
+      setCreating(false)
+    }
+  }
 
   async function loadCampaigns() {
     let query = supabase
@@ -60,6 +119,7 @@ export default function AdminCampaignsPage() {
   }
 
   useEffect(() => { loadCampaigns() }, [filter])
+  useEffect(() => { loadClients() }, [])
 
   const updateStatus = async (campaignId: string, newStatus: string) => {
     await supabase.from('campaigns').update({ status: newStatus }).eq('id', campaignId)
@@ -80,7 +140,63 @@ export default function AdminCampaignsPage() {
 
   return (
     <div className="portal-page">
-      <h1 className="portal-page-title">Manage Campaigns</h1>
+      <div className="portal-page-header">
+        <h1 className="portal-page-title">Manage Campaigns</h1>
+        <button onClick={() => { setShowCreate(!showCreate); setCreateError('') }} className="portal-btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {showCreate ? <X size={16} /> : <Plus size={16} />}
+          {showCreate ? 'Cancel' : 'Create Campaign'}
+        </button>
+      </div>
+
+      {showCreate && (
+        <div style={{
+          background: 'rgba(204,243,129,0.06)',
+          border: '1px solid rgba(204,243,129,0.15)',
+          borderRadius: 12,
+          padding: '20px',
+          marginBottom: 24,
+        }}>
+          <h3 style={{ color: '#CCF381', marginBottom: 16, fontSize: 15 }}>New Campaign</h3>
+          {createError && (
+            <div style={{ color: '#EF4444', fontSize: 13, marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 8 }}>
+              {createError}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div className="portal-input-group" style={{ flex: '1 1 200px' }}>
+              <label>Campaign Name</label>
+              <input
+                type="text"
+                value={newCampaign.name}
+                onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value.toLowerCase().replace(/[^a-z0-9 ]/g, '') })}
+                placeholder="e.g. summer sale promo"
+              />
+              <span style={{ color: '#525252', fontSize: 11 }}>Lowercase English + numbers + spaces only</span>
+            </div>
+            <div className="portal-input-group" style={{ flex: '1 1 200px' }}>
+              <label>Client</label>
+              <select
+                value={newCampaign.client_id}
+                onChange={(e) => setNewCampaign({ ...newCampaign, client_id: e.target.value })}
+                style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 8, color: '#e4e4e7', padding: '8px 12px', fontSize: 14, width: '100%' }}
+              >
+                <option value="">Select client...</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.company_name}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={createCampaign}
+              disabled={creating}
+              className="portal-btn-primary"
+              style={{ height: 40, whiteSpace: 'nowrap' }}
+            >
+              {creating ? 'Creating...' : 'Create'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="admin-filters">
         {['all', 'pending_review', 'active', 'paused', 'completed'].map((f) => (

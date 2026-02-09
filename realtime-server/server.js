@@ -1,7 +1,9 @@
+require('dotenv').config()
 const express = require('express')
 const http = require('http')
 const { WebSocketServer } = require('ws')
 const { v4: uuidv4 } = require('uuid')
+const crypto = require('crypto')
 const config = require('./config')
 
 const app = express()
@@ -124,8 +126,19 @@ app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
   }
 
   try {
-    // Step 1: Create the program via commandXixunPlayer wrapper
-    const program = buildProgram({ name, duration, mediaUrl, mediaType, width, height })
+    // Step 1: Fetch file to get size and MD5 (SDK requires accurate values)
+    console.log(`[${new Date().toISOString()}] Fetching media metadata: ${mediaUrl}`)
+    const fileResponse = await fetch(mediaUrl)
+    if (!fileResponse.ok) {
+      return res.status(400).json({ error: `Failed to fetch media: ${fileResponse.status}` })
+    }
+    const fileBuffer = Buffer.from(await fileResponse.arrayBuffer())
+    const fileSize = fileBuffer.length
+    const fileMd5 = crypto.createHash('md5').update(fileBuffer).digest('hex')
+    console.log(`[${new Date().toISOString()}] Media: ${fileSize} bytes, MD5: ${fileMd5}`)
+
+    // Step 2: Create the program via commandXixunPlayer wrapper
+    const program = buildProgram({ name, duration, mediaUrl, mediaType, width, height, fileSize, fileMd5 })
     const result = await sendCommand(req.params.cardId, program)
     res.json({ success: true, result })
   } catch (err) {
@@ -138,14 +151,11 @@ app.post('/devices/:cardId/setup-callbacks', requireAuth, async (req, res) => {
   const results = {}
 
   try {
-    // 1. Set play log upload URL (SDK: setUploadLogUrl via commandXixunPlayer)
+    // 1. Set play log upload URL (SDK: direct top-level command, NOT wrapped in commandXixunPlayer)
     const playlogResult = await sendCommand(req.params.cardId, {
-      type: 'commandXixunPlayer',
-      command: {
-        type: 'setUploadLogUrl',
-        uploadurl: `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${req.params.cardId}`,
-        interval: '5',
-      },
+      type: 'setUploadLogUrl',
+      uploadurl: `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${req.params.cardId}`,
+      interval: '5',
     })
     results.playlog = playlogResult
   } catch (err) {
@@ -153,17 +163,14 @@ app.post('/devices/:cardId/setup-callbacks', requireAuth, async (req, res) => {
   }
 
   try {
-    // 2. Set GPS subscription (SDK: setSubGPS via commandXixunPlayer)
+    // 2. Set GPS subscription (SDK: direct top-level command, NOT wrapped in commandXixunPlayer)
     const gpsResult = await sendCommand(req.params.cardId, {
-      type: 'commandXixunPlayer',
-      command: {
-        type: 'setSubGPS',
-        openSub: true,
-        endpoint: `${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${req.params.cardId}`,
-        topic: 'gzad/gps/location',
-        interval: 30,
-        mode: 'http',
-      },
+      type: 'setSubGPS',
+      openSub: true,
+      endpoint: `${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${req.params.cardId}`,
+      topic: 'gzad/gps/location',
+      interval: 30,
+      mode: 'http',
     })
     results.gps = gpsResult
   } catch (err) {
@@ -308,8 +315,9 @@ function sendCommand(cardId, data) {
   })
 }
 
-function buildProgram({ name, duration = 10, mediaUrl, mediaType = 'video/mp4', width = 960, height = 320 }) {
+function buildProgram({ name, duration = 10, mediaUrl, mediaType = 'video/mp4', width = 960, height = 320, fileSize = 0, fileMd5 = '' }) {
   // Build an XixunPlayer PlayXixunTask program (official SDK format)
+  // SDK docs: totalSize and size "must be accurate and accurate", md5 is required for media files
   const isVideo = mediaType.startsWith('video')
   const sourceType = isVideo ? 'Video' : 'Image'
   const mime = isVideo ? 'video/mp4' : (mediaType || 'image/png')
@@ -325,12 +333,13 @@ function buildProgram({ name, duration = 10, mediaUrl, mediaType = 'video/mp4', 
       task: {
         _id: uuidv4(),
         name: name,
+        insert: false,
         items: [
           {
             _id: uuidv4().replace(/-/g, ''),
             _program: {
               id: uuidv4().replace(/-/g, ''),
-              totalSize: 0,
+              totalSize: fileSize,
               name: name,
               width: width,
               height: height,
@@ -340,9 +349,10 @@ function buildProgram({ name, duration = 10, mediaUrl, mediaType = 'video/mp4', 
                   sources: [
                     {
                       _type: sourceType,
+                      md5: fileMd5,
                       name: name + fileExt,
                       mime: mime,
-                      size: 0,
+                      size: fileSize,
                       fileExt: fileExt,
                       id: uuidv4().replace(/-/g, ''),
                       url: mediaUrl,
