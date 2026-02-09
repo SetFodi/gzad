@@ -157,6 +157,17 @@ app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
       })
     }
 
+    // Clear existing program first to ensure clean replacement
+    try {
+      await sendCommand(req.params.cardId, { type: 'clearPlayerTask' })
+      // Small delay for device to process the clear
+      await new Promise(resolve => setTimeout(resolve, 500))
+    } catch (e) {
+      console.log(`[${new Date().toISOString()}] Clear before push warning: ${e.message}`)
+    }
+
+    console.log(`[${new Date().toISOString()}] Building program "${name}" with ${processedItems.length} media items, totalSize=${totalSize}`)
+
     const program = buildProgram({
       name,
       mediaItems: processedItems,

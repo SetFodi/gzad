@@ -15,13 +15,7 @@ interface Campaign {
   daily_hours: number
   taxi_count: number
   monthly_price: number
-  device_group_id: string | null
   clients: { company_name: string; id: string } | null
-}
-
-interface DeviceGroup {
-  id: string
-  name: string
 }
 
 interface Media {
@@ -51,7 +45,6 @@ export default function AdminCampaignDetailPage() {
   const [clearing, setClearing] = useState(false)
   const [checkingPlaying, setCheckingPlaying] = useState(false)
   const [playingInfo, setPlayingInfo] = useState<string | null>(null)
-  const [groups, setGroups] = useState<DeviceGroup[]>([])
   const [schedule, setSchedule] = useState({
     startTime: '00:00',
     endTime: '23:59',
@@ -69,14 +62,12 @@ export default function AdminCampaignDetailPage() {
   async function load() {
     const id = params.id as string
 
-    const [campaignRes, mediaRes, groupsRes] = await Promise.all([
+    const [campaignRes, mediaRes] = await Promise.all([
       supabase.from('campaigns').select('*, clients(company_name, id)').eq('id', id).single(),
       supabase.from('ad_media').select('*').eq('campaign_id', id).order('uploaded_at', { ascending: false }),
-      supabase.from('device_groups').select('id, name').order('name'),
     ])
 
     setCampaign(campaignRes.data)
-    setGroups(groupsRes.data || [])
     if (campaignRes.data) {
       setForm({
         start_date: campaignRes.data.start_date || '',
@@ -95,6 +86,68 @@ export default function AdminCampaignDetailPage() {
   const updateMedia = async (mediaId: string, status: string) => {
     await supabase.from('ad_media').update({ status }).eq('id', mediaId)
     await load()
+    // Auto-sync all online devices when media approval status changes
+    await syncAllOnlineDevices()
+  }
+
+  const syncAllOnlineDevices = async () => {
+    try {
+      const { data: activeCampaigns } = await supabase
+        .from('campaigns')
+        .select('id, name')
+        .eq('status', 'active')
+
+      const mediaItems: { url: string; type: string; duration: number }[] = []
+      const campaignNames: string[] = []
+      for (const c of activeCampaigns || []) {
+        const { data: approved } = await supabase
+          .from('ad_media')
+          .select('file_url, file_type')
+          .eq('campaign_id', c.id)
+          .eq('status', 'approved')
+        if (approved && approved.length > 0) {
+          campaignNames.push(c.name)
+          for (const m of approved) {
+            mediaItems.push({
+              url: m.file_url,
+              type: m.file_type,
+              duration: m.file_type.startsWith('video') ? 0 : 10,
+            })
+          }
+        }
+      }
+
+      const devicesRes = await fetch('/api/devices')
+      const deviceList = await devicesRes.json()
+      const onlineDevices = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
+        .filter((d: { online: boolean }) => d.online)
+
+      for (const device of onlineDevices) {
+        if (mediaItems.length === 0) {
+          await fetch('/api/devices/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cardId: device.cardId, action: 'clear-program' }),
+          })
+        } else {
+          await fetch('/api/devices/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cardId: device.cardId,
+              action: 'push-program',
+              name: campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist',
+              mediaItems,
+              schedule: { startTime: '00:00', endTime: '23:59' },
+              width: 960,
+              height: 320,
+            }),
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync devices:', err)
+    }
   }
 
   const saveCampaign = async () => {
@@ -147,18 +200,7 @@ export default function AdminCampaignDetailPage() {
       const res = await fetch('/api/devices')
       const data = await res.json()
       const list = Array.isArray(data) ? data : data.devices || []
-      let onlineDevices = list.filter((d: Device) => d.online)
-
-      // If campaign has a group, filter to only devices in that group
-      if (campaign?.device_group_id) {
-        const { data: groupDevices } = await supabase
-          .from('devices')
-          .select('id')
-          .eq('group_id', campaign.device_group_id)
-        const groupIds = new Set((groupDevices || []).map((d: { id: string }) => d.id))
-        onlineDevices = onlineDevices.filter((d: Device) => groupIds.has(d.cardId))
-      }
-
+      const onlineDevices = list.filter((d: Device) => d.online)
       setDevices(onlineDevices)
       if (onlineDevices.length > 0 && !selectedDevice) {
         setSelectedDevice(onlineDevices[0].cardId)
@@ -166,7 +208,7 @@ export default function AdminCampaignDetailPage() {
     } catch {
       // Realtime Server not running — that's ok
     }
-  }, [selectedDevice, campaign?.device_group_id])
+  }, [selectedDevice])
 
   useEffect(() => { loadDevices() }, [loadDevices])
 
@@ -176,18 +218,12 @@ export default function AdminCampaignDetailPage() {
     setPushing(true)
     setPushResult(null)
     try {
-      // Fetch active campaigns in the same group (or all if no group) and combine their approved media
-      let query = supabase
+      // Fetch all active campaigns and combine their approved media
+      const { data: activeCampaigns } = await supabase
         .from('campaigns')
         .select('id, name')
         .eq('status', 'active')
         .order('created_at', { ascending: true })
-
-      if (campaign.device_group_id) {
-        query = query.eq('device_group_id', campaign.device_group_id)
-      }
-
-      const { data: activeCampaigns } = await query
 
       if (!activeCampaigns || activeCampaigns.length === 0) {
         setPushResult({ ok: false, msg: 'No active campaigns found' })
@@ -430,15 +466,6 @@ export default function AdminCampaignDetailPage() {
           <span style={{ color: '#525252', fontSize: 12, marginLeft: 4 }}>
             ({media.filter(m => m.status === 'approved').length} approved file{media.filter(m => m.status === 'approved').length !== 1 ? 's' : ''})
           </span>
-          {campaign.device_group_id && (
-            <span style={{
-              fontSize: 11, color: '#60A5FA', background: 'rgba(96,165,250,0.1)',
-              border: '1px solid rgba(96,165,250,0.2)', borderRadius: 6,
-              padding: '2px 8px', marginLeft: 4,
-            }}>
-              Group: {groups.find(g => g.id === campaign.device_group_id)?.name}
-            </span>
-          )}
         </div>
 
         {devices.length === 0 ? (
@@ -629,25 +656,6 @@ export default function AdminCampaignDetailPage() {
                 <input type="number" value={form.monthly_price} onChange={(e) => setForm({ ...form, monthly_price: parseFloat(e.target.value) })} min={0} />
               </div>
             </div>
-            <div className="admin-form-row">
-              <div className="portal-input-group">
-                <label>Device Group</label>
-                <select
-                  value={campaign.device_group_id || ''}
-                  onChange={async (e) => {
-                    const val = e.target.value || null
-                    await supabase.from('campaigns').update({ device_group_id: val }).eq('id', campaign.id)
-                    await load()
-                  }}
-                  style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 8, color: '#e4e4e7', padding: '8px 12px', fontSize: 14, width: '100%' }}
-                >
-                  <option value="">All devices (no group filter)</option>
-                  {groups.map(g => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
             <button onClick={saveCampaign} className="portal-btn-primary">Save Changes</button>
           </div>
         </div>
@@ -675,12 +683,6 @@ export default function AdminCampaignDetailPage() {
             <div className="stat-card-info">
               <span className="stat-card-value">{campaign.monthly_price ? `${campaign.monthly_price} GEL` : '—'}</span>
               <span className="stat-card-label">Monthly Price</span>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-card-info">
-              <span className="stat-card-value">{groups.find(g => g.id === campaign.device_group_id)?.name || 'All devices'}</span>
-              <span className="stat-card-label">Device Group</span>
             </div>
           </div>
         </div>

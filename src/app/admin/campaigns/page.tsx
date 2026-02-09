@@ -15,7 +15,6 @@ interface CampaignWithClient {
   taxi_count: number
   monthly_price: number
   created_at: string
-  device_group_id: string | null
   clients: { company_name: string } | null
   media_count?: number
   pending_media?: number
@@ -124,35 +123,32 @@ export default function AdminCampaignsPage() {
 
   const updateStatus = async (campaignId: string, newStatus: string) => {
     await supabase.from('campaigns').update({ status: newStatus }).eq('id', campaignId)
+    // Auto-sync when activating/pausing (changes what's in the active playlist)
+    if (newStatus === 'active' || newStatus === 'paused' || newStatus === 'completed') {
+      await syncAllOnlineDevices()
+    }
     await loadCampaigns()
   }
 
   const deleteCampaign = async (campaignId: string, campaignName: string) => {
     if (!confirm(`Delete campaign "${campaignName}"? This will also delete all its media files. This cannot be undone.`)) return
 
-    // Get campaign's group before deleting
-    const campaignToDelete = campaigns.find(c => c.id === campaignId)
-    const groupId = campaignToDelete?.device_group_id
-
     // Delete media first, then campaign
     await supabase.from('ad_media').delete().eq('campaign_id', campaignId)
     await supabase.from('campaigns').delete().eq('id', campaignId)
 
-    // Auto-sync: re-push updated playlist to all devices in the group
-    if (groupId) {
-      await syncGroupDevices(groupId)
-    }
+    // Auto-sync: re-push updated playlist to all online devices
+    await syncAllOnlineDevices()
 
     await loadCampaigns()
   }
 
-  const syncGroupDevices = async (groupId: string) => {
+  const syncAllOnlineDevices = async () => {
     try {
-      // Get remaining active campaigns in the group
+      // Get remaining active campaigns
       const { data: activeCampaigns } = await supabase
         .from('campaigns')
         .select('id, name')
-        .eq('device_group_id', groupId)
         .eq('status', 'active')
 
       // Collect approved media from remaining campaigns
@@ -176,17 +172,11 @@ export default function AdminCampaignsPage() {
         }
       }
 
-      // Get online devices in the group
-      const { data: groupDevices } = await supabase
-        .from('devices')
-        .select('id')
-        .eq('group_id', groupId)
-      const groupDeviceIds = new Set((groupDevices || []).map((d: { id: string }) => d.id))
-
+      // Get all online devices
       const devicesRes = await fetch('/api/devices')
       const deviceList = await devicesRes.json()
       const onlineDevices = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
-        .filter((d: { online: boolean; cardId: string }) => d.online && groupDeviceIds.has(d.cardId))
+        .filter((d: { online: boolean }) => d.online)
 
       // Push updated playlist or clear each device
       for (const device of onlineDevices) {
