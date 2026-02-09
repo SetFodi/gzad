@@ -234,8 +234,20 @@ app.post('/devices/:cardId/volume', requireAuth, async (req, res) => {
 })
 
 // Scheduled brightness (SDK: timedBrightness)
+// Accepts: { items: [{ time: "HH:MM", brightness: 100 }] }
 app.post('/devices/:cardId/scheduled-brightness', requireAuth, async (req, res) => {
-  const { task } = req.body // full timedBrightness task object
+  const { items } = req.body
+  if (!items || items.length === 0) {
+    return res.status(400).json({ error: 'items array required' })
+  }
+  // Build SDK-compatible task from simple items
+  const task = {
+    isOpen: true,
+    items: items.map(item => ({
+      range: { startTime: item.time, endTime: item.time },
+      bright: item.brightness,
+    })),
+  }
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'timedBrightness',
@@ -248,8 +260,20 @@ app.post('/devices/:cardId/scheduled-brightness', requireAuth, async (req, res) 
 })
 
 // Scheduled screen on/off (SDK: timedScreening)
+// Accepts: { items: [{ time: "HH:MM", action: "on"|"off" }] }
 app.post('/devices/:cardId/scheduled-screen', requireAuth, async (req, res) => {
-  const { task } = req.body // full timedScreening task object, or null to clear
+  const { items } = req.body
+  if (!items || items.length === 0) {
+    return res.status(400).json({ error: 'items array required' })
+  }
+  // Build SDK-compatible task from simple items
+  const task = {
+    isOpen: true,
+    items: items.map(item => ({
+      range: { startTime: item.time, endTime: item.time },
+      screenOff: item.action === 'off',
+    })),
+  }
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'timedScreening',
