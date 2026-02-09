@@ -550,8 +550,8 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
       exitEffectTimeSpan: 0,
     }
 
-    // Advance playTime for next source
-    currentPlayTime += isVideo ? 0 : (item.duration || 10)
+    // Advance playTime for next source (estimate 15s for videos with unknown duration)
+    currentPlayTime += isVideo ? 15 : (item.duration || 10)
 
     return source
   })
@@ -594,12 +594,12 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
               height: height,
               layers: [
                 {
-                  repeat: false,
+                  repeat: true,
                   sources: sources,
                 },
               ],
             },
-            repeatTimes: 1,
+            repeatTimes: 0,
             schedules: [scheduleConfig],
           },
         ],

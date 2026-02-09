@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Trash2 } from 'lucide-react'
 
 interface CampaignWithClient {
   id: string
@@ -123,6 +123,14 @@ export default function AdminCampaignsPage() {
 
   const updateStatus = async (campaignId: string, newStatus: string) => {
     await supabase.from('campaigns').update({ status: newStatus }).eq('id', campaignId)
+    await loadCampaigns()
+  }
+
+  const deleteCampaign = async (campaignId: string, campaignName: string) => {
+    if (!confirm(`Delete campaign "${campaignName}"? This will also delete all its media files. This cannot be undone.`)) return
+    // Delete media first, then campaign
+    await supabase.from('ad_media').delete().eq('campaign_id', campaignId)
+    await supabase.from('campaigns').delete().eq('id', campaignId)
     await loadCampaigns()
   }
 
@@ -260,6 +268,17 @@ export default function AdminCampaignsPage() {
                       {c.status === 'paused' && (
                         <button className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>Resume</button>
                       )}
+                      <button
+                        onClick={() => deleteCampaign(c.id, c.name)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '4px 10px', borderRadius: 6, fontSize: 12,
+                          border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)',
+                          color: '#EF4444', cursor: 'pointer', fontWeight: 500,
+                        }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
                   </td>
                 </tr>
