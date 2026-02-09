@@ -1,0 +1,303 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
+import { ArrowLeft, Monitor, Megaphone, ChevronDown, ChevronRight, Plus } from 'lucide-react'
+
+interface DeviceGroup {
+  id: string
+  name: string
+  created_at: string
+}
+
+interface DeviceRow {
+  id: string
+  name: string | null
+  last_lat: number | null
+  last_lng: number | null
+}
+
+interface CampaignRow {
+  id: string
+  name: string
+  status: string
+  start_date: string | null
+  end_date: string | null
+  device_group_id: string | null
+  clients: { company_name: string } | null
+  approved_count: number
+}
+
+export default function GroupDetailPage() {
+  const params = useParams()
+  const groupId = params.id as string
+  const [group, setGroup] = useState<DeviceGroup | null>(null)
+  const [devices, setDevices] = useState<DeviceRow[]>([])
+  const [campaigns, setCampaigns] = useState<CampaignRow[]>([])
+  const [unassignedCampaigns, setUnassignedCampaigns] = useState<{ id: string; name: string }[]>([])
+  const [expandedDevice, setExpandedDevice] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [assigning, setAssigning] = useState(false)
+  const supabase = createClient()
+
+  const load = async () => {
+    const [groupRes, devicesRes, campaignsRes, unassignedRes] = await Promise.all([
+      supabase.from('device_groups').select('*').eq('id', groupId).single(),
+      supabase.from('devices').select('id, name, last_lat, last_lng').eq('group_id', groupId),
+      supabase.from('campaigns').select('id, name, status, start_date, end_date, device_group_id, clients(company_name)').eq('device_group_id', groupId).order('created_at', { ascending: false }),
+      supabase.from('campaigns').select('id, name').is('device_group_id', null).eq('status', 'active'),
+    ])
+
+    setGroup(groupRes.data)
+    setDevices(devicesRes.data || [])
+    setUnassignedCampaigns(unassignedRes.data || [])
+
+    // Get approved media counts per campaign
+    const campaignList = campaignsRes.data || []
+    if (campaignList.length > 0) {
+      const ids = campaignList.map(c => c.id)
+      const { data: mediaData } = await supabase
+        .from('ad_media')
+        .select('campaign_id')
+        .in('campaign_id', ids)
+        .eq('status', 'approved')
+
+      const counts: Record<string, number> = {}
+      for (const m of mediaData || []) {
+        counts[m.campaign_id] = (counts[m.campaign_id] || 0) + 1
+      }
+
+      setCampaigns(campaignList.map(c => ({
+        ...c,
+        clients: Array.isArray(c.clients) ? c.clients[0] || null : c.clients,
+        approved_count: counts[c.id] || 0,
+      })) as CampaignRow[])
+    } else {
+      setCampaigns([])
+    }
+
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [groupId])
+
+  const assignCampaign = async (campaignId: string) => {
+    setAssigning(true)
+    await supabase.from('campaigns').update({ device_group_id: groupId }).eq('id', campaignId)
+    await load()
+    setAssigning(false)
+  }
+
+  const unassignCampaign = async (campaignId: string) => {
+    await supabase.from('campaigns').update({ device_group_id: null }).eq('id', campaignId)
+    await load()
+  }
+
+  if (loading) return <div className="portal-loading">Loading...</div>
+  if (!group) return <div className="portal-loading">Group not found</div>
+
+  const statusColor = (s: string) =>
+    s === 'active' ? '#CCF381' : s === 'completed' ? '#60A5FA' : s === 'paused' ? '#FBBF24' : '#71717a'
+
+  return (
+    <div className="portal-page">
+      <Link href="/admin/groups" className="portal-back-link">
+        <ArrowLeft size={16} /> Back to Groups
+      </Link>
+
+      <div className="portal-page-header">
+        <div>
+          <h1 className="portal-page-title">{group.name}</h1>
+          <p className="portal-subtitle">
+            {devices.length} device{devices.length !== 1 ? 's' : ''} · {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+      </div>
+
+      {/* Campaigns assigned to this group */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#e4e4e7', margin: 0 }}>
+            Campaigns in this Group
+          </h2>
+          {unassignedCampaigns.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <select
+                id="assign-campaign"
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    assignCampaign(e.target.value)
+                    e.target.value = ''
+                  }
+                }}
+                disabled={assigning}
+                style={{
+                  background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 8,
+                  color: '#e4e4e7', padding: '8px 12px', fontSize: 13,
+                }}
+              >
+                <option value="">
+                  {assigning ? 'Assigning...' : 'Assign campaign...'}
+                </option>
+                {unassignedCampaigns.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <Plus size={16} style={{ color: '#71717a' }} />
+            </div>
+          )}
+        </div>
+
+        {campaigns.length === 0 ? (
+          <div style={{
+            background: 'rgba(251,191,36,0.06)',
+            border: '1px solid rgba(251,191,36,0.15)',
+            borderRadius: 12, padding: '16px 20px',
+          }}>
+            <p style={{ color: '#FBBF24', fontSize: 13, margin: 0 }}>
+              No campaigns assigned to this group yet. Assign one above, or go to a campaign&apos;s detail page → Edit Details → set Device Group.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {campaigns.map(c => (
+              <div key={c.id} style={{
+                background: '#0A0A0A', border: '1px solid #1a1a1a',
+                borderRadius: 10, padding: '14px 18px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                flexWrap: 'wrap', gap: 10,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Megaphone size={16} style={{ color: statusColor(c.status), flexShrink: 0 }} />
+                  <div>
+                    <Link
+                      href={`/admin/campaigns/${c.id}`}
+                      style={{ color: '#e4e4e7', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
+                    >
+                      {c.name}
+                    </Link>
+                    <div style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>
+                      {c.clients?.company_name || 'No client'} · {c.approved_count} approved file{c.approved_count !== 1 ? 's' : ''}
+                      {c.start_date && c.end_date && (
+                        <span> · {c.start_date} to {c.end_date}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: statusColor(c.status),
+                    background: `${statusColor(c.status)}15`,
+                    border: `1px solid ${statusColor(c.status)}30`,
+                    borderRadius: 6, padding: '3px 10px', textTransform: 'uppercase',
+                  }}>
+                    {c.status}
+                  </span>
+                  <button
+                    onClick={() => unassignCampaign(c.id)}
+                    style={{
+                      background: 'none', border: '1px solid rgba(239,68,68,0.3)',
+                      borderRadius: 6, color: '#EF4444', cursor: 'pointer',
+                      padding: '4px 10px', fontSize: 11, fontWeight: 500,
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Devices in this group */}
+      <div>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: '#e4e4e7', marginBottom: 14 }}>
+          Devices in this Group
+        </h2>
+
+        {devices.length === 0 ? (
+          <div style={{
+            background: 'rgba(251,191,36,0.06)',
+            border: '1px solid rgba(251,191,36,0.15)',
+            borderRadius: 12, padding: '16px 20px',
+          }}>
+            <p style={{ color: '#FBBF24', fontSize: 13, margin: 0 }}>
+              No devices in this group. Go to <Link href="/admin/groups" style={{ color: '#60A5FA' }}>Groups</Link> to assign devices.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {devices.map(d => {
+              const isExpanded = expandedDevice === d.id
+              return (
+                <div key={d.id} style={{
+                  background: '#0A0A0A', border: '1px solid #1a1a1a',
+                  borderRadius: 10, overflow: 'hidden',
+                }}>
+                  <button
+                    onClick={() => setExpandedDevice(isExpanded ? null : d.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                      padding: '14px 18px', background: 'none', border: 'none',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    {isExpanded ? <ChevronDown size={16} style={{ color: '#CCF381' }} /> : <ChevronRight size={16} style={{ color: '#71717a' }} />}
+                    <Monitor size={16} style={{ color: '#CCF381' }} />
+                    <span style={{ color: '#CCF381', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>{d.id}</span>
+                    {d.name && <span style={{ color: '#71717a', fontSize: 12 }}>({d.name})</span>}
+                    <span style={{ color: '#3f3f46', fontSize: 12, marginLeft: 'auto' }}>
+                      {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} targeted
+                    </span>
+                  </button>
+
+                  {isExpanded && (
+                    <div style={{ padding: '0 18px 14px 44px', borderTop: '1px solid #141414' }}>
+                      {campaigns.length === 0 ? (
+                        <p style={{ color: '#3f3f46', fontSize: 13, margin: '12px 0 0' }}>
+                          No campaigns targeting this group yet.
+                        </p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                          {campaigns.map(c => (
+                            <Link
+                              key={c.id}
+                              href={`/admin/campaigns/${c.id}`}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                padding: '10px 14px', borderRadius: 8,
+                                background: 'rgba(204,243,129,0.04)',
+                                border: '1px solid rgba(204,243,129,0.1)',
+                                textDecoration: 'none',
+                              }}
+                            >
+                              <Megaphone size={14} style={{ color: statusColor(c.status), flexShrink: 0 }} />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ color: '#e4e4e7', fontSize: 13, fontWeight: 500 }}>{c.name}</div>
+                                <div style={{ color: '#71717a', fontSize: 11, marginTop: 2 }}>
+                                  {c.clients?.company_name} · {c.approved_count} file{c.approved_count !== 1 ? 's' : ''} · {c.status}
+                                </div>
+                              </div>
+                              <span style={{
+                                width: 8, height: 8, borderRadius: '50%',
+                                background: statusColor(c.status), flexShrink: 0,
+                              }} />
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

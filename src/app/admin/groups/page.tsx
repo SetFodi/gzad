@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Trash2, Monitor } from 'lucide-react'
+import { Plus, X, Trash2, Monitor, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
 
 interface DeviceGroup {
   id: string
@@ -195,12 +196,15 @@ export default function GroupsPage() {
               borderRadius: 12, padding: '16px 20px',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 600, color: '#e4e4e7', margin: 0 }}>{g.name}</h3>
-                  <span style={{ fontSize: 12, color: '#71717a' }}>
-                    {g.devices.length} device{g.devices.length !== 1 ? 's' : ''} · {g.campaign_count} campaign{g.campaign_count !== 1 ? 's' : ''}
-                  </span>
-                </div>
+                <Link href={`/admin/groups/${g.id}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 600, color: '#e4e4e7', margin: 0 }}>{g.name}</h3>
+                    <span style={{ fontSize: 12, color: '#71717a' }}>
+                      {g.devices.length} device{g.devices.length !== 1 ? 's' : ''} · {g.campaign_count} campaign{g.campaign_count !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <ChevronRight size={18} style={{ color: '#3f3f46', marginLeft: 'auto' }} />
+                </Link>
                 <button
                   onClick={() => deleteGroup(g.id)}
                   style={{
