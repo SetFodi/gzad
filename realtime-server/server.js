@@ -599,7 +599,7 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
                 },
               ],
             },
-            repeatTimes: 0,
+            repeatTimes: 9999,
             schedules: [scheduleConfig],
           },
         ],
