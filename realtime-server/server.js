@@ -339,7 +339,7 @@ app.post('/devices/:cardId/get-upload-log-url', requireAuth, async (req, res) =>
 app.post('/devices/:cardId/get-sub-gps', requireAuth, async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
-      _type: 'getSubGPS',
+      type: 'getSubGPS',
     })
     res.json(result)
   } catch (err) {

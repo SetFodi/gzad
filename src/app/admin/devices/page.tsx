@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Monitor, Wifi, WifiOff, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock, RotateCcw, HardDrive, MapPin, Search } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface Device {
   cardId: string
@@ -136,29 +137,25 @@ export default function DevicesPage() {
     setActionLoading(`${cardId}-get-gps`)
     setActionResult(null)
     try {
-      const res = await fetch('/api/devices/command', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cardId, action: 'get-gps' }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        const lat = data.lat || data.result?.lat || 0
-        const lng = data.lng || data.result?.lng || 0
-        if (lat && lng && !(lat === 0 && lng === 0)) {
-          setActionResult({
-            ok: true,
-            msg: `GPS Location`,
-            data: `Lat: ${lat}, Lng: ${lng}\nhttps://www.google.com/maps?q=${lat},${lng}`,
-          })
-        } else {
-          setActionResult({ ok: false, msg: 'GPS: No fix (0,0) — device may be indoors or no GPS antenna' })
-        }
+      // Read last known GPS from Supabase devices table (instant, no controller query needed)
+      const supabase = createClient()
+      const { data: device } = await supabase
+        .from('devices')
+        .select('last_lat, last_lng, last_seen_at')
+        .eq('id', cardId)
+        .single()
+
+      if (device?.last_lat && device?.last_lng) {
+        setActionResult({
+          ok: true,
+          msg: `Last Known Location (${device.last_seen_at ? new Date(device.last_seen_at).toLocaleString() : 'unknown time'})`,
+          data: `Lat: ${device.last_lat}, Lng: ${device.last_lng}\nhttps://www.google.com/maps?q=${device.last_lat},${device.last_lng}`,
+        })
       } else {
-        setActionResult({ ok: false, msg: `GPS: ${data.error || 'Failed'}` })
+        setActionResult({ ok: false, msg: 'GPS: No location data yet — wait for GPS callbacks to report' })
       }
     } catch {
-      setActionResult({ ok: false, msg: 'GPS: Failed to connect' })
+      setActionResult({ ok: false, msg: 'GPS: Failed to fetch location' })
     } finally {
       setActionLoading(null)
     }
@@ -422,7 +419,7 @@ export default function DevicesPage() {
                       <img
                         src={screenshotUrl}
                         alt="Device screenshot"
-                        style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #27272a' }}
+                        style={{ width: '100%', minWidth: 600, borderRadius: 8, border: '1px solid #27272a' }}
                       />
                     </div>
                   )}
