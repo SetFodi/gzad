@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Monitor, Wifi, WifiOff, RefreshCw, Sun, Power, Send, Settings } from 'lucide-react'
+import { Monitor, Wifi, WifiOff, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock } from 'lucide-react'
 
 interface Device {
   cardId: string
@@ -18,6 +18,11 @@ export default function DevicesPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionResult, setActionResult] = useState('')
   const [brightness, setBrightness] = useState(100)
+  const [volume, setVolume] = useState(8)
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
+  const [playingInfo, setPlayingInfo] = useState<string | null>(null)
+  const [schedBrightness, setSchedBrightness] = useState({ time: '08:00', value: 100 })
+  const [schedScreen, setSchedScreen] = useState({ onTime: '08:00', offTime: '23:00' })
 
   const loadDevices = useCallback(async () => {
     try {
@@ -62,6 +67,56 @@ export default function DevicesPage() {
       }
     } catch {
       setActionResult(`${action}: Failed to connect`)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const takeScreenshot = async (cardId: string) => {
+    setActionLoading(`${cardId}-screenshot`)
+    setScreenshotUrl(null)
+    try {
+      const res = await fetch('/api/devices/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardId, action: 'screenshot', quality: 80, scale: 50 }),
+      })
+      const data = await res.json()
+      if (res.ok && data.result) {
+        const result = typeof data.result === 'string' ? JSON.parse(data.result) : data.result
+        if (result.screenshot || result.data) {
+          setScreenshotUrl(`data:image/jpeg;base64,${result.screenshot || result.data}`)
+        } else {
+          setActionResult('Screenshot: No image data returned')
+        }
+      } else {
+        setActionResult(`Screenshot: ${data.error || 'Failed'}`)
+      }
+    } catch {
+      setActionResult('Screenshot: Failed to connect')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const checkPlaying = async (cardId: string) => {
+    setActionLoading(`${cardId}-get-playing`)
+    setPlayingInfo(null)
+    try {
+      const res = await fetch('/api/devices/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardId, action: 'get-playing' }),
+      })
+      const data = await res.json()
+      if (res.ok && data.result) {
+        const result = typeof data.result === 'string' ? JSON.parse(data.result) : data.result
+        setPlayingInfo(result.name || result.programName || JSON.stringify(result))
+      } else {
+        setPlayingInfo(data.error || 'No program playing')
+      }
+    } catch {
+      setPlayingInfo('Failed to connect')
     } finally {
       setActionLoading(null)
     }
@@ -152,7 +207,29 @@ export default function DevicesPage() {
                     </button>
                   </div>
 
-                  {/* Action Buttons */}
+                  {/* Volume Control */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Volume2 size={16} style={{ color: '#60A5FA', flexShrink: 0 }} />
+                    <input
+                      type="range"
+                      min={0}
+                      max={15}
+                      value={volume}
+                      onChange={(e) => setVolume(parseInt(e.target.value))}
+                      style={{ flex: 1 }}
+                    />
+                    <span style={{ color: '#A3A3A3', fontSize: 12, width: 20, textAlign: 'right' }}>{volume}</span>
+                    <button
+                      onClick={() => sendAction(d.cardId, 'volume', { volume })}
+                      disabled={actionLoading === `${d.cardId}-volume`}
+                      className="portal-btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: 12 }}
+                    >
+                      Set
+                    </button>
+                  </div>
+
+                  {/* Action Buttons Row 1 */}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
                       onClick={() => sendAction(d.cardId, 'screen', { on: true })}
@@ -171,6 +248,14 @@ export default function DevicesPage() {
                       <Power size={14} /> Screen Off
                     </button>
                     <button
+                      onClick={() => takeScreenshot(d.cardId)}
+                      disabled={!!actionLoading}
+                      className="portal-btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <Camera size={14} /> Screenshot
+                    </button>
+                    <button
                       onClick={() => sendAction(d.cardId, 'info')}
                       disabled={!!actionLoading}
                       className="portal-btn-secondary"
@@ -178,6 +263,10 @@ export default function DevicesPage() {
                     >
                       <Settings size={14} /> Get Info
                     </button>
+                  </div>
+
+                  {/* Action Buttons Row 2 */}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
                       onClick={() => sendAction(d.cardId, 'setup-callbacks')}
                       disabled={!!actionLoading}
@@ -186,7 +275,124 @@ export default function DevicesPage() {
                     >
                       <Send size={14} /> Setup Callbacks
                     </button>
+                    <button
+                      onClick={() => checkPlaying(d.cardId)}
+                      disabled={!!actionLoading}
+                      className="portal-btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <Play size={14} /> Check Playing
+                    </button>
+                    <button
+                      onClick={() => sendAction(d.cardId, 'clear-program')}
+                      disabled={!!actionLoading}
+                      style={{
+                        padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4,
+                        border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)',
+                        color: '#EF4444', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
+                      }}
+                    >
+                      <Trash2 size={14} /> Clear Program
+                    </button>
                   </div>
+
+                  {/* Scheduled Brightness */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid #1a1a1a',
+                    borderRadius: 8, padding: '10px 14px',
+                  }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={12} /> Scheduled Brightness
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input
+                        type="time"
+                        value={schedBrightness.time}
+                        onChange={(e) => setSchedBrightness({ ...schedBrightness, time: e.target.value })}
+                        style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6, color: '#e4e4e7', padding: '4px 8px', fontSize: 12 }}
+                      />
+                      <span style={{ color: '#71717a', fontSize: 12 }}>at</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={255}
+                        value={schedBrightness.value}
+                        onChange={(e) => setSchedBrightness({ ...schedBrightness, value: parseInt(e.target.value) || 1 })}
+                        style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6, color: '#e4e4e7', padding: '4px 8px', fontSize: 12, width: 60 }}
+                      />
+                      <button
+                        onClick={() => sendAction(d.cardId, 'scheduled-brightness', {
+                          items: [{ time: schedBrightness.time, brightness: schedBrightness.value }],
+                        })}
+                        disabled={!!actionLoading}
+                        className="portal-btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
+                      >
+                        Set
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Scheduled Screen */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid #1a1a1a',
+                    borderRadius: 8, padding: '10px 14px',
+                  }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={12} /> Scheduled Screen On/Off
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ color: '#71717a', fontSize: 12 }}>On:</span>
+                      <input
+                        type="time"
+                        value={schedScreen.onTime}
+                        onChange={(e) => setSchedScreen({ ...schedScreen, onTime: e.target.value })}
+                        style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6, color: '#e4e4e7', padding: '4px 8px', fontSize: 12 }}
+                      />
+                      <span style={{ color: '#71717a', fontSize: 12 }}>Off:</span>
+                      <input
+                        type="time"
+                        value={schedScreen.offTime}
+                        onChange={(e) => setSchedScreen({ ...schedScreen, offTime: e.target.value })}
+                        style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6, color: '#e4e4e7', padding: '4px 8px', fontSize: 12 }}
+                      />
+                      <button
+                        onClick={() => sendAction(d.cardId, 'scheduled-screen', {
+                          items: [
+                            { time: schedScreen.onTime, action: 'on' },
+                            { time: schedScreen.offTime, action: 'off' },
+                          ],
+                        })}
+                        disabled={!!actionLoading}
+                        className="portal-btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
+                      >
+                        Set
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Screenshot Preview */}
+                  {screenshotUrl && (
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Screenshot:</div>
+                      <img
+                        src={screenshotUrl}
+                        alt="Device screenshot"
+                        style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #27272a' }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Playing Info */}
+                  {playingInfo && (
+                    <div style={{
+                      padding: '8px 12px', borderRadius: 8, fontSize: 13,
+                      background: 'rgba(96,165,250,0.1)', color: '#60A5FA',
+                    }}>
+                      Now playing: {playingInfo}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

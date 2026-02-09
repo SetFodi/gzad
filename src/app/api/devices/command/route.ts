@@ -20,7 +20,7 @@ async function verifyAdmin() {
 
 // POST /api/devices/command — proxy a command to a device via Realtime Server
 // Body: { cardId, action, ...params }
-// Actions: brightness, screen, info, push-program, setup-callbacks
+// Actions: brightness, screen, info, push-program, setup-callbacks, clear-program, get-program, get-playing, screenshot, volume, scheduled-brightness, scheduled-screen
 export async function POST(request: NextRequest) {
   if (!await verifyAdmin()) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
@@ -40,6 +40,13 @@ export async function POST(request: NextRequest) {
     'info': `/devices/${cardId}/info`,
     'push-program': `/devices/${cardId}/push-program`,
     'setup-callbacks': `/devices/${cardId}/setup-callbacks`,
+    'clear-program': `/devices/${cardId}/clear-program`,
+    'get-program': `/devices/${cardId}/get-program`,
+    'get-playing': `/devices/${cardId}/get-playing`,
+    'screenshot': `/devices/${cardId}/screenshot`,
+    'volume': `/devices/${cardId}/volume`,
+    'scheduled-brightness': `/devices/${cardId}/scheduled-brightness`,
+    'scheduled-screen': `/devices/${cardId}/scheduled-screen`,
     'raw': `/command/${cardId}`,
   }
 

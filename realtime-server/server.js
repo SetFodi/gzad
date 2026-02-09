@@ -117,30 +117,145 @@ app.post('/devices/:cardId/info', requireAuth, async (req, res) => {
   }
 })
 
-// Push a program (ad) to device
+// Push a program (ad) to device — supports single or multiple media files + scheduling
 app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
-  const { name, duration, mediaUrl, mediaType, width, height } = req.body
+  const { name, duration, mediaUrl, mediaType, width, height, mediaItems, schedule } = req.body
 
-  if (!name || !mediaUrl) {
-    return res.status(400).json({ error: 'name and mediaUrl are required' })
+  // Support both old single-file format and new multi-file format
+  let items = mediaItems
+  if (!items && mediaUrl) {
+    items = [{ url: mediaUrl, type: mediaType || 'video/mp4', duration: duration || 10 }]
+  }
+
+  if (!name || !items || items.length === 0) {
+    return res.status(400).json({ error: 'name and at least one media item are required' })
   }
 
   try {
-    // Step 1: Fetch file to get size and MD5 (SDK requires accurate values)
-    console.log(`[${new Date().toISOString()}] Fetching media metadata: ${mediaUrl}`)
-    const fileResponse = await fetch(mediaUrl)
-    if (!fileResponse.ok) {
-      return res.status(400).json({ error: `Failed to fetch media: ${fileResponse.status}` })
-    }
-    const fileBuffer = Buffer.from(await fileResponse.arrayBuffer())
-    const fileSize = fileBuffer.length
-    const fileMd5 = crypto.createHash('md5').update(fileBuffer).digest('hex')
-    console.log(`[${new Date().toISOString()}] Media: ${fileSize} bytes, MD5: ${fileMd5}`)
+    // Fetch each file to get size and MD5 (SDK requires accurate values)
+    const processedItems = []
+    let totalSize = 0
 
-    // Step 2: Create the program via commandXixunPlayer wrapper
-    const program = buildProgram({ name, duration, mediaUrl, mediaType, width, height, fileSize, fileMd5 })
+    for (const item of items) {
+      console.log(`[${new Date().toISOString()}] Fetching media: ${item.url}`)
+      const fileResponse = await fetch(item.url)
+      if (!fileResponse.ok) {
+        return res.status(400).json({ error: `Failed to fetch media: ${item.url} (${fileResponse.status})` })
+      }
+      const fileBuffer = Buffer.from(await fileResponse.arrayBuffer())
+      const fileSize = fileBuffer.length
+      const fileMd5 = crypto.createHash('md5').update(fileBuffer).digest('hex')
+      totalSize += fileSize
+      console.log(`[${new Date().toISOString()}] Media: ${fileSize} bytes, MD5: ${fileMd5}`)
+
+      processedItems.push({
+        url: item.url,
+        type: item.type || 'video/mp4',
+        duration: item.duration || 10,
+        size: fileSize,
+        md5: fileMd5,
+      })
+    }
+
+    const program = buildProgram({
+      name,
+      mediaItems: processedItems,
+      totalSize,
+      schedule: schedule || {},
+      width: width || 960,
+      height: height || 320,
+    })
     const result = await sendCommand(req.params.cardId, program)
     res.json({ success: true, result })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Clear all programs from device (SDK: clearPlayerTask)
+app.post('/devices/:cardId/clear-program', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, { type: 'clearPlayerTask' })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get current program JSON (SDK: getProgramTask, conn 10.0.9+)
+app.post('/devices/:cardId/get-program', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, { type: 'getProgramTask' })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Get currently playing program name (SDK: getPlayingProgram, conn 10.0.9+)
+app.post('/devices/:cardId/get-playing', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, { type: 'getPlayingProgram' })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Take screenshot (SDK: callCardService + screenshot)
+app.post('/devices/:cardId/screenshot', requireAuth, async (req, res) => {
+  const { quality, scale } = req.body
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'callCardService',
+      fn: 'screenshot',
+      arg1: quality || 80,
+      arg2: scale || 50,
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Set volume (SDK: callCardService + setVolume, 0-15)
+app.post('/devices/:cardId/volume', requireAuth, async (req, res) => {
+  const { volume } = req.body
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'callCardService',
+      fn: 'setVolume',
+      arg1: Math.max(0, Math.min(15, parseInt(volume))),
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Scheduled brightness (SDK: timedBrightness)
+app.post('/devices/:cardId/scheduled-brightness', requireAuth, async (req, res) => {
+  const { task } = req.body // full timedBrightness task object
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'timedBrightness',
+      task: task,
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Scheduled screen on/off (SDK: timedScreening)
+app.post('/devices/:cardId/scheduled-screen', requireAuth, async (req, res) => {
+  const { task } = req.body // full timedScreening task object, or null to clear
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'timedScreening',
+      task: task,
+    })
+    res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -315,13 +430,61 @@ function sendCommand(cardId, data) {
   })
 }
 
-function buildProgram({ name, duration = 10, mediaUrl, mediaType = 'video/mp4', width = 960, height = 320, fileSize = 0, fileMd5 = '' }) {
+function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 960, height = 320 }) {
   // Build an XixunPlayer PlayXixunTask program (official SDK format)
-  // SDK docs: totalSize and size "must be accurate and accurate", md5 is required for media files
-  const isVideo = mediaType.startsWith('video')
-  const sourceType = isVideo ? 'Video' : 'Image'
-  const mime = isVideo ? 'video/mp4' : (mediaType || 'image/png')
-  const fileExt = isVideo ? '.mp4' : (mediaType.includes('png') ? '.png' : '.jpg')
+  // Supports multiple media items (playlist) and time/date scheduling
+
+  // Build sources array from media items with cumulative playTime offsets
+  let currentPlayTime = 0
+  const sources = mediaItems.map((item) => {
+    const isVideo = (item.type || '').startsWith('video')
+    const sourceType = isVideo ? 'Video' : 'Image'
+    const mime = isVideo ? 'video/mp4' : (item.type || 'image/png')
+    const fileExt = isVideo ? '.mp4' : (item.type && item.type.includes('png') ? '.png' : '.jpg')
+    const fileName = name + '_' + currentPlayTime + fileExt
+
+    const source = {
+      _type: sourceType,
+      md5: item.md5 || '',
+      name: fileName,
+      mime: mime,
+      size: item.size || 0,
+      fileExt: fileExt,
+      id: uuidv4().replace(/-/g, ''),
+      url: item.url,
+      playTime: currentPlayTime,
+      timeSpan: isVideo ? 0 : (item.duration || 10), // 0 = play full video
+      left: 0,
+      top: 0,
+      width: width,
+      height: height,
+      entryEffect: 'None',
+      exitEffect: 'None',
+      entryEffectTimeSpan: 0,
+      exitEffectTimeSpan: 0,
+    }
+
+    // Advance playTime for next source
+    currentPlayTime += isVideo ? 0 : (item.duration || 10)
+
+    return source
+  })
+
+  // Build schedule from config
+  const scheduleConfig = {
+    filterType: schedule.days && schedule.days.length < 7 ? 'Week' : 'None',
+    timeType: schedule.startTime ? 'Range' : 'Range',
+    startTime: schedule.startTime || '00:00',
+    endTime: schedule.endTime || '23:59',
+    dateType: schedule.startDate ? 'Range' : 'All',
+  }
+  if (scheduleConfig.filterType === 'Week') {
+    scheduleConfig.weekFilter = schedule.days
+  }
+  if (scheduleConfig.dateType === 'Range') {
+    scheduleConfig.startDate = schedule.startDate
+    scheduleConfig.endDate = schedule.endDate
+  }
 
   return {
     type: 'commandXixunPlayer',
@@ -339,48 +502,19 @@ function buildProgram({ name, duration = 10, mediaUrl, mediaType = 'video/mp4', 
             _id: uuidv4().replace(/-/g, ''),
             _program: {
               id: uuidv4().replace(/-/g, ''),
-              totalSize: fileSize,
+              totalSize: totalSize,
               name: name,
               width: width,
               height: height,
               layers: [
                 {
                   repeat: false,
-                  sources: [
-                    {
-                      _type: sourceType,
-                      md5: fileMd5,
-                      name: name + fileExt,
-                      mime: mime,
-                      size: fileSize,
-                      fileExt: fileExt,
-                      id: uuidv4().replace(/-/g, ''),
-                      url: mediaUrl,
-                      playTime: 0,
-                      timeSpan: isVideo ? 0 : duration, // 0 = play full video
-                      left: 0,
-                      top: 0,
-                      width: width,
-                      height: height,
-                      entryEffect: 'None',
-                      exitEffect: 'None',
-                      entryEffectTimeSpan: 0,
-                      exitEffectTimeSpan: 0,
-                    },
-                  ],
+                  sources: sources,
                 },
               ],
             },
             repeatTimes: 1,
-            schedules: [
-              {
-                filterType: 'None',
-                timeType: 'Range',
-                startTime: '00:00',
-                endTime: '23:59',
-                dateType: 'All',
-              },
-            ],
+            schedules: [scheduleConfig],
           },
         ],
       },
