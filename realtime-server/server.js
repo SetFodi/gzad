@@ -259,32 +259,6 @@ app.post('/devices/:cardId/scheduled-brightness', requireAuth, async (req, res) 
   }
 })
 
-// Scheduled screen on/off (SDK: timedScreening)
-// Accepts: { items: [{ time: "HH:MM", action: "on"|"off" }] }
-app.post('/devices/:cardId/scheduled-screen', requireAuth, async (req, res) => {
-  const { items } = req.body
-  if (!items || items.length === 0) {
-    return res.status(400).json({ error: 'items array required' })
-  }
-  // Build SDK-compatible task from simple items
-  const task = {
-    isOpen: true,
-    items: items.map(item => ({
-      range: { startTime: item.time, endTime: item.time },
-      screenOff: item.action === 'off',
-    })),
-  }
-  try {
-    const result = await sendCommand(req.params.cardId, {
-      type: 'timedScreening',
-      task: task,
-    })
-    res.json(result)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
 // Configure play log + GPS callback URLs
 app.post('/devices/:cardId/setup-callbacks', requireAuth, async (req, res) => {
   const results = {}

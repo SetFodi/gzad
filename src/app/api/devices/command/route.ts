@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
     'screenshot': `/devices/${cardId}/screenshot`,
     'volume': `/devices/${cardId}/volume`,
     'scheduled-brightness': `/devices/${cardId}/scheduled-brightness`,
-    'scheduled-screen': `/devices/${cardId}/scheduled-screen`,
     'raw': `/command/${cardId}`,
   }
 

@@ -16,13 +16,12 @@ export default function DevicesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [actionResult, setActionResult] = useState('')
+  const [actionResult, setActionResult] = useState<{ ok: boolean; msg: string; data?: string } | null>(null)
   const [brightness, setBrightness] = useState(100)
   const [volume, setVolume] = useState(8)
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
   const [playingInfo, setPlayingInfo] = useState<string | null>(null)
   const [schedBrightness, setSchedBrightness] = useState({ time: '08:00', value: 100 })
-  const [schedScreen, setSchedScreen] = useState({ onTime: '08:00', offTime: '23:00' })
 
   const loadDevices = useCallback(async () => {
     try {
@@ -46,13 +45,13 @@ export default function DevicesPage() {
 
   useEffect(() => {
     loadDevices()
-    const interval = setInterval(loadDevices, 10000) // Refresh every 10s
+    const interval = setInterval(loadDevices, 10000)
     return () => clearInterval(interval)
   }, [loadDevices])
 
   const sendAction = async (cardId: string, action: string, params: Record<string, unknown> = {}) => {
     setActionLoading(`${cardId}-${action}`)
-    setActionResult('')
+    setActionResult(null)
     try {
       const res = await fetch('/api/devices/command', {
         method: 'POST',
@@ -61,12 +60,16 @@ export default function DevicesPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        setActionResult(`${action}: Success`)
+        // Show the actual response data so user can see info/callback results
+        const detail = data.result
+          ? (typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2))
+          : (data.success ? 'Done' : JSON.stringify(data, null, 2))
+        setActionResult({ ok: true, msg: `${action}: Success`, data: detail })
       } else {
-        setActionResult(`${action}: ${data.error}`)
+        setActionResult({ ok: false, msg: `${action}: ${data.error || 'Failed'}` })
       }
     } catch {
-      setActionResult(`${action}: Failed to connect`)
+      setActionResult({ ok: false, msg: `${action}: Failed to connect` })
     } finally {
       setActionLoading(null)
     }
@@ -75,6 +78,7 @@ export default function DevicesPage() {
   const takeScreenshot = async (cardId: string) => {
     setActionLoading(`${cardId}-screenshot`)
     setScreenshotUrl(null)
+    setActionResult(null)
     try {
       const res = await fetch('/api/devices/command', {
         method: 'POST',
@@ -82,18 +86,25 @@ export default function DevicesPage() {
         body: JSON.stringify({ cardId, action: 'screenshot', quality: 80, scale: 50 }),
       })
       const data = await res.json()
-      if (res.ok && data.result) {
-        const result = typeof data.result === 'string' ? JSON.parse(data.result) : data.result
-        if (result.screenshot || result.data) {
-          setScreenshotUrl(`data:image/jpeg;base64,${result.screenshot || result.data}`)
+      if (res.ok) {
+        // The response could be nested in various ways depending on SDK version
+        const result = data.result
+          ? (typeof data.result === 'string' ? JSON.parse(data.result) : data.result)
+          : data
+        // Look for base64 image data in common fields
+        const imgData = result.screenshot || result.data || result.img || result.base64
+        if (imgData) {
+          setScreenshotUrl(`data:image/jpeg;base64,${imgData}`)
+          setActionResult({ ok: true, msg: 'Screenshot captured' })
         } else {
-          setActionResult('Screenshot: No image data returned')
+          // Show raw response so we can debug the format
+          setActionResult({ ok: false, msg: 'Screenshot: Unexpected response format', data: JSON.stringify(data, null, 2) })
         }
       } else {
-        setActionResult(`Screenshot: ${data.error || 'Failed'}`)
+        setActionResult({ ok: false, msg: `Screenshot: ${data.error || 'Failed'}` })
       }
-    } catch {
-      setActionResult('Screenshot: Failed to connect')
+    } catch (err) {
+      setActionResult({ ok: false, msg: `Screenshot: ${err instanceof Error ? err.message : 'Failed to connect'}` })
     } finally {
       setActionLoading(null)
     }
@@ -109,9 +120,18 @@ export default function DevicesPage() {
         body: JSON.stringify({ cardId, action: 'get-playing' }),
       })
       const data = await res.json()
-      if (res.ok && data.result) {
-        const result = typeof data.result === 'string' ? JSON.parse(data.result) : data.result
-        setPlayingInfo(result.name || result.programName || JSON.stringify(result))
+      if (res.ok) {
+        // Try to extract program name from various response shapes
+        const result = data.result
+          ? (typeof data.result === 'string' ? JSON.parse(data.result) : data.result)
+          : data
+        const name = result.name || result.programName || result.taskName
+        if (name) {
+          setPlayingInfo(name)
+        } else {
+          // Show raw so we can see the actual format
+          setPlayingInfo(JSON.stringify(result))
+        }
       } else {
         setPlayingInfo(data.error || 'No program playing')
       }
@@ -140,8 +160,29 @@ export default function DevicesPage() {
       )}
 
       {actionResult && (
-        <div className="portal-success-msg" style={{ marginBottom: '1rem' }}>
-          {actionResult}
+        <div style={{
+          marginBottom: '1rem',
+          padding: '10px 14px',
+          borderRadius: 8,
+          background: actionResult.ok ? 'rgba(204,243,129,0.08)' : 'rgba(239,68,68,0.08)',
+          border: `1px solid ${actionResult.ok ? 'rgba(204,243,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+          color: actionResult.ok ? '#CCF381' : '#EF4444',
+          fontSize: 13,
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: actionResult.data ? 6 : 0 }}>{actionResult.msg}</div>
+          {actionResult.data && (
+            <pre style={{
+              margin: 0,
+              fontSize: 11,
+              color: '#a1a1aa',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+              maxHeight: 200,
+              overflow: 'auto',
+            }}>
+              {actionResult.data}
+            </pre>
+          )}
         </div>
       )}
 
@@ -323,45 +364,6 @@ export default function DevicesPage() {
                       <button
                         onClick={() => sendAction(d.cardId, 'scheduled-brightness', {
                           items: [{ time: schedBrightness.time, brightness: schedBrightness.value }],
-                        })}
-                        disabled={!!actionLoading}
-                        className="portal-btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: 12 }}
-                      >
-                        Set
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Scheduled Screen */}
-                  <div style={{
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid #1a1a1a',
-                    borderRadius: 8, padding: '10px 14px',
-                  }}>
-                    <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={12} /> Scheduled Screen On/Off
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <span style={{ color: '#71717a', fontSize: 12 }}>On:</span>
-                      <input
-                        type="time"
-                        value={schedScreen.onTime}
-                        onChange={(e) => setSchedScreen({ ...schedScreen, onTime: e.target.value })}
-                        style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6, color: '#e4e4e7', padding: '4px 8px', fontSize: 12 }}
-                      />
-                      <span style={{ color: '#71717a', fontSize: 12 }}>Off:</span>
-                      <input
-                        type="time"
-                        value={schedScreen.offTime}
-                        onChange={(e) => setSchedScreen({ ...schedScreen, offTime: e.target.value })}
-                        style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6, color: '#e4e4e7', padding: '4px 8px', fontSize: 12 }}
-                      />
-                      <button
-                        onClick={() => sendAction(d.cardId, 'scheduled-screen', {
-                          items: [
-                            { time: schedScreen.onTime, action: 'on' },
-                            { time: schedScreen.offTime, action: 'off' },
-                          ],
                         })}
                         disabled={!!actionLoading}
                         className="portal-btn-secondary"
