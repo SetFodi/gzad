@@ -101,13 +101,17 @@ export default function GroupDetailPage() {
     setSyncing(true)
     setSyncResult(null)
     try {
-      // Get active campaigns in this group
-      const activeCampaigns = campaigns.filter(c => c.status === 'active')
+      // Fetch fresh from DB (not stale React state)
+      const { data: activeCampaigns } = await supabase
+        .from('campaigns')
+        .select('id, name')
+        .eq('status', 'active')
+        .eq('device_group_id', groupId)
 
       // Collect approved media
       const mediaItems: { url: string; type: string; duration: number }[] = []
       const campaignNames: string[] = []
-      for (const c of activeCampaigns) {
+      for (const c of activeCampaigns || []) {
         const { data: approved } = await supabase
           .from('ad_media')
           .select('file_url, file_type')
@@ -125,29 +129,38 @@ export default function GroupDetailPage() {
         }
       }
 
-      // Get online devices in this group
-      const targetDevices = devices.filter(d => onlineDeviceIds.has(d.id))
+      // Get online devices in this group (fresh from DB + API)
+      const { data: groupDevices } = await supabase
+        .from('devices')
+        .select('id')
+        .eq('group_id', groupId)
+      const groupDeviceIds = new Set((groupDevices || []).map((d: { id: string }) => d.id))
 
-      if (targetDevices.length === 0) {
+      const devicesRes = await fetch('/api/devices')
+      const deviceList = await devicesRes.json()
+      const onlineInGroup = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
+        .filter((d: { online: boolean; cardId: string }) => d.online && groupDeviceIds.has(d.cardId))
+
+      if (onlineInGroup.length === 0) {
         setSyncResult({ ok: false, msg: 'No online devices in this group' })
         setSyncing(false)
         return
       }
 
       let pushed = 0
-      for (const device of targetDevices) {
+      for (const device of onlineInGroup) {
         if (mediaItems.length === 0) {
           await fetch('/api/devices/command', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cardId: device.id, action: 'clear-program' }),
+            body: JSON.stringify({ cardId: device.cardId, action: 'clear-program' }),
           })
         } else {
           await fetch('/api/devices/command', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              cardId: device.id,
+              cardId: device.cardId,
               action: 'push-program',
               name: campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist',
               mediaItems,

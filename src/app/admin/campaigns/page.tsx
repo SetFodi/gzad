@@ -125,8 +125,8 @@ export default function AdminCampaignsPage() {
   const updateStatus = async (campaignId: string, newStatus: string) => {
     const campaign = campaigns.find(c => c.id === campaignId)
     await supabase.from('campaigns').update({ status: newStatus }).eq('id', campaignId)
-    // Re-sync group when removing from rotation (pause/complete)
-    if (newStatus === 'paused' || newStatus === 'completed') {
+    // Re-sync group when rotation changes (resume/pause/complete)
+    if (newStatus === 'active' || newStatus === 'paused' || newStatus === 'completed') {
       await syncGroupDevices(campaign?.device_group_id || null)
     }
     await loadCampaigns()
