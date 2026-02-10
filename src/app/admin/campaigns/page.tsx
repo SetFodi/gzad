@@ -123,16 +123,83 @@ export default function AdminCampaignsPage() {
   useEffect(() => { loadClients() }, [])
 
   const updateStatus = async (campaignId: string, newStatus: string) => {
+    const campaign = campaigns.find(c => c.id === campaignId)
     await supabase.from('campaigns').update({ status: newStatus }).eq('id', campaignId)
+    // Re-sync group when removing from rotation (pause/complete)
+    if (newStatus === 'paused' || newStatus === 'completed') {
+      await syncGroupDevices(campaign?.device_group_id || null)
+    }
     await loadCampaigns()
   }
 
   const deleteCampaign = async (campaignId: string, campaignName: string) => {
     if (!confirm(`Delete campaign "${campaignName}"? This will also delete all its media files. This cannot be undone.`)) return
 
+    const campaign = campaigns.find(c => c.id === campaignId)
+    const groupId = campaign?.device_group_id || null
+
     await supabase.from('ad_media').delete().eq('campaign_id', campaignId)
     await supabase.from('campaigns').delete().eq('id', campaignId)
+    await syncGroupDevices(groupId)
     await loadCampaigns()
+  }
+
+  const syncGroupDevices = async (groupId: string | null) => {
+    if (!groupId) return // Only sync grouped campaigns
+    try {
+      const { data: activeCampaigns } = await supabase
+        .from('campaigns')
+        .select('id, name')
+        .eq('status', 'active')
+        .eq('device_group_id', groupId)
+
+      const mediaItems: { url: string; type: string; duration: number }[] = []
+      const campaignNames: string[] = []
+      for (const c of activeCampaigns || []) {
+        const { data: approved } = await supabase
+          .from('ad_media')
+          .select('file_url, file_type')
+          .eq('campaign_id', c.id)
+          .eq('status', 'approved')
+        if (approved && approved.length > 0) {
+          campaignNames.push(c.name)
+          for (const m of approved) {
+            mediaItems.push({ url: m.file_url, type: m.file_type, duration: m.file_type.startsWith('video') ? 0 : 10 })
+          }
+        }
+      }
+
+      const { data: groupDevices } = await supabase.from('devices').select('id').eq('group_id', groupId)
+      const groupIds = new Set((groupDevices || []).map((d: { id: string }) => d.id))
+
+      const devicesRes = await fetch('/api/devices')
+      const deviceList = await devicesRes.json()
+      const onlineDevices = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
+        .filter((d: { online: boolean; cardId: string }) => d.online && groupIds.has(d.cardId))
+
+      for (const device of onlineDevices) {
+        if (mediaItems.length === 0) {
+          await fetch('/api/devices/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cardId: device.cardId, action: 'clear-program' }),
+          })
+        } else {
+          await fetch('/api/devices/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cardId: device.cardId, action: 'push-program',
+              name: campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist',
+              mediaItems, schedule: { startTime: '00:00', endTime: '23:59' },
+              width: 240, height: 80,
+            }),
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync devices:', err)
+    }
   }
 
   const statusColor = (status: string) => {

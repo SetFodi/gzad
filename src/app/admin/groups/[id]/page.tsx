@@ -179,6 +179,8 @@ export default function GroupDetailPage() {
   const unassignCampaign = async (campaignId: string) => {
     await supabase.from('campaigns').update({ device_group_id: null }).eq('id', campaignId)
     await load()
+    // Re-push remaining group ads to devices (removed campaign should stop playing)
+    await syncGroupToDevices()
   }
 
   if (loading) return <div className="portal-loading">Loading...</div>
