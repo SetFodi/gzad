@@ -2,17 +2,11 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Megaphone, Upload, Receipt, LogOut, Menu, X, Shield } from 'lucide-react'
+import { LayoutDashboard, Megaphone, Upload, Receipt, LogOut, Menu, X, Shield, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-
-const navItems = [
-  { href: '/portal/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { href: '/portal/dashboard/campaigns', label: 'Campaigns', icon: Megaphone },
-  { href: '/portal/dashboard/submit', label: 'Submit Ad', icon: Upload },
-  { href: '/portal/dashboard/billing', label: 'Billing', icon: Receipt },
-]
+import { useTranslations } from '@/lib/i18n'
 
 export default function Sidebar() {
   const pathname = usePathname()
@@ -20,6 +14,14 @@ export default function Sidebar() {
   const supabase = createClient()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const { lang, setLang, t } = useTranslations()
+
+  const navItems = [
+    { href: '/portal/dashboard', label: t.portal.sidebar.overview, icon: LayoutDashboard },
+    { href: '/portal/dashboard/campaigns', label: t.portal.sidebar.campaigns, icon: Megaphone },
+    { href: '/portal/dashboard/submit', label: t.portal.sidebar.submitAd, icon: Upload },
+    { href: '/portal/dashboard/billing', label: t.portal.sidebar.billing, icon: Receipt },
+  ]
 
   useEffect(() => {
     async function checkAdmin() {
@@ -80,6 +82,16 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div style={{ borderTop: '1px solid #141414', padding: '8px 12px', flexShrink: 0 }}>
+          {/* Language Toggle */}
+          <button
+            onClick={() => setLang(lang === 'en' ? 'ge' : 'en')}
+            className="nav-item"
+            style={{ width: '100%', border: 'none', cursor: 'pointer', background: 'none', textAlign: 'left' }}
+          >
+            <Globe size={20} />
+            <span>{lang === 'en' ? 'ქართული' : 'English'}</span>
+          </button>
+
           {isAdmin && (
             <Link
               href="/admin"
@@ -87,12 +99,12 @@ export default function Sidebar() {
               className="nav-item"
             >
               <Shield size={20} />
-              <span>Admin View</span>
+              <span>{t.portal.sidebar.adminView}</span>
             </Link>
           )}
           <button onClick={handleLogout} className="sidebar-logout">
             <LogOut size={20} />
-            <span>Sign Out</span>
+            <span>{t.portal.sidebar.signOut}</span>
           </button>
         </div>
       </aside>
@@ -106,4 +118,3 @@ export default function Sidebar() {
     </>
   )
 }
-

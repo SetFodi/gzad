@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslations } from '@/lib/i18n'
 
 interface Invoice {
   id: string
@@ -17,6 +18,9 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const { t } = useTranslations()
+  const p = t.portal.billing
+  const c = t.portal.common
 
   useEffect(() => {
     async function load() {
@@ -52,33 +56,33 @@ export default function BillingPage() {
     }
   }
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  if (loading) return <div className="portal-loading">{c.loading}</div>
 
   const totalPending = invoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0)
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0)
 
   return (
     <div className="portal-page">
-      <h1 className="portal-page-title">Billing</h1>
+      <h1 className="portal-page-title">{p.title}</h1>
 
       <div className="stats-grid two-col">
         <div className="stat-card">
           <div className="stat-card-info">
             <span className="stat-card-value" style={{ color: '#FBBF24' }}>{totalPending} GEL</span>
-            <span className="stat-card-label">Pending</span>
+            <span className="stat-card-label">{p.pending}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
             <span className="stat-card-value" style={{ color: '#CCF381' }}>{totalPaid} GEL</span>
-            <span className="stat-card-label">Paid</span>
+            <span className="stat-card-label">{p.paid}</span>
           </div>
         </div>
       </div>
 
       {invoices.length === 0 ? (
         <div className="portal-empty">
-          <p>No invoices yet.</p>
+          <p>{p.noInvoices}</p>
         </div>
       ) : (
         <div className="portal-section">
@@ -86,11 +90,11 @@ export default function BillingPage() {
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Campaign</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Due Date</th>
-                  <th>Paid</th>
+                  <th>{p.campaign}</th>
+                  <th>{p.amount}</th>
+                  <th>{p.status}</th>
+                  <th>{p.dueDate}</th>
+                  <th>{p.paidDate}</th>
                 </tr>
               </thead>
               <tbody>

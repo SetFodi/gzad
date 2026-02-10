@@ -307,6 +307,106 @@ export const translations = {
             blog: "Blog",
             press: "Press",
             rights: "© 2026 Gzad Georgia. All rights reserved."
+        },
+        portal: {
+            sidebar: {
+                overview: "Overview",
+                campaigns: "Campaigns",
+                submitAd: "Submit Ad",
+                billing: "Billing",
+                adminView: "Admin View",
+                signOut: "Sign Out"
+            },
+            login: {
+                title: "Client Portal",
+                subtitle: "Sign in to view your campaigns and analytics",
+                email: "Email",
+                password: "Password",
+                signIn: "Sign In",
+                signingIn: "Signing in...",
+                invalidCredentials: "Invalid email or password",
+                contactForAccess: "Contact",
+                contactForAccessSuffix: "for access"
+            },
+            dashboard: {
+                title: "Dashboard",
+                activeCampaigns: "Active Campaigns",
+                totalPlays: "Total Plays",
+                estImpressions: "Est. Impressions",
+                totalSpent: "Total Spent",
+                recentCampaigns: "Recent Campaigns",
+                noCampaigns: "No campaigns yet. Submit your first ad to get started.",
+                submitAd: "Submit Ad"
+            },
+            campaigns: {
+                title: "Campaigns",
+                newCampaign: "New Campaign",
+                noCampaigns: "No campaigns yet.",
+                createFirst: "Create your first campaign",
+                duration: "Duration",
+                dailyHours: "Daily Hours",
+                taxis: "Taxis",
+                price: "Price"
+            },
+            campaignDetail: {
+                backToCampaigns: "Back to Campaigns",
+                totalPlays: "Total Plays",
+                screenTime: "Screen Time",
+                distanceCovered: "Distance Covered",
+                avgTaxisDay: "Avg. Taxis/Day",
+                dailyPlayLog: "Daily Play Log",
+                date: "Date",
+                plays: "Plays",
+                duration: "Duration",
+                taxisCol: "Taxis",
+                km: "KM",
+                adMedia: "Ad Media",
+                notFound: "Campaign not found"
+            },
+            submit: {
+                title: "Submit New Ad",
+                campaignName: "Campaign Name",
+                campaignNamePlaceholder: "e.g. summer sale promo",
+                nameHint: "Lowercase English letters, numbers, and spaces only",
+                nameRequired: "Campaign name is required",
+                nameMinLength: "Name must be at least 2 characters",
+                nameMaxLength: "Name must be under 50 characters",
+                nameInvalidChars: "Only lowercase English letters, numbers, and spaces allowed",
+                nameDuplicate: "A campaign with this name already exists. Please choose a different name.",
+                adMedia: "Ad Media (Images or Videos)",
+                uploadLabel: "Click to upload or drag files here",
+                uploadHintFormats: "PNG, JPG, GIF (max 10MB) | MP4 (max 100MB)",
+                uploadHintVideo: "Video: H.264/AVC codec, max 1280x1080, 320p-720p recommended",
+                noFiles: "Please upload at least one file",
+                submitForReview: "Submit for Review",
+                uploading: "Uploading...",
+                success: "Ad Submitted!",
+                successMessage: "Your ad is under review. We will notify you once it is approved.",
+                fileTooLarge: "is too large",
+                maxForVideos: "Max 100MB for videos",
+                maxForImages: "Max 10MB for images"
+            },
+            billing: {
+                title: "Billing",
+                pending: "Pending",
+                paid: "Paid",
+                noInvoices: "No invoices yet.",
+                campaign: "Campaign",
+                amount: "Amount",
+                status: "Status",
+                dueDate: "Due Date",
+                paidDate: "Paid"
+            },
+            common: {
+                loading: "Loading...",
+                active: "active",
+                pendingReview: "pending review",
+                paused: "paused",
+                completed: "completed",
+                campaign: "Campaign",
+                startDate: "Start Date",
+                endDate: "End Date"
+            }
         }
     },
     ge: {
@@ -617,6 +717,106 @@ export const translations = {
             blog: "ბლოგი",
             press: "პრესა",
             rights: "© 2026 Gzad Georgia. ყველა უფლება დაცულია."
+        },
+        portal: {
+            sidebar: {
+                overview: "მიმოხილვა",
+                campaigns: "კამპანიები",
+                submitAd: "რეკლამის ატვირთვა",
+                billing: "გადახდები",
+                adminView: "ადმინ პანელი",
+                signOut: "გასვლა"
+            },
+            login: {
+                title: "კლიენტის პორტალი",
+                subtitle: "შედით თქვენი კამპანიებისა და ანალიტიკის სანახავად",
+                email: "ელ-ფოსტა",
+                password: "პაროლი",
+                signIn: "შესვლა",
+                signingIn: "შესვლა...",
+                invalidCredentials: "არასწორი ელ-ფოსტა ან პაროლი",
+                contactForAccess: "დაგვიკავშირდით",
+                contactForAccessSuffix: "წვდომისთვის"
+            },
+            dashboard: {
+                title: "მიმოხილვა",
+                activeCampaigns: "აქტიური კამპანიები",
+                totalPlays: "ჯამური ჩვენებები",
+                estImpressions: "სავარაუდო ნახვები",
+                totalSpent: "ჯამური ხარჯი",
+                recentCampaigns: "ბოლო კამპანიები",
+                noCampaigns: "ჯერ არ გაქვთ კამპანიები. ატვირთეთ პირველი რეკლამა დასაწყებად.",
+                submitAd: "რეკლამის ატვირთვა"
+            },
+            campaigns: {
+                title: "კამპანიები",
+                newCampaign: "ახალი კამპანია",
+                noCampaigns: "ჯერ არ გაქვთ კამპანიები.",
+                createFirst: "შექმენით პირველი კამპანია",
+                duration: "ხანგრძლივობა",
+                dailyHours: "დღიური საათები",
+                taxis: "ტაქსები",
+                price: "ფასი"
+            },
+            campaignDetail: {
+                backToCampaigns: "კამპანიებზე დაბრუნება",
+                totalPlays: "ჯამური ჩვენებები",
+                screenTime: "ეკრანის დრო",
+                distanceCovered: "გავლილი მანძილი",
+                avgTaxisDay: "საშ. ტაქსი/დღე",
+                dailyPlayLog: "დღიური ჩვენებების ლოგი",
+                date: "თარიღი",
+                plays: "ჩვენებები",
+                duration: "ხანგრძლივობა",
+                taxisCol: "ტაქსები",
+                km: "კმ",
+                adMedia: "რეკლამის მედია",
+                notFound: "კამპანია ვერ მოიძებნა"
+            },
+            submit: {
+                title: "ახალი რეკლამის ატვირთვა",
+                campaignName: "კამპანიის სახელი",
+                campaignNamePlaceholder: "მაგ. summer sale promo",
+                nameHint: "მხოლოდ ინგლისური პატარა ასოები, რიცხვები და სფეისები",
+                nameRequired: "კამპანიის სახელი სავალდებულოა",
+                nameMinLength: "სახელი უნდა იყოს მინიმუმ 2 სიმბოლო",
+                nameMaxLength: "სახელი უნდა იყოს 50 სიმბოლოზე ნაკლები",
+                nameInvalidChars: "მხოლოდ ინგლისური პატარა ასოები, რიცხვები და სფეისები",
+                nameDuplicate: "ამ სახელით კამპანია უკვე არსებობს. აირჩიეთ სხვა სახელი.",
+                adMedia: "რეკლამის მედია (ფოტო ან ვიდეო)",
+                uploadLabel: "დააკლიკეთ ასატვირთად ან გადმოიტანეთ ფაილები",
+                uploadHintFormats: "PNG, JPG, GIF (მაქს 10MB) | MP4 (მაქს 100MB)",
+                uploadHintVideo: "ვიდეო: H.264/AVC კოდეკი, მაქს 1280x1080, 320p-720p რეკომენდებული",
+                noFiles: "ატვირთეთ მინიმუმ ერთი ფაილი",
+                submitForReview: "გაგზავნა განსახილველად",
+                uploading: "იტვირთება...",
+                success: "რეკლამა ატვირთულია!",
+                successMessage: "თქვენი რეკლამა განხილვის პროცესშია. შეგატყობინებთ დამტკიცების შემდეგ.",
+                fileTooLarge: "ზედმეტად დიდია",
+                maxForVideos: "მაქს 100MB ვიდეოსთვის",
+                maxForImages: "მაქს 10MB ფოტოსთვის"
+            },
+            billing: {
+                title: "გადახდები",
+                pending: "მოლოდინში",
+                paid: "გადახდილი",
+                noInvoices: "ინვოისები ჯერ არ არის.",
+                campaign: "კამპანია",
+                amount: "თანხა",
+                status: "სტატუსი",
+                dueDate: "ვადა",
+                paidDate: "გადახდილი"
+            },
+            common: {
+                loading: "იტვირთება...",
+                active: "აქტიური",
+                pendingReview: "განხილვაში",
+                paused: "შეჩერებული",
+                completed: "დასრულებული",
+                campaign: "კამპანია",
+                startDate: "დაწყების თარიღი",
+                endDate: "დასრულების თარიღი"
+            }
         }
     }
 };

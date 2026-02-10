@@ -4,18 +4,11 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, CheckCircle, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from '@/lib/i18n'
 
 const NAME_REGEX = /^[a-z0-9][a-z0-9 ]*[a-z0-9]$|^[a-z0-9]$/
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024 // 100MB for videos
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024  // 10MB for images
-
-function validateName(value: string): string | null {
-  if (!value.trim()) return 'Campaign name is required'
-  if (value.trim().length < 2) return 'Name must be at least 2 characters'
-  if (value.trim().length > 50) return 'Name must be under 50 characters'
-  if (!NAME_REGEX.test(value.trim())) return 'Only lowercase English letters, numbers, and spaces allowed'
-  return null
-}
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024
 
 export default function SubmitAdPage() {
   const [name, setName] = useState('')
@@ -26,6 +19,17 @@ export default function SubmitAdPage() {
   const [error, setError] = useState('')
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useTranslations()
+  const p = t.portal.submit
+  const c = t.portal.common
+
+  function validateName(value: string): string | null {
+    if (!value.trim()) return p.nameRequired
+    if (value.trim().length < 2) return p.nameMinLength
+    if (value.trim().length > 50) return p.nameMaxLength
+    if (!NAME_REGEX.test(value.trim())) return p.nameInvalidChars
+    return null
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -36,7 +40,7 @@ export default function SubmitAdPage() {
       })
       if (invalid) {
         const isVideo = invalid.type.startsWith('video/')
-        setError(`${invalid.name} is too large (${(invalid.size / 1024 / 1024).toFixed(1)}MB). Max ${isVideo ? '100MB for videos' : '10MB for images'}.`)
+        setError(`${invalid.name} ${p.fileTooLarge} (${(invalid.size / 1024 / 1024).toFixed(1)}MB). ${isVideo ? p.maxForVideos : p.maxForImages}.`)
         return
       }
       setError('')
@@ -49,7 +53,6 @@ export default function SubmitAdPage() {
   }
 
   const handleNameChange = (value: string) => {
-    // Force lowercase, strip non-allowed characters
     const cleaned = value.toLowerCase().replace(/[^a-z0-9 ]/g, '')
     setName(cleaned)
     const err = validateName(cleaned)
@@ -64,7 +67,7 @@ export default function SubmitAdPage() {
       return
     }
     if (files.length === 0) {
-      setError('Please upload at least one file')
+      setError(p.noFiles)
       return
     }
 
@@ -83,7 +86,6 @@ export default function SubmitAdPage() {
 
       if (!client) throw new Error('Client profile not found')
 
-      // Check for duplicate campaign name
       const { data: existing } = await supabase
         .from('campaigns')
         .select('id')
@@ -91,10 +93,9 @@ export default function SubmitAdPage() {
         .limit(1)
 
       if (existing && existing.length > 0) {
-        throw new Error('A campaign with this name already exists. Please choose a different name.')
+        throw new Error(p.nameDuplicate)
       }
 
-      // Create campaign
       const { data: campaign, error: campError } = await supabase
         .from('campaigns')
         .insert({ client_id: client.id, name: name.trim(), status: 'pending_review' })
@@ -103,7 +104,6 @@ export default function SubmitAdPage() {
 
       if (campError) throw campError
 
-      // Upload files
       for (const file of files) {
         const ext = file.name.split('.').pop()
         const path = `${client.id}/${campaign.id}/${Date.now()}.${ext}`
@@ -140,8 +140,8 @@ export default function SubmitAdPage() {
       <div className="portal-page">
         <div className="portal-success">
           <CheckCircle size={48} color="#CCF381" />
-          <h2>Ad Submitted!</h2>
-          <p>Your ad is under review. We will notify you once it is approved.</p>
+          <h2>{p.success}</h2>
+          <p>{p.successMessage}</p>
         </div>
       </div>
     )
@@ -149,29 +149,29 @@ export default function SubmitAdPage() {
 
   return (
     <div className="portal-page">
-      <h1 className="portal-page-title">Submit New Ad</h1>
+      <h1 className="portal-page-title">{p.title}</h1>
 
       <form onSubmit={handleSubmit} className="portal-form">
         {error && <div className="portal-login-error">{error}</div>}
 
         <div className="portal-input-group">
-          <label htmlFor="name">Campaign Name</label>
+          <label htmlFor="name">{p.campaignName}</label>
           <input
             id="name"
             type="text"
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
-            placeholder="e.g. summer sale promo"
+            placeholder={p.campaignNamePlaceholder}
             required
           />
           {nameError && <span style={{ color: '#EF4444', fontSize: '13px', marginTop: '4px', display: 'block' }}>{nameError}</span>}
           <span style={{ color: '#525252', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-            Lowercase English letters, numbers, and spaces only
+            {p.nameHint}
           </span>
         </div>
 
         <div className="portal-input-group">
-          <label>Ad Media (Images or Videos)</label>
+          <label>{p.adMedia}</label>
           <div className="file-upload-zone">
             <input
               type="file"
@@ -183,9 +183,9 @@ export default function SubmitAdPage() {
             />
             <label htmlFor="files" className="file-upload-label">
               <Upload size={32} />
-              <span>Click to upload or drag files here</span>
-              <span className="file-hint">PNG, JPG, GIF (max 10MB) | MP4 (max 100MB)</span>
-              <span className="file-hint">Video: H.264/AVC codec, max 1280x1080, 320p-720p recommended</span>
+              <span>{p.uploadLabel}</span>
+              <span className="file-hint">{p.uploadHintFormats}</span>
+              <span className="file-hint">{p.uploadHintVideo}</span>
             </label>
           </div>
 
@@ -205,7 +205,7 @@ export default function SubmitAdPage() {
         </div>
 
         <button type="submit" disabled={uploading} className="portal-btn-primary full-width">
-          {uploading ? 'Uploading...' : 'Submit for Review'}
+          {uploading ? p.uploading : p.submitForReview}
         </button>
       </form>
     </div>

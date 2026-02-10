@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
     'get-disk-space': `/devices/${cardId}/get-disk-space`,
     'get-upload-log-url': `/devices/${cardId}/get-upload-log-url`,
     'get-sub-gps': `/devices/${cardId}/get-sub-gps`,
+    'get-sim-info': `/devices/${cardId}/get-sim-info`,
+    'clean-storage': `/devices/${cardId}/clean-storage`,
     'raw': `/command/${cardId}`,
   }
 

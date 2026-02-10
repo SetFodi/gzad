@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './portal.css'
+import { LanguageProvider } from '@/lib/i18n'
 
 export const metadata: Metadata = {
   title: 'Gzad Portal',
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 }
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return <LanguageProvider>{children}</LanguageProvider>
 }

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import { ArrowLeft, Play, Clock, MapPin, Car } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from '@/lib/i18n'
 
 interface Campaign {
   id: string
@@ -40,6 +41,9 @@ export default function CampaignDetailPage() {
   const [media, setMedia] = useState<Media[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const { t } = useTranslations()
+  const p = t.portal.campaignDetail
+  const c = t.portal.common
 
   useEffect(() => {
     async function load() {
@@ -71,8 +75,30 @@ export default function CampaignDetailPage() {
     load()
   }, [params.id])
 
-  if (loading) return <div className="portal-loading">Loading...</div>
-  if (!campaign) return <div className="portal-loading">Campaign not found</div>
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'active': return '#CCF381'
+      case 'pending_review': return '#FBBF24'
+      case 'paused': return '#94A3B8'
+      case 'completed': return '#60A5FA'
+      case 'approved': return '#CCF381'
+      case 'rejected': return '#EF4444'
+      default: return '#64748B'
+    }
+  }
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case 'active': return c.active
+      case 'pending_review': return c.pendingReview
+      case 'paused': return c.paused
+      case 'completed': return c.completed
+      default: return status.replace('_', ' ')
+    }
+  }
+
+  if (loading) return <div className="portal-loading">{c.loading}</div>
+  if (!campaign) return <div className="portal-loading">{p.notFound}</div>
 
   const totalPlays = stats.reduce((sum, s) => sum + s.play_count, 0)
   const totalDuration = stats.reduce((sum, s) => sum + s.total_duration_seconds, 0)
@@ -84,16 +110,16 @@ export default function CampaignDetailPage() {
   return (
     <div className="portal-page">
       <Link href="/portal/dashboard/campaigns" className="portal-back-link">
-        <ArrowLeft size={16} /> Back to Campaigns
+        <ArrowLeft size={16} /> {p.backToCampaigns}
       </Link>
 
       <div className="portal-page-header">
         <h1 className="portal-page-title">{campaign.name}</h1>
         <span className="status-badge lg" style={{
-          color: campaign.status === 'active' ? '#CCF381' : '#FBBF24',
-          borderColor: campaign.status === 'active' ? '#CCF381' : '#FBBF24'
+          color: statusColor(campaign.status),
+          borderColor: statusColor(campaign.status)
         }}>
-          {campaign.status.replace('_', ' ')}
+          {statusLabel(campaign.status)}
         </span>
       </div>
 
@@ -104,7 +130,7 @@ export default function CampaignDetailPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalPlays.toLocaleString()}</span>
-            <span className="stat-card-label">Total Plays</span>
+            <span className="stat-card-label">{p.totalPlays}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -113,7 +139,7 @@ export default function CampaignDetailPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{Math.round(totalDuration / 3600)}h</span>
-            <span className="stat-card-label">Screen Time</span>
+            <span className="stat-card-label">{p.screenTime}</span>
           </div>
         </div>
         {totalKm > 0 && (
@@ -123,7 +149,7 @@ export default function CampaignDetailPage() {
             </div>
             <div className="stat-card-info">
               <span className="stat-card-value">{totalKm.toFixed(0)} km</span>
-              <span className="stat-card-label">Distance Covered</span>
+              <span className="stat-card-label">{p.distanceCovered}</span>
             </div>
           </div>
         )}
@@ -133,24 +159,23 @@ export default function CampaignDetailPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{avgTaxis}</span>
-            <span className="stat-card-label">Avg. Taxis/Day</span>
+            <span className="stat-card-label">{p.avgTaxisDay}</span>
           </div>
         </div>
       </div>
 
-      {/* Play Stats Table */}
       {stats.length > 0 && (
         <div className="portal-section">
-          <h2>Daily Play Log</h2>
+          <h2>{p.dailyPlayLog}</h2>
           <div className="campaigns-table-wrapper">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Plays</th>
-                  <th>Duration</th>
-                  <th>Taxis</th>
-                  {totalKm > 0 && <th>KM</th>}
+                  <th>{p.date}</th>
+                  <th>{p.plays}</th>
+                  <th>{p.duration}</th>
+                  <th>{p.taxisCol}</th>
+                  {totalKm > 0 && <th>{p.km}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -169,10 +194,9 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
-      {/* Media */}
       {media.length > 0 && (
         <div className="portal-section">
-          <h2>Ad Media</h2>
+          <h2>{p.adMedia}</h2>
           <div className="media-grid">
             {media.map((m) => (
               <div key={m.id} className="media-card">
@@ -184,8 +208,8 @@ export default function CampaignDetailPage() {
                 <div className="media-card-info">
                   <span>{m.file_name}</span>
                   <span className="status-badge sm" style={{
-                    color: m.status === 'approved' ? '#CCF381' : m.status === 'rejected' ? '#EF4444' : '#FBBF24',
-                    borderColor: m.status === 'approved' ? '#CCF381' : m.status === 'rejected' ? '#EF4444' : '#FBBF24',
+                    color: statusColor(m.status),
+                    borderColor: statusColor(m.status),
                   }}>
                     {m.status.replace('_', ' ')}
                   </span>

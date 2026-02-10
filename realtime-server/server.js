@@ -358,6 +358,49 @@ app.post('/devices/:cardId/get-sub-gps', requireAuth, async (req, res) => {
   }
 })
 
+// Get SIM/network info (SDK: callCardService + getSimInfo)
+app.post('/devices/:cardId/get-sim-info', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'callCardService',
+      fn: 'getSimInfo',
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Clean device storage (clear programs + optional cleanStorage)
+app.post('/devices/:cardId/clean-storage', requireAuth, async (req, res) => {
+  const results = {}
+  try {
+    // Step 1: Clear all player tasks
+    results.clearProgram = await sendCommand(req.params.cardId, { type: 'clearPlayerTask' })
+  } catch (err) {
+    results.clearProgram = { error: err.message }
+  }
+
+  try {
+    // Step 2: Call cleanStorage service if available
+    results.cleanStorage = await sendCommand(req.params.cardId, {
+      type: 'callCardService',
+      fn: 'cleanStorage',
+    })
+  } catch (err) {
+    results.cleanStorage = { error: err.message }
+  }
+
+  try {
+    // Step 3: Get remaining disk space
+    results.diskSpace = await sendCommand(req.params.cardId, { type: 'getDiskSpace' })
+  } catch (err) {
+    results.diskSpace = { error: err.message }
+  }
+
+  res.json({ success: true, ...results })
+})
+
 // Configure play log + GPS callback URLs
 app.post('/devices/:cardId/setup-callbacks', requireAuth, async (req, res) => {
   const results = {}

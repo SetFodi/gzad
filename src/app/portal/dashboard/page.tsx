@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Megaphone, Play, Eye, TrendingUp } from 'lucide-react'
+import { useTranslations } from '@/lib/i18n'
 
 interface Stats {
   activeCampaigns: number
@@ -25,13 +26,15 @@ export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const { t } = useTranslations()
+  const p = t.portal.dashboard
+  const c = t.portal.common
 
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Get client profile
       const { data: client } = await supabase
         .from('clients')
         .select('id')
@@ -40,7 +43,6 @@ export default function DashboardPage() {
 
       if (!client) { setLoading(false); return }
 
-      // Get campaigns
       const { data: campaignsData } = await supabase
         .from('campaigns')
         .select('*')
@@ -49,7 +51,6 @@ export default function DashboardPage() {
 
       const activeCampaigns = campaignsData?.filter(c => c.status === 'active') || []
 
-      // Get play stats
       const campaignIds = campaignsData?.map(c => c.id) || []
       let totalPlays = 0
       let totalSpent = 0
@@ -87,13 +88,23 @@ export default function DashboardPage() {
     }
   }
 
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case 'active': return c.active
+      case 'pending_review': return c.pendingReview
+      case 'paused': return c.paused
+      case 'completed': return c.completed
+      default: return status
+    }
+  }
+
   if (loading) {
-    return <div className="portal-loading">Loading...</div>
+    return <div className="portal-loading">{c.loading}</div>
   }
 
   return (
     <div className="portal-page">
-      <h1 className="portal-page-title">Dashboard</h1>
+      <h1 className="portal-page-title">{p.title}</h1>
 
       <div className="stats-grid">
         <div className="stat-card">
@@ -102,7 +113,7 @@ export default function DashboardPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{stats.activeCampaigns}</span>
-            <span className="stat-card-label">Active Campaigns</span>
+            <span className="stat-card-label">{p.activeCampaigns}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -111,7 +122,7 @@ export default function DashboardPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{stats.totalPlays.toLocaleString()}</span>
-            <span className="stat-card-label">Total Plays</span>
+            <span className="stat-card-label">{p.totalPlays}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -120,7 +131,7 @@ export default function DashboardPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{stats.totalImpressions.toLocaleString()}</span>
-            <span className="stat-card-label">Est. Impressions</span>
+            <span className="stat-card-label">{p.estImpressions}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -129,28 +140,28 @@ export default function DashboardPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{stats.totalSpent.toLocaleString()} GEL</span>
-            <span className="stat-card-label">Total Spent</span>
+            <span className="stat-card-label">{p.totalSpent}</span>
           </div>
         </div>
       </div>
 
       <div className="portal-section">
-        <h2>Recent Campaigns</h2>
+        <h2>{p.recentCampaigns}</h2>
         {campaigns.length === 0 ? (
           <div className="portal-empty">
-            <p>No campaigns yet. Submit your first ad to get started.</p>
-            <a href="/portal/dashboard/submit" className="portal-btn-primary">Submit Ad</a>
+            <p>{p.noCampaigns}</p>
+            <a href="/portal/dashboard/submit" className="portal-btn-primary">{p.submitAd}</a>
           </div>
         ) : (
           <div className="campaigns-table-wrapper">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Campaign</th>
-                  <th>Status</th>
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Price</th>
+                  <th>{c.campaign}</th>
+                  <th>{t.portal.billing.status}</th>
+                  <th>{c.startDate}</th>
+                  <th>{c.endDate}</th>
+                  <th>{t.portal.campaigns.price}</th>
                 </tr>
               </thead>
               <tbody>
@@ -163,7 +174,7 @@ export default function DashboardPage() {
                     </td>
                     <td>
                       <span className="status-badge" style={{ color: statusColor(campaign.status), borderColor: statusColor(campaign.status) }}>
-                        {campaign.status.replace('_', ' ')}
+                        {statusLabel(campaign.status)}
                       </span>
                     </td>
                     <td>{campaign.start_date || '—'}</td>
