@@ -6,10 +6,12 @@ import { createClient } from '@/lib/supabase/client'
 
 interface Device {
   cardId: string
+  name: string | null
   online: boolean
-  connectedAt: string
-  lastSeen: string
+  connectedAt: string | null
+  lastSeen: string | null
   info: Record<string, unknown>
+  registered: boolean
 }
 
 interface DeviceHealth {
@@ -39,17 +41,17 @@ export default function DevicesPage() {
     try {
       const res = await fetch('/api/devices')
       const data = await res.json()
-      if (Array.isArray(data)) {
+      if (data.devices) {
+        setDevices(data.devices)
+        setError(data.realtimeError || '')
+      } else if (Array.isArray(data)) {
         setDevices(data)
         setError('')
-      } else if (data.devices) {
-        setDevices(data.devices)
-        setError(data.error || '')
       } else {
         setError(data.error || 'Failed to load devices')
       }
     } catch {
-      setError('Cannot reach Realtime Server')
+      setError('Cannot reach server')
     } finally {
       setLoading(false)
     }
@@ -290,8 +292,12 @@ export default function DevicesPage() {
       </div>
 
       {error && (
-        <div className="portal-login-error" style={{ marginBottom: '1rem' }}>
-          {error}. Make sure the Realtime Server is running.
+        <div style={{
+          marginBottom: '1rem', padding: '10px 14px', borderRadius: 8,
+          background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)',
+          color: '#FBBF24', fontSize: 13,
+        }}>
+          {error}. Showing registered devices — online status unavailable until Realtime Server is reachable.
         </div>
       )}
 
@@ -325,9 +331,9 @@ export default function DevicesPage() {
       {devices.length === 0 && !error ? (
         <div className="portal-empty">
           <Monitor size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-          <p>No devices connected.</p>
+          <p>No devices registered.</p>
           <p style={{ color: '#525252', fontSize: 14 }}>
-            Point your controller&apos;s server URL to this Realtime Server to see it here.
+            Register a device in the <code>devices</code> table or connect a controller to the Realtime Server.
           </p>
         </div>
       ) : (
@@ -339,7 +345,12 @@ export default function DevicesPage() {
                 <div className="campaign-card-header">
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Monitor size={18} />
-                    {d.cardId}
+                    <span>
+                      {d.name && d.name !== d.cardId ? d.name : d.cardId}
+                      {d.name && d.name !== d.cardId && (
+                        <span style={{ fontSize: 11, color: '#71717a', fontWeight: 400, marginLeft: 6 }}>{d.cardId}</span>
+                      )}
+                    </span>
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {/* Screen Power Indicator */}
@@ -362,15 +373,35 @@ export default function DevicesPage() {
                 </div>
 
                 <div className="campaign-card-details">
-                  <div>
-                    <span className="detail-label">Connected</span>
-                    <span>{d.connectedAt ? new Date(d.connectedAt).toLocaleString() : '—'}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Last Seen</span>
-                    <span>{d.lastSeen ? new Date(d.lastSeen).toLocaleString() : '—'}</span>
-                  </div>
+                  {d.online ? (
+                    <>
+                      <div>
+                        <span className="detail-label">Connected</span>
+                        <span>{d.connectedAt ? new Date(d.connectedAt).toLocaleString() : '—'}</span>
+                      </div>
+                      <div>
+                        <span className="detail-label">Last Seen</span>
+                        <span>{d.lastSeen ? new Date(d.lastSeen).toLocaleString() : '—'}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <span className="detail-label">Last Seen</span>
+                      <span>{d.lastSeen ? new Date(d.lastSeen).toLocaleString() : 'Never connected'}</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Offline message */}
+                {!d.online && (
+                  <div style={{
+                    marginTop: 12, padding: '12px 14px', borderRadius: 8,
+                    background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.1)',
+                    color: '#a1a1aa', fontSize: 13,
+                  }}>
+                    Device is powered off or not connected to the Realtime Server. Controls will appear when it comes online.
+                  </div>
+                )}
 
                 {/* Device Health Stats */}
                 {d.online && health && (health.temperature !== undefined || health.voltage !== undefined || health.signalStrength !== undefined) && (
