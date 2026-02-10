@@ -17,6 +17,7 @@ interface CampaignWithClient {
   created_at: string
   device_group_id: string | null
   clients: { company_name: string } | null
+  device_groups: { name: string } | null
   media_count?: number
   pending_media?: number
   first_media_url?: string
@@ -90,7 +91,7 @@ export default function AdminCampaignsPage() {
   async function loadCampaigns() {
     let query = supabase
       .from('campaigns')
-      .select('*, clients(company_name)')
+      .select('*, clients(company_name), device_groups(name)')
       .order('created_at', { ascending: false })
 
     if (filter !== 'all') {
@@ -300,6 +301,7 @@ export default function AdminCampaignsPage() {
                 <th>Material</th>
                 <th>Client</th>
                 <th>Status</th>
+                <th>Group</th>
                 <th>Media</th>
                 <th>Period</th>
                 <th>Price</th>
@@ -336,6 +338,15 @@ export default function AdminCampaignsPage() {
                     <span className="status-badge" style={{ color: statusColor(c.status), borderColor: statusColor(c.status) }}>
                       {c.status.replace('_', ' ')}
                     </span>
+                  </td>
+                  <td>
+                    {c.device_groups?.name ? (
+                      <span style={{ fontSize: 12, color: '#CCF381', background: 'rgba(204,243,129,0.1)', border: '1px solid rgba(204,243,129,0.2)', borderRadius: 6, padding: '2px 8px' }}>
+                        {c.device_groups.name}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#3f3f46', fontSize: 12 }}>—</span>
+                    )}
                   </td>
                   <td>
                     {c.media_count} file{c.media_count !== 1 ? 's' : ''}
