@@ -158,8 +158,8 @@ export default function AdminCampaignDetailPage() {
               name: campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist',
               mediaItems,
               schedule: { startTime: '00:00', endTime: '23:59' },
-              width: 960,
-              height: 320,
+              width: 240,
+              height: 80,
             }),
           })
         }
@@ -298,8 +298,8 @@ export default function AdminCampaignDetailPage() {
             name: programName,
             mediaItems: allMediaItems,
             schedule: { startTime: '00:00', endTime: '23:59' },
-            width: 960,
-            height: 320,
+            width: 240,
+            height: 80,
           }),
         })
         if (res.ok) pushed++

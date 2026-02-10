@@ -211,8 +211,8 @@ export default function AdminCampaignsPage() {
               name: campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist',
               mediaItems,
               schedule: { startTime: '00:00', endTime: '23:59' },
-              width: 960,
-              height: 320,
+              width: 240,
+              height: 80,
             }),
           })
         }
