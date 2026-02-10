@@ -19,6 +19,8 @@ interface CampaignWithClient {
   clients: { company_name: string } | null
   media_count?: number
   pending_media?: number
+  first_media_url?: string
+  first_media_type?: string
 }
 
 interface ClientOption {
@@ -100,18 +102,19 @@ export default function AdminCampaignsPage() {
     if (data) {
       const withMedia = await Promise.all(
         data.map(async (c) => {
-          const { count: mediaCount } = await supabase
-            .from('ad_media')
-            .select('*', { count: 'exact', head: true })
-            .eq('campaign_id', c.id)
+          const [{ count: mediaCount }, { count: pendingMedia }, { data: firstMedia }] = await Promise.all([
+            supabase.from('ad_media').select('*', { count: 'exact', head: true }).eq('campaign_id', c.id),
+            supabase.from('ad_media').select('*', { count: 'exact', head: true }).eq('campaign_id', c.id).eq('status', 'pending_review'),
+            supabase.from('ad_media').select('file_url, file_type').eq('campaign_id', c.id).order('uploaded_at', { ascending: true }).limit(1),
+          ])
 
-          const { count: pendingMedia } = await supabase
-            .from('ad_media')
-            .select('*', { count: 'exact', head: true })
-            .eq('campaign_id', c.id)
-            .eq('status', 'pending_review')
-
-          return { ...c, media_count: mediaCount || 0, pending_media: pendingMedia || 0 }
+          return {
+            ...c,
+            media_count: mediaCount || 0,
+            pending_media: pendingMedia || 0,
+            first_media_url: firstMedia?.[0]?.file_url || undefined,
+            first_media_type: firstMedia?.[0]?.file_type || undefined,
+          }
         })
       )
       setCampaigns(withMedia)
@@ -294,6 +297,7 @@ export default function AdminCampaignsPage() {
             <thead>
               <tr>
                 <th>Campaign</th>
+                <th>Material</th>
                 <th>Client</th>
                 <th>Status</th>
                 <th>Media</th>
@@ -307,6 +311,25 @@ export default function AdminCampaignsPage() {
                 <tr key={c.id}>
                   <td>
                     <Link href={`/admin/campaigns/${c.id}`} className="table-link">{c.name}</Link>
+                  </td>
+                  <td>
+                    {c.first_media_url ? (
+                      c.first_media_type?.startsWith('video') ? (
+                        <video
+                          src={c.first_media_url}
+                          muted
+                          style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #27272a', background: '#000' }}
+                        />
+                      ) : (
+                        <img
+                          src={c.first_media_url}
+                          alt=""
+                          style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #27272a', background: '#000' }}
+                        />
+                      )
+                    ) : (
+                      <span style={{ color: '#3f3f46', fontSize: 12 }}>—</span>
+                    )}
                   </td>
                   <td>{c.clients?.company_name || '—'}</td>
                   <td>

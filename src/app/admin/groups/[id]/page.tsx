@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { ArrowLeft, Monitor, Megaphone, ChevronDown, ChevronRight, Plus, Send, Wifi, WifiOff } from 'lucide-react'
+import { ArrowLeft, Megaphone, ChevronDown, ChevronRight, Plus, Send, Wifi, WifiOff } from 'lucide-react'
 
 interface DeviceGroup {
   id: string
@@ -28,6 +28,8 @@ interface CampaignRow {
   device_group_id: string | null
   clients: { company_name: string } | null
   approved_count: number
+  first_media_url?: string
+  first_media_type?: string
 }
 
 export default function GroupDetailPage() {
@@ -57,25 +59,34 @@ export default function GroupDetailPage() {
     setDevices(devicesRes.data || [])
     setUnassignedCampaigns(unassignedRes.data || [])
 
-    // Get approved media counts per campaign
+    // Get approved media counts + first media thumbnail per campaign
     const campaignList = campaignsRes.data || []
     if (campaignList.length > 0) {
       const ids = campaignList.map(c => c.id)
-      const { data: mediaData } = await supabase
-        .from('ad_media')
-        .select('campaign_id')
-        .in('campaign_id', ids)
-        .eq('status', 'approved')
+      const [{ data: mediaData }, { data: allFirstMedia }] = await Promise.all([
+        supabase.from('ad_media').select('campaign_id').in('campaign_id', ids).eq('status', 'approved'),
+        supabase.from('ad_media').select('campaign_id, file_url, file_type').in('campaign_id', ids).order('uploaded_at', { ascending: true }),
+      ])
 
       const counts: Record<string, number> = {}
       for (const m of mediaData || []) {
         counts[m.campaign_id] = (counts[m.campaign_id] || 0) + 1
       }
 
+      // Get first media per campaign
+      const firstMediaMap: Record<string, { file_url: string; file_type: string }> = {}
+      for (const m of allFirstMedia || []) {
+        if (!firstMediaMap[m.campaign_id]) {
+          firstMediaMap[m.campaign_id] = m
+        }
+      }
+
       setCampaigns(campaignList.map(c => ({
         ...c,
         clients: Array.isArray(c.clients) ? c.clients[0] || null : c.clients,
         approved_count: counts[c.id] || 0,
+        first_media_url: firstMediaMap[c.id]?.file_url,
+        first_media_type: firstMediaMap[c.id]?.file_type,
       })) as CampaignRow[])
     } else {
       setCampaigns([])
@@ -292,7 +303,23 @@ export default function GroupDetailPage() {
                 flexWrap: 'wrap', gap: 10,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Megaphone size={16} style={{ color: statusColor(c.status), flexShrink: 0 }} />
+                  {c.first_media_url ? (
+                    c.first_media_type?.startsWith('video') ? (
+                      <video
+                        src={c.first_media_url}
+                        muted
+                        style={{ width: 56, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #27272a', background: '#000', flexShrink: 0 }}
+                      />
+                    ) : (
+                      <img
+                        src={c.first_media_url}
+                        alt=""
+                        style={{ width: 56, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #27272a', background: '#000', flexShrink: 0 }}
+                      />
+                    )
+                  ) : (
+                    <Megaphone size={16} style={{ color: statusColor(c.status), flexShrink: 0 }} />
+                  )}
                   <div>
                     <Link
                       href={`/admin/campaigns/${c.id}`}
@@ -396,7 +423,23 @@ export default function GroupDetailPage() {
                                 textDecoration: 'none',
                               }}
                             >
-                              <Megaphone size={14} style={{ color: statusColor(c.status), flexShrink: 0 }} />
+                              {c.first_media_url ? (
+                                c.first_media_type?.startsWith('video') ? (
+                                  <video
+                                    src={c.first_media_url}
+                                    muted
+                                    style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 3, border: '1px solid #27272a', background: '#000', flexShrink: 0 }}
+                                  />
+                                ) : (
+                                  <img
+                                    src={c.first_media_url}
+                                    alt=""
+                                    style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 3, border: '1px solid #27272a', background: '#000', flexShrink: 0 }}
+                                  />
+                                )
+                              ) : (
+                                <Megaphone size={14} style={{ color: statusColor(c.status), flexShrink: 0 }} />
+                              )}
                               <div style={{ flex: 1 }}>
                                 <div style={{ color: '#e4e4e7', fontSize: 13, fontWeight: 500 }}>{c.name}</div>
                                 <div style={{ color: '#71717a', fontSize: 11, marginTop: 2 }}>
