@@ -157,7 +157,7 @@ export default function AdminCampaignsPage() {
         .eq('status', 'active')
         .eq('device_group_id', groupId)
 
-      const mediaItems: { url: string; type: string; duration: number }[] = []
+      const mediaItems: { url: string; type: string; duration: number; campaignName: string }[] = []
       const campaignNames: string[] = []
       for (const c of activeCampaigns || []) {
         const { data: approved } = await supabase
@@ -168,7 +168,7 @@ export default function AdminCampaignsPage() {
         if (approved && approved.length > 0) {
           campaignNames.push(c.name)
           for (const m of approved) {
-            mediaItems.push({ url: m.file_url, type: m.file_type, duration: m.file_type.startsWith('video') ? 0 : 10 })
+            mediaItems.push({ url: m.file_url, type: m.file_type, duration: m.file_type.startsWith('video') ? 0 : 10, campaignName: c.name })
           }
         }
       }

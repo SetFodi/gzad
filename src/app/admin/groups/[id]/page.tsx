@@ -120,7 +120,7 @@ export default function GroupDetailPage() {
         .eq('device_group_id', groupId)
 
       // Collect approved media
-      const mediaItems: { url: string; type: string; duration: number }[] = []
+      const mediaItems: { url: string; type: string; duration: number; campaignName: string }[] = []
       const campaignNames: string[] = []
       for (const c of activeCampaigns || []) {
         const { data: approved } = await supabase
@@ -135,6 +135,7 @@ export default function GroupDetailPage() {
               url: m.file_url,
               type: m.file_type,
               duration: m.file_type.startsWith('video') ? 0 : 10,
+              campaignName: c.name,
             })
           }
         }

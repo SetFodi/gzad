@@ -597,7 +597,8 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
     const sourceType = isVideo ? 'Video' : 'Image'
     const mime = isVideo ? 'video/mp4' : (item.type || 'image/png')
     const fileExt = isVideo ? '.mp4' : (item.type && item.type.includes('png') ? '.png' : '.jpg')
-    const itemName = name + '_' + index
+    // Use per-item campaign name if provided (for playlog matching), else fall back to playlist name
+    const itemName = item.campaignName || name
 
     return {
       _id: uuidv4().replace(/-/g, ''),

@@ -56,12 +56,18 @@ export async function POST(request: NextRequest) {
         .select('id, name')
 
       if (campaigns) {
-        // Build case-insensitive map: lowercase program name -> campaign id
+        // Build case-insensitive map: lowercase campaign name -> campaign id
         const campaignLookup = new Map(
           campaigns.map(c => [c.name.toLowerCase(), c.id])
         )
         for (const name of programNames) {
-          const id = campaignLookup.get(name.toLowerCase())
+          // Direct match first
+          let id = campaignLookup.get(name.toLowerCase())
+          // Fallback: strip trailing _N suffix (from old buildProgram format)
+          if (!id) {
+            const stripped = name.replace(/_\d+$/, '')
+            id = campaignLookup.get(stripped.toLowerCase())
+          }
           if (id) campaignMap[name] = id
         }
       }
@@ -116,21 +122,28 @@ export async function POST(request: NextRequest) {
       statsMap[key].total_duration += row.duration_seconds
     }
 
-    // Upsert aggregated stats using RPC to avoid race conditions
+    // Upsert aggregated stats
     for (const stat of Object.values(statsMap)) {
-      // Use upsert: if row exists for campaign+date, increment values
       const { data: existing } = await supabase
         .from('play_stats')
-        .select('id, play_count, total_duration_seconds, unique_taxis')
+        .select('id, play_count, total_duration_seconds')
         .eq('campaign_id', stat.campaign_id)
         .eq('date', stat.date)
         .maybeSingle()
+
+      // Count unique devices for this campaign+date from all play_logs
+      const { count: uniqueDevices } = await supabase
+        .from('play_logs')
+        .select('device_id', { count: 'exact', head: true })
+        .eq('campaign_id', stat.campaign_id)
+        .gte('began_at', stat.date + 'T00:00:00')
+        .lt('began_at', stat.date + 'T23:59:59.999')
 
       if (existing) {
         await supabase.from('play_stats').update({
           play_count: existing.play_count + stat.play_count,
           total_duration_seconds: existing.total_duration_seconds + stat.total_duration,
-          unique_taxis: (existing.unique_taxis || 0) + 1,
+          unique_taxis: uniqueDevices || 1,
         }).eq('id', existing.id)
       } else {
         await supabase.from('play_stats').insert({
@@ -138,7 +151,7 @@ export async function POST(request: NextRequest) {
           date: stat.date,
           play_count: stat.play_count,
           total_duration_seconds: stat.total_duration,
-          unique_taxis: 1,
+          unique_taxis: uniqueDevices || 1,
           km_covered: 0,
         })
       }
