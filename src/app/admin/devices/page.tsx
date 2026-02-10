@@ -488,10 +488,36 @@ export default function DevicesPage() {
 
                     {/* Row 1: Core Controls */}
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button onClick={() => sendAction(d.cardId, 'screen', { on: true })} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
+                      <button
+                        onClick={async () => {
+                          await sendAction(d.cardId, 'screen', { on: true })
+                          setDeviceHealth(prev => ({ ...prev, [d.cardId]: { ...prev[d.cardId], screenOn: true } }))
+                        }}
+                        disabled={!!actionLoading}
+                        style={{
+                          ...btnStyle,
+                          border: `1px solid ${health?.screenOn === true ? 'rgba(204,243,129,0.4)' : '#27272a'}`,
+                          background: health?.screenOn === true ? 'rgba(204,243,129,0.12)' : 'rgba(255,255,255,0.05)',
+                          color: health?.screenOn === true ? '#CCF381' : '#e4e4e7',
+                          cursor: 'pointer', borderRadius: 8, fontWeight: 500,
+                        }}
+                      >
                         <Power size={14} /> Screen On
                       </button>
-                      <button onClick={() => sendAction(d.cardId, 'screen', { on: false })} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
+                      <button
+                        onClick={async () => {
+                          await sendAction(d.cardId, 'screen', { on: false })
+                          setDeviceHealth(prev => ({ ...prev, [d.cardId]: { ...prev[d.cardId], screenOn: false } }))
+                        }}
+                        disabled={!!actionLoading}
+                        style={{
+                          ...btnStyle,
+                          border: `1px solid ${health?.screenOn === false ? 'rgba(239,68,68,0.4)' : '#27272a'}`,
+                          background: health?.screenOn === false ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)',
+                          color: health?.screenOn === false ? '#EF4444' : '#e4e4e7',
+                          cursor: 'pointer', borderRadius: 8, fontWeight: 500,
+                        }}
+                      >
                         <Power size={14} /> Screen Off
                       </button>
                       <button onClick={() => takeScreenshot(d.cardId)} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
