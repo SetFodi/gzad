@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Check, X, DollarSign, Copy, Download, Send, Monitor, Upload, Trash2, Play } from 'lucide-react'
+import { ArrowLeft, Check, X, DollarSign, Copy, Download, Send, Monitor, Upload } from 'lucide-react'
 import Link from 'next/link'
 
 interface Campaign {
@@ -15,7 +15,13 @@ interface Campaign {
   daily_hours: number
   taxi_count: number
   monthly_price: number
+  device_group_id: string | null
   clients: { company_name: string; id: string } | null
+}
+
+interface DeviceGroup {
+  id: string
+  name: string
 }
 
 interface Media {
@@ -26,11 +32,6 @@ interface Media {
   status: string
 }
 
-interface Device {
-  cardId: string
-  online: boolean
-}
-
 export default function AdminCampaignDetailPage() {
   const params = useParams()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
@@ -38,18 +39,10 @@ export default function AdminCampaignDetailPage() {
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [devices, setDevices] = useState<Device[]>([])
-  const [selectedDevice, setSelectedDevice] = useState('')
+  const [selectedGroup, setSelectedGroup] = useState('')
   const [pushing, setPushing] = useState(false)
   const [pushResult, setPushResult] = useState<{ ok: boolean; msg: string } | null>(null)
-  const [clearing, setClearing] = useState(false)
-  const [checkingPlaying, setCheckingPlaying] = useState(false)
-  const [playingInfo, setPlayingInfo] = useState<string | null>(null)
-  const [schedule, setSchedule] = useState({
-    startTime: '00:00',
-    endTime: '23:59',
-    days: [0, 1, 2, 3, 4, 5, 6] as number[],
-  })
+  const [groups, setGroups] = useState<DeviceGroup[]>([])
   const [form, setForm] = useState({
     start_date: '',
     end_date: '',
@@ -62,12 +55,17 @@ export default function AdminCampaignDetailPage() {
   async function load() {
     const id = params.id as string
 
-    const [campaignRes, mediaRes] = await Promise.all([
+    const [campaignRes, mediaRes, groupsRes] = await Promise.all([
       supabase.from('campaigns').select('*, clients(company_name, id)').eq('id', id).single(),
       supabase.from('ad_media').select('*').eq('campaign_id', id).order('uploaded_at', { ascending: false }),
+      supabase.from('device_groups').select('id, name').order('name'),
     ])
 
     setCampaign(campaignRes.data)
+    setGroups(groupsRes.data || [])
+    if (campaignRes.data?.device_group_id && !selectedGroup) {
+      setSelectedGroup(campaignRes.data.device_group_id)
+    }
     if (campaignRes.data) {
       setForm({
         start_date: campaignRes.data.start_date || '',
@@ -86,16 +84,27 @@ export default function AdminCampaignDetailPage() {
   const updateMedia = async (mediaId: string, status: string) => {
     await supabase.from('ad_media').update({ status }).eq('id', mediaId)
     await load()
-    // Auto-sync all online devices when media approval status changes
-    await syncAllOnlineDevices()
+    // Auto-sync group devices when media approval status changes
+    await syncGroupDevices()
   }
 
-  const syncAllOnlineDevices = async () => {
+  const syncGroupDevices = async () => {
+    if (!campaign) return
     try {
-      const { data: activeCampaigns } = await supabase
+      // Get active campaigns in the same group as this campaign
+      let campaignQuery = supabase
         .from('campaigns')
         .select('id, name')
         .eq('status', 'active')
+
+      if (campaign.device_group_id) {
+        campaignQuery = campaignQuery.eq('device_group_id', campaign.device_group_id)
+      } else {
+        // No group — sync all ungrouped campaigns to all devices
+        campaignQuery = campaignQuery.is('device_group_id', null)
+      }
+
+      const { data: activeCampaigns } = await campaignQuery
 
       const mediaItems: { url: string; type: string; duration: number }[] = []
       const campaignNames: string[] = []
@@ -117,10 +126,20 @@ export default function AdminCampaignDetailPage() {
         }
       }
 
+      // Get online devices — filter to group if campaign has one
       const devicesRes = await fetch('/api/devices')
       const deviceList = await devicesRes.json()
-      const onlineDevices = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
+      let onlineDevices = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
         .filter((d: { online: boolean }) => d.online)
+
+      if (campaign.device_group_id) {
+        const { data: groupDevices } = await supabase
+          .from('devices')
+          .select('id')
+          .eq('group_id', campaign.device_group_id)
+        const groupIds = new Set((groupDevices || []).map((d: { id: string }) => d.id))
+        onlineDevices = onlineDevices.filter((d: { cardId: string }) => groupIds.has(d.cardId))
+      }
 
       for (const device of onlineDevices) {
         if (mediaItems.length === 0) {
@@ -195,46 +214,35 @@ export default function AdminCampaignDetailPage() {
     }
   }
 
-  const loadDevices = useCallback(async () => {
-    try {
-      const res = await fetch('/api/devices')
-      const data = await res.json()
-      const list = Array.isArray(data) ? data : data.devices || []
-      const onlineDevices = list.filter((d: Device) => d.online)
-      setDevices(onlineDevices)
-      if (onlineDevices.length > 0 && !selectedDevice) {
-        setSelectedDevice(onlineDevices[0].cardId)
-      }
-    } catch {
-      // Realtime Server not running — that's ok
-    }
-  }, [selectedDevice])
-
-  useEffect(() => { loadDevices() }, [loadDevices])
-
-  const pushToDevice = async () => {
-    if (!campaign || !selectedDevice) return
+  const pushToGroup = async () => {
+    if (!campaign || !selectedGroup) return
 
     setPushing(true)
     setPushResult(null)
     try {
-      // Fetch all active campaigns and combine their approved media
+      // 1. Assign this campaign to the selected group
+      if (campaign.device_group_id !== selectedGroup) {
+        await supabase.from('campaigns').update({ device_group_id: selectedGroup }).eq('id', campaign.id)
+      }
+
+      // 2. Fetch all active campaigns in this group
       const { data: activeCampaigns } = await supabase
         .from('campaigns')
         .select('id, name')
         .eq('status', 'active')
+        .eq('device_group_id', selectedGroup)
         .order('created_at', { ascending: true })
 
-      if (!activeCampaigns || activeCampaigns.length === 0) {
-        setPushResult({ ok: false, msg: 'No active campaigns found' })
-        setPushing(false)
-        return
+      // Include this campaign if it's active but wasn't in the group yet
+      const campaignIds = new Set((activeCampaigns || []).map(c => c.id))
+      if (campaign.status === 'active' && !campaignIds.has(campaign.id)) {
+        activeCampaigns?.push({ id: campaign.id, name: campaign.name })
       }
 
       const allMediaItems: { url: string; type: string; duration: number }[] = []
       const campaignNames: string[] = []
 
-      for (const c of activeCampaigns) {
+      for (const c of activeCampaigns || []) {
         const { data: approved } = await supabase
           .from('ad_media')
           .select('file_url, file_type')
@@ -254,90 +262,56 @@ export default function AdminCampaignDetailPage() {
       }
 
       if (allMediaItems.length === 0) {
-        setPushResult({ ok: false, msg: 'No approved media in any active campaign' })
+        setPushResult({ ok: false, msg: 'No approved media found in this group' })
         setPushing(false)
         return
       }
 
-      const scheduleConfig: Record<string, unknown> = {
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-      }
-      if (schedule.days.length < 7) {
-        scheduleConfig.days = schedule.days
-      }
-      if (campaign.start_date) scheduleConfig.startDate = campaign.start_date
-      if (campaign.end_date) scheduleConfig.endDate = campaign.end_date
+      // 3. Get online devices in this group
+      const { data: groupDevices } = await supabase
+        .from('devices')
+        .select('id')
+        .eq('group_id', selectedGroup)
+      const groupDeviceIds = new Set((groupDevices || []).map((d: { id: string }) => d.id))
 
-      // Use combined name so all campaigns are in one program
+      const devicesRes = await fetch('/api/devices')
+      const deviceList = await devicesRes.json()
+      const onlineInGroup = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
+        .filter((d: { online: boolean; cardId: string }) => d.online && groupDeviceIds.has(d.cardId))
+
+      if (onlineInGroup.length === 0) {
+        setPushResult({ ok: false, msg: 'No online devices in this group' })
+        setPushing(false)
+        return
+      }
+
+      // 4. Push to all online devices in the group
       const programName = campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist'
-
-      const res = await fetch('/api/devices/command', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cardId: selectedDevice,
-          action: 'push-program',
-          name: programName,
-          mediaItems: allMediaItems,
-          schedule: scheduleConfig,
-          width: 960,
-          height: 320,
-        }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setPushResult({ ok: true, msg: `${allMediaItems.length} file(s) from ${campaignNames.length} campaign(s) pushed to ${selectedDevice}` })
-      } else {
-        setPushResult({ ok: false, msg: data.error || 'Push failed' })
+      let pushed = 0
+      for (const device of onlineInGroup) {
+        const res = await fetch('/api/devices/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cardId: device.cardId,
+            action: 'push-program',
+            name: programName,
+            mediaItems: allMediaItems,
+            schedule: { startTime: '00:00', endTime: '23:59' },
+            width: 960,
+            height: 320,
+          }),
+        })
+        if (res.ok) pushed++
       }
+
+      const groupName = groups.find(g => g.id === selectedGroup)?.name || selectedGroup
+      setPushResult({ ok: true, msg: `${allMediaItems.length} ad(s) from ${campaignNames.length} campaign(s) pushed to ${pushed} device(s) in "${groupName}"` })
+      await load() // Refresh to show updated group assignment
     } catch {
       setPushResult({ ok: false, msg: 'Cannot reach Realtime Server' })
     } finally {
       setPushing(false)
-    }
-  }
-
-  const clearDisplay = async () => {
-    if (!selectedDevice) return
-    setClearing(true)
-    setPushResult(null)
-    try {
-      const res = await fetch('/api/devices/command', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cardId: selectedDevice, action: 'clear-program' }),
-      })
-      const data = await res.json()
-      setPushResult({ ok: res.ok, msg: res.ok ? 'Display cleared' : (data.error || 'Failed to clear') })
-    } catch {
-      setPushResult({ ok: false, msg: 'Cannot reach Realtime Server' })
-    } finally {
-      setClearing(false)
-    }
-  }
-
-  const checkPlaying = async () => {
-    if (!selectedDevice) return
-    setCheckingPlaying(true)
-    setPlayingInfo(null)
-    try {
-      const res = await fetch('/api/devices/command', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cardId: selectedDevice, action: 'get-playing' }),
-      })
-      const data = await res.json()
-      if (res.ok && data.result) {
-        const result = typeof data.result === 'string' ? JSON.parse(data.result) : data.result
-        setPlayingInfo(result.name || result.programName || JSON.stringify(result))
-      } else {
-        setPlayingInfo(data.error || 'No program playing')
-      }
-    } catch {
-      setPlayingInfo('Cannot reach Realtime Server')
-    } finally {
-      setCheckingPlaying(false)
     }
   }
 
@@ -452,7 +426,7 @@ export default function AdminCampaignDetailPage() {
         </button>
       </div>
 
-      {/* Push to Display */}
+      {/* Push to Group */}
       <div style={{
         background: 'rgba(204,243,129,0.06)',
         border: '1px solid rgba(204,243,129,0.15)',
@@ -462,23 +436,22 @@ export default function AdminCampaignDetailPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <Monitor size={18} style={{ color: '#CCF381' }} />
-          <span style={{ fontWeight: 600, color: '#CCF381', fontSize: 15 }}>Push to Display</span>
+          <span style={{ fontWeight: 600, color: '#CCF381', fontSize: 15 }}>Push to Group</span>
           <span style={{ color: '#525252', fontSize: 12, marginLeft: 4 }}>
             ({media.filter(m => m.status === 'approved').length} approved file{media.filter(m => m.status === 'approved').length !== 1 ? 's' : ''})
           </span>
         </div>
 
-        {devices.length === 0 ? (
+        {groups.length === 0 ? (
           <p style={{ color: '#525252', fontSize: 13, margin: 0 }}>
-            No devices online. Connect a device via the Realtime Server first.
+            No groups created yet. Go to <Link href="/admin/groups" style={{ color: '#60A5FA' }}>Groups</Link> to create one and assign devices.
           </p>
         ) : (
           <>
-            {/* Device selector + action buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <select
-                value={selectedDevice}
-                onChange={(e) => setSelectedDevice(e.target.value)}
+                value={selectedGroup}
+                onChange={(e) => setSelectedGroup(e.target.value)}
                 style={{
                   background: '#0A0A0A',
                   border: '1px solid #27272a',
@@ -486,116 +459,29 @@ export default function AdminCampaignDetailPage() {
                   color: '#e4e4e7',
                   padding: '8px 12px',
                   fontSize: 14,
+                  minWidth: 200,
                 }}
               >
-                {devices.map(d => (
-                  <option key={d.cardId} value={d.cardId}>{d.cardId}</option>
+                <option value="">Select a group...</option>
+                {groups.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
               </select>
               <button
-                onClick={pushToDevice}
-                disabled={pushing || !media.some(m => m.status === 'approved')}
+                onClick={pushToGroup}
+                disabled={pushing || !selectedGroup || !media.some(m => m.status === 'approved')}
                 className="portal-btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: pushing ? 0.6 : 1 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: (pushing || !selectedGroup) ? 0.6 : 1 }}
               >
                 <Send size={16} />
-                {pushing ? 'Pushing...' : 'Push All Approved'}
-              </button>
-              <button
-                onClick={clearDisplay}
-                disabled={clearing}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '8px 14px', borderRadius: 8,
-                  border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)',
-                  color: '#EF4444', cursor: 'pointer', fontSize: 14, fontWeight: 500,
-                  opacity: clearing ? 0.6 : 1,
-                }}
-              >
-                <Trash2 size={16} />
-                {clearing ? 'Clearing...' : 'Clear Display'}
-              </button>
-              <button
-                onClick={checkPlaying}
-                disabled={checkingPlaying}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '8px 14px', borderRadius: 8,
-                  border: '1px solid rgba(96,165,250,0.3)', background: 'rgba(96,165,250,0.1)',
-                  color: '#60A5FA', cursor: 'pointer', fontSize: 14, fontWeight: 500,
-                  opacity: checkingPlaying ? 0.6 : 1,
-                }}
-              >
-                <Play size={16} />
-                {checkingPlaying ? 'Checking...' : 'Check Playing'}
+                {pushing ? 'Pushing...' : 'Push to Group'}
               </button>
             </div>
 
-            {/* Schedule config */}
-            <div style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid #1a1a1a',
-              borderRadius: 8,
-              padding: '12px 16px',
-            }}>
-              <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10, fontWeight: 500 }}>Schedule</div>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <label style={{ color: '#a1a1aa', fontSize: 13 }}>From</label>
-                  <input
-                    type="time"
-                    value={schedule.startTime}
-                    onChange={(e) => setSchedule({ ...schedule, startTime: e.target.value })}
-                    style={{
-                      background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6,
-                      color: '#e4e4e7', padding: '6px 10px', fontSize: 13,
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <label style={{ color: '#a1a1aa', fontSize: 13 }}>To</label>
-                  <input
-                    type="time"
-                    value={schedule.endTime}
-                    onChange={(e) => setSchedule({ ...schedule, endTime: e.target.value })}
-                    style={{
-                      background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6,
-                      color: '#e4e4e7', padding: '6px 10px', fontSize: 13,
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
-                  <button
-                    key={day}
-                    onClick={() => {
-                      const days = schedule.days.includes(i)
-                        ? schedule.days.filter(d => d !== i)
-                        : [...schedule.days, i].sort()
-                      setSchedule({ ...schedule, days })
-                    }}
-                    style={{
-                      padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 500,
-                      border: '1px solid',
-                      borderColor: schedule.days.includes(i) ? 'rgba(204,243,129,0.4)' : '#27272a',
-                      background: schedule.days.includes(i) ? 'rgba(204,243,129,0.15)' : 'transparent',
-                      color: schedule.days.includes(i) ? '#CCF381' : '#71717a',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
-              {campaign.start_date && campaign.end_date && (
-                <div style={{ marginTop: 8, fontSize: 12, color: '#525252' }}>
-                  Date range: {campaign.start_date} to {campaign.end_date} (from campaign settings)
-                </div>
-              )}
-            </div>
-
-            {!media.some(m => m.status === 'approved') && (
+            {!selectedGroup && (
+              <span style={{ color: '#FBBF24', fontSize: 12, display: 'block', marginTop: 10 }}>Select a group to push to</span>
+            )}
+            {selectedGroup && !media.some(m => m.status === 'approved') && (
               <span style={{ color: '#FBBF24', fontSize: 12, display: 'block', marginTop: 10 }}>Approve a media file first</span>
             )}
           </>
@@ -611,19 +497,6 @@ export default function AdminCampaignDetailPage() {
             color: pushResult.ok ? '#CCF381' : '#EF4444',
           }}>
             {pushResult.msg}
-          </div>
-        )}
-
-        {playingInfo && (
-          <div style={{
-            marginTop: 10,
-            padding: '8px 12px',
-            borderRadius: 8,
-            fontSize: 13,
-            background: 'rgba(96,165,250,0.1)',
-            color: '#60A5FA',
-          }}>
-            Now playing: {playingInfo}
           </div>
         )}
       </div>
@@ -683,6 +556,12 @@ export default function AdminCampaignDetailPage() {
             <div className="stat-card-info">
               <span className="stat-card-value">{campaign.monthly_price ? `${campaign.monthly_price} GEL` : '—'}</span>
               <span className="stat-card-label">Monthly Price</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-info">
+              <span className="stat-card-value">{groups.find(g => g.id === campaign.device_group_id)?.name || 'All devices'}</span>
+              <span className="stat-card-label">Device Group</span>
             </div>
           </div>
         </div>

@@ -528,49 +528,14 @@ function sendCommand(cardId, data) {
 }
 
 function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 960, height = 320 }) {
-  // Build an XixunPlayer PlayXixunTask program (official SDK format)
-  // Supports multiple media items (playlist) and time/date scheduling
-
-  // Build sources array from media items with cumulative playTime offsets
-  let currentPlayTime = 0
-  const sources = mediaItems.map((item) => {
-    const isVideo = (item.type || '').startsWith('video')
-    const sourceType = isVideo ? 'Video' : 'Image'
-    const mime = isVideo ? 'video/mp4' : (item.type || 'image/png')
-    const fileExt = isVideo ? '.mp4' : (item.type && item.type.includes('png') ? '.png' : '.jpg')
-    const fileName = name + '_' + currentPlayTime + fileExt
-
-    const source = {
-      _type: sourceType,
-      md5: item.md5 || '',
-      name: fileName,
-      mime: mime,
-      size: item.size || 0,
-      fileExt: fileExt,
-      id: uuidv4().replace(/-/g, ''),
-      url: item.url,
-      playTime: currentPlayTime,
-      timeSpan: isVideo ? 0 : (item.duration || 10), // 0 = play full video
-      left: 0,
-      top: 0,
-      width: width,
-      height: height,
-      entryEffect: 'None',
-      exitEffect: 'None',
-      entryEffectTimeSpan: 0,
-      exitEffectTimeSpan: 0,
-    }
-
-    // Advance playTime for next source (estimate 15s for videos with unknown duration)
-    currentPlayTime += isVideo ? 15 : (item.duration || 10)
-
-    return source
-  })
+  // Build an XixunPlayer PlayXixunTask program
+  // Each media file becomes a separate item in the task (VeeHub approach)
+  // This ensures reliable rotation with any number of ads
 
   // Build schedule from config
   const scheduleConfig = {
     filterType: schedule.days && schedule.days.length < 7 ? 'Week' : 'None',
-    timeType: schedule.startTime ? 'Range' : 'Range',
+    timeType: 'Range',
     startTime: schedule.startTime || '00:00',
     endTime: schedule.endTime || '23:59',
     dateType: schedule.startDate ? 'Range' : 'All',
@@ -583,6 +548,55 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
     scheduleConfig.endDate = schedule.endDate
   }
 
+  // Each media file = one item in the playlist
+  const items = mediaItems.map((item, index) => {
+    const isVideo = (item.type || '').startsWith('video')
+    const sourceType = isVideo ? 'Video' : 'Image'
+    const mime = isVideo ? 'video/mp4' : (item.type || 'image/png')
+    const fileExt = isVideo ? '.mp4' : (item.type && item.type.includes('png') ? '.png' : '.jpg')
+    const itemName = name + '_' + index
+
+    return {
+      _id: uuidv4().replace(/-/g, ''),
+      _program: {
+        id: uuidv4().replace(/-/g, ''),
+        totalSize: item.size || 0,
+        name: itemName,
+        width: width,
+        height: height,
+        layers: [
+          {
+            repeat: false,
+            sources: [
+              {
+                _type: sourceType,
+                md5: item.md5 || '',
+                name: itemName + fileExt,
+                mime: mime,
+                size: item.size || 0,
+                fileExt: fileExt,
+                id: uuidv4().replace(/-/g, ''),
+                url: item.url,
+                playTime: 0,
+                timeSpan: isVideo ? 0 : (item.duration || 10),
+                left: 0,
+                top: 0,
+                width: width,
+                height: height,
+                entryEffect: 'None',
+                exitEffect: 'None',
+                entryEffectTimeSpan: 0,
+                exitEffectTimeSpan: 0,
+              },
+            ],
+          },
+        ],
+      },
+      repeatTimes: 1,
+      schedules: [scheduleConfig],
+    }
+  })
+
   return {
     type: 'commandXixunPlayer',
     command: {
@@ -594,26 +608,7 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
         _id: uuidv4(),
         name: name,
         insert: false,
-        items: [
-          {
-            _id: uuidv4().replace(/-/g, ''),
-            _program: {
-              id: uuidv4().replace(/-/g, ''),
-              totalSize: totalSize,
-              name: name,
-              width: width,
-              height: height,
-              layers: [
-                {
-                  repeat: true,
-                  sources: sources,
-                },
-              ],
-            },
-            repeatTimes: 9999,
-            schedules: [scheduleConfig],
-          },
-        ],
+        items: items,
       },
     },
   }

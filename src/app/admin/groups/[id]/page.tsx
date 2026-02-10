@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { ArrowLeft, Monitor, Megaphone, ChevronDown, ChevronRight, Plus } from 'lucide-react'
+import { ArrowLeft, Monitor, Megaphone, ChevronDown, ChevronRight, Plus, Send, Wifi, WifiOff } from 'lucide-react'
 
 interface DeviceGroup {
   id: string
@@ -40,6 +40,9 @@ export default function GroupDetailPage() {
   const [expandedDevice, setExpandedDevice] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [assigning, setAssigning] = useState(false)
+  const [onlineDeviceIds, setOnlineDeviceIds] = useState<Set<string>>(new Set())
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const supabase = createClient()
 
   const load = async () => {
@@ -81,7 +84,90 @@ export default function GroupDetailPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [groupId])
+  const loadOnlineDevices = useCallback(async () => {
+    try {
+      const res = await fetch('/api/devices')
+      const data = await res.json()
+      const list = Array.isArray(data) ? data : data.devices || []
+      setOnlineDeviceIds(new Set(list.filter((d: { online: boolean }) => d.online).map((d: { cardId: string }) => d.cardId)))
+    } catch {
+      // Realtime server not running
+    }
+  }, [])
+
+  useEffect(() => { load(); loadOnlineDevices() }, [groupId])
+
+  const syncGroupToDevices = async () => {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      // Get active campaigns in this group
+      const activeCampaigns = campaigns.filter(c => c.status === 'active')
+
+      // Collect approved media
+      const mediaItems: { url: string; type: string; duration: number }[] = []
+      const campaignNames: string[] = []
+      for (const c of activeCampaigns) {
+        const { data: approved } = await supabase
+          .from('ad_media')
+          .select('file_url, file_type')
+          .eq('campaign_id', c.id)
+          .eq('status', 'approved')
+        if (approved && approved.length > 0) {
+          campaignNames.push(c.name)
+          for (const m of approved) {
+            mediaItems.push({
+              url: m.file_url,
+              type: m.file_type,
+              duration: m.file_type.startsWith('video') ? 0 : 10,
+            })
+          }
+        }
+      }
+
+      // Get online devices in this group
+      const targetDevices = devices.filter(d => onlineDeviceIds.has(d.id))
+
+      if (targetDevices.length === 0) {
+        setSyncResult({ ok: false, msg: 'No online devices in this group' })
+        setSyncing(false)
+        return
+      }
+
+      let pushed = 0
+      for (const device of targetDevices) {
+        if (mediaItems.length === 0) {
+          await fetch('/api/devices/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cardId: device.id, action: 'clear-program' }),
+          })
+        } else {
+          await fetch('/api/devices/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cardId: device.id,
+              action: 'push-program',
+              name: campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist',
+              mediaItems,
+              schedule: { startTime: '00:00', endTime: '23:59' },
+              width: 960,
+              height: 320,
+            }),
+          })
+        }
+        pushed++
+      }
+
+      const action = mediaItems.length === 0 ? 'Cleared' : `Pushed ${mediaItems.length} ad(s) from ${campaignNames.length} campaign(s)`
+      setSyncResult({ ok: true, msg: `${action} to ${pushed} device(s)` })
+    } catch (err) {
+      setSyncResult({ ok: false, msg: err instanceof Error ? err.message : 'Sync failed' })
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const assignCampaign = async (campaignId: string) => {
     setAssigning(true)
@@ -111,10 +197,30 @@ export default function GroupDetailPage() {
         <div>
           <h1 className="portal-page-title">{group.name}</h1>
           <p className="portal-subtitle">
-            {devices.length} device{devices.length !== 1 ? 's' : ''} · {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
+            {devices.length} device{devices.length !== 1 ? 's' : ''} ({devices.filter(d => onlineDeviceIds.has(d.id)).length} online) · {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
           </p>
         </div>
+        <button
+          onClick={syncGroupToDevices}
+          disabled={syncing}
+          className="portal-btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: syncing ? 0.6 : 1 }}
+        >
+          <Send size={16} />
+          {syncing ? 'Pushing...' : 'Push Ads to Devices'}
+        </button>
       </div>
+
+      {syncResult && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 13,
+          background: syncResult.ok ? 'rgba(204,243,129,0.08)' : 'rgba(239,68,68,0.08)',
+          border: `1px solid ${syncResult.ok ? 'rgba(204,243,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+          color: syncResult.ok ? '#CCF381' : '#EF4444',
+        }}>
+          {syncResult.msg}
+        </div>
+      )}
 
       {/* Campaigns assigned to this group */}
       <div style={{ marginBottom: 28 }}>
@@ -247,11 +353,11 @@ export default function GroupDetailPage() {
                     }}
                   >
                     {isExpanded ? <ChevronDown size={16} style={{ color: '#CCF381' }} /> : <ChevronRight size={16} style={{ color: '#71717a' }} />}
-                    <Monitor size={16} style={{ color: '#CCF381' }} />
-                    <span style={{ color: '#CCF381', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>{d.id}</span>
+                    {onlineDeviceIds.has(d.id) ? <Wifi size={14} style={{ color: '#CCF381' }} /> : <WifiOff size={14} style={{ color: '#3f3f46' }} />}
+                    <span style={{ color: onlineDeviceIds.has(d.id) ? '#CCF381' : '#71717a', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>{d.id}</span>
                     {d.name && <span style={{ color: '#71717a', fontSize: 12 }}>({d.name})</span>}
-                    <span style={{ color: '#3f3f46', fontSize: 12, marginLeft: 'auto' }}>
-                      {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} targeted
+                    <span style={{ color: onlineDeviceIds.has(d.id) ? '#CCF381' : '#3f3f46', fontSize: 12, marginLeft: 'auto' }}>
+                      {onlineDeviceIds.has(d.id) ? 'online' : 'offline'}
                     </span>
                   </button>
 
