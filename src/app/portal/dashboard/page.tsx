@@ -56,12 +56,24 @@ export default function DashboardPage() {
       let totalSpent = 0
 
       if (campaignIds.length > 0) {
+        // Try play_stats first, fall back to raw play_logs count
         const { data: statsData } = await supabase
           .from('play_stats')
           .select('play_count')
           .in('campaign_id', campaignIds)
 
         totalPlays = statsData?.reduce((sum, s) => sum + s.play_count, 0) || 0
+
+        // Fallback: if play_stats is empty, count from play_logs directly
+        if (totalPlays === 0) {
+          const { count } = await supabase
+            .from('play_logs')
+            .select('*', { count: 'exact', head: true })
+            .in('campaign_id', campaignIds)
+
+          totalPlays = count || 0
+        }
+
         totalSpent = campaignsData?.reduce((sum, c) => sum + (c.monthly_price || 0), 0) || 0
       }
 

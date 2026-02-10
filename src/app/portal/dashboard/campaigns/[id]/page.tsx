@@ -61,6 +61,34 @@ export default function CampaignDetailPage() {
         .eq('campaign_id', id)
         .order('date', { ascending: false })
 
+      // If play_stats is empty, aggregate from raw play_logs
+      let finalStats = statsData || []
+      if (finalStats.length === 0) {
+        const { data: rawLogs } = await supabase
+          .from('play_logs')
+          .select('began_at, duration_seconds')
+          .eq('campaign_id', id)
+
+        if (rawLogs && rawLogs.length > 0) {
+          const byDate: Record<string, { plays: number; duration: number }> = {}
+          for (const log of rawLogs) {
+            const date = log.began_at?.split('T')[0] || 'unknown'
+            if (!byDate[date]) byDate[date] = { plays: 0, duration: 0 }
+            byDate[date].plays++
+            byDate[date].duration += log.duration_seconds || 0
+          }
+          finalStats = Object.entries(byDate)
+            .map(([date, d]) => ({
+              date,
+              play_count: d.plays,
+              total_duration_seconds: d.duration,
+              unique_taxis: 1,
+              km_covered: 0,
+            }))
+            .sort((a, b) => b.date.localeCompare(a.date))
+        }
+      }
+
       const { data: mediaData } = await supabase
         .from('ad_media')
         .select('*')
@@ -68,7 +96,7 @@ export default function CampaignDetailPage() {
         .order('uploaded_at', { ascending: false })
 
       setCampaign(campaignData)
-      setStats(statsData || [])
+      setStats(finalStats)
       setMedia(mediaData || [])
       setLoading(false)
     }
