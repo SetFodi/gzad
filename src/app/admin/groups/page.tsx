@@ -95,6 +95,67 @@ export default function GroupsPage() {
   const assignDevice = async (deviceId: string, groupId: string | null) => {
     await supabase.from('devices').update({ group_id: groupId }).eq('id', deviceId)
     await load()
+
+    // If assigning to a group, push that group's ads to the new device
+    if (groupId) {
+      await pushGroupAdsToDevice(groupId, deviceId)
+    }
+  }
+
+  const pushGroupAdsToDevice = async (groupId: string, deviceId: string) => {
+    try {
+      // Check if device is online
+      const devicesRes = await fetch('/api/devices')
+      const deviceList = await devicesRes.json()
+      const allDevices = Array.isArray(deviceList) ? deviceList : deviceList.devices || []
+      const device = allDevices.find((d: { cardId: string; online: boolean }) => d.cardId === deviceId && d.online)
+      if (!device) return // Device offline, will get ads on next manual push
+
+      // Get active campaigns in this group
+      const { data: activeCampaigns } = await supabase
+        .from('campaigns')
+        .select('id, name')
+        .eq('status', 'active')
+        .eq('device_group_id', groupId)
+
+      const mediaItems: { url: string; type: string; duration: number }[] = []
+      const campaignNames: string[] = []
+      for (const c of activeCampaigns || []) {
+        const { data: approved } = await supabase
+          .from('ad_media')
+          .select('file_url, file_type')
+          .eq('campaign_id', c.id)
+          .eq('status', 'approved')
+        if (approved && approved.length > 0) {
+          campaignNames.push(c.name)
+          for (const m of approved) {
+            mediaItems.push({
+              url: m.file_url,
+              type: m.file_type,
+              duration: m.file_type.startsWith('video') ? 0 : 10,
+            })
+          }
+        }
+      }
+
+      if (mediaItems.length === 0) return // No ads to push
+
+      await fetch('/api/devices/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardId: deviceId,
+          action: 'push-program',
+          name: campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist',
+          mediaItems,
+          schedule: { startTime: '00:00', endTime: '23:59' },
+          width: 240,
+          height: 80,
+        }),
+      })
+    } catch (err) {
+      console.error('Failed to push group ads to device:', err)
+    }
   }
 
   if (loading) return <div className="portal-loading">Loading...</div>
