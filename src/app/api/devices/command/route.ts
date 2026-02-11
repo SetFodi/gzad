@@ -33,6 +33,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'cardId and action are required' }, { status: 400 })
   }
 
+  // Validate cardId format to prevent SSRF
+  if (!/^[a-zA-Z0-9\-]+$/.test(cardId)) {
+    return NextResponse.json({ error: 'Invalid cardId format' }, { status: 400 })
+  }
+
   // Map action to Realtime Server endpoint
   const endpointMap: Record<string, string> = {
     'brightness': `/devices/${cardId}/brightness`,

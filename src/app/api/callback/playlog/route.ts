@@ -16,7 +16,12 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
 
-    if (process.env.CALLBACK_SECRET && callbackKey !== process.env.CALLBACK_SECRET && bearerToken !== process.env.CALLBACK_SECRET) {
+    const secret = process.env.CALLBACK_SECRET
+    if (!secret) {
+      console.error('CALLBACK_SECRET not configured')
+      return NextResponse.json({ _type: 'Error', message: 'Server misconfigured' }, { status: 500 })
+    }
+    if (callbackKey !== secret && bearerToken !== secret) {
       return NextResponse.json({ _type: 'Error', message: 'Unauthorized' }, { status: 401 })
     }
 
@@ -28,6 +33,11 @@ export async function POST(request: NextRequest) {
 
     if (logs.length === 0) {
       return NextResponse.json({ _type: 'success', count: 0 })
+    }
+
+    // Limit batch size to prevent DoS
+    if (logs.length > 500) {
+      return NextResponse.json({ _type: 'Error', message: 'Too many entries (max 500)' }, { status: 413 })
     }
 
     // Extract device ID: prefer Card-Id header (sent by controller per SDK),
@@ -73,19 +83,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Insert raw play logs
+    // Insert raw play logs with validation
     const rows = logs.map((log: Record<string, unknown>) => {
       const beginAt = log.beginAt as number
+      const duration = Math.max(0, Math.min((log.duration as number) || 0, 86400))
+      let lat = (log.lat as number) || 0
+      let lng = (log.lng as number) || 0
+      if (lat < -90 || lat > 90) lat = 0
+      if (lng < -180 || lng > 180) lng = 0
+
       return {
         device_id: deviceId,
         campaign_id: campaignMap[log.name as string] || null,
-        program_name: (log.name as string) || 'unknown',
-        program_id: (log.pid as string) || null,
-        play_type: (log.type as string) || 'program',
+        program_name: ((log.name as string) || 'unknown').slice(0, 255),
+        program_id: ((log.pid as string) || '').slice(0, 255) || null,
+        play_type: ((log.type as string) || 'program').slice(0, 50),
         began_at: beginAt ? new Date(beginAt).toISOString() : new Date().toISOString(),
-        duration_seconds: (log.duration as number) || 0,
-        lat: (log.lat as number) || 0,
-        lng: (log.lng as number) || 0,
+        duration_seconds: duration,
+        lat,
+        lng,
       }
     })
 

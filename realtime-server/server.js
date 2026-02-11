@@ -39,7 +39,7 @@ app.get('/health', (req, res) => {
 app.get('/devices', requireAuth, (req, res) => {
   const list = Object.entries(devices).map(([cardId, d]) => ({
     cardId,
-    online: d.ws.readyState === 1,
+    online: d.ws ? d.ws.readyState === 1 : false,
     connectedAt: d.connectedAt,
     lastSeen: d.lastSeen,
     info: d.info || {},
@@ -53,7 +53,7 @@ app.get('/devices/:cardId', requireAuth, (req, res) => {
   if (!d) return res.status(404).json({ error: 'Device not connected' })
   res.json({
     cardId: req.params.cardId,
-    online: d.ws.readyState === 1,
+    online: d.ws ? d.ws.readyState === 1 : false,
     connectedAt: d.connectedAt,
     lastSeen: d.lastSeen,
     info: d.info || {},
@@ -518,9 +518,23 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     if (cardId) {
       console.log(`[${new Date().toISOString()}] Device disconnected: ${cardId}`)
-      // Don't delete — keep info, mark as disconnected
       if (devices[cardId]) {
         devices[cardId].lastSeen = new Date().toISOString()
+        // Clean up: null out the WebSocket reference to free memory
+        devices[cardId].ws = null
+        // Remove stale pending commands for this device
+        for (const [cmdId, cmd] of Object.entries(pendingCommands)) {
+          if (cmdId.startsWith(cardId + '_') || cmd?.cardId === cardId) {
+            delete pendingCommands[cmdId]
+          }
+        }
+        // Schedule full removal after 1 hour (device info kept temporarily for /devices API)
+        setTimeout(() => {
+          if (devices[cardId] && devices[cardId].ws === null) {
+            delete devices[cardId]
+            console.log(`[${new Date().toISOString()}] Cleaned up stale device: ${cardId}`)
+          }
+        }, 60 * 60 * 1000)
       }
     }
   })
@@ -533,7 +547,7 @@ wss.on('connection', (ws) => {
 // Ping all connected devices to keep connections alive
 setInterval(() => {
   for (const [cardId, d] of Object.entries(devices)) {
-    if (d.ws.readyState === 1) {
+    if (d.ws && d.ws.readyState === 1) {
       try { d.ws.ping() } catch (e) {}
     }
   }
@@ -544,7 +558,7 @@ setInterval(() => {
 function sendCommand(cardId, data) {
   return new Promise((resolve, reject) => {
     const d = devices[cardId]
-    if (!d || d.ws.readyState !== 1) {
+    if (!d || !d.ws || d.ws.readyState !== 1) {
       return reject(new Error(`Device ${cardId} is not connected`))
     }
 
@@ -717,3 +731,22 @@ server.listen(config.port, () => {
 ╚════════════════════════════════════════════════════╝
   `)
 })
+
+// Graceful shutdown
+function shutdown(signal) {
+  console.log(`\n[${new Date().toISOString()}] ${signal} received, shutting down gracefully...`)
+  // Close all WebSocket connections
+  for (const [cardId, d] of Object.entries(devices)) {
+    if (d.ws) {
+      try { d.ws.close(1001, 'Server shutting down') } catch (e) {}
+    }
+  }
+  server.close(() => {
+    console.log('Server closed')
+    process.exit(0)
+  })
+  // Force exit after 5 seconds
+  setTimeout(() => process.exit(1), 5000)
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))

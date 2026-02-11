@@ -16,7 +16,12 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
 
-    if (process.env.CALLBACK_SECRET && callbackKey !== process.env.CALLBACK_SECRET && bearerToken !== process.env.CALLBACK_SECRET) {
+    const secret = process.env.CALLBACK_SECRET
+    if (!secret) {
+      console.error('CALLBACK_SECRET not configured')
+      return NextResponse.json({ _type: 'Error', message: 'Server misconfigured' }, { status: 500 })
+    }
+    if (callbackKey !== secret && bearerToken !== secret) {
       return NextResponse.json({ _type: 'Error', message: 'Unauthorized' }, { status: 401 })
     }
 
