@@ -132,7 +132,7 @@ export default function GroupsPage() {
             mediaItems.push({
               url: m.file_url,
               type: m.file_type,
-              duration: m.file_type.startsWith('video') ? 0 : 10,
+              duration: m.file_type.startsWith('video') ? 30 : 10,
               campaignName: c.name,
             })
           }

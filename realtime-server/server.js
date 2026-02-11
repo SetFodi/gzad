@@ -4,7 +4,30 @@ const http = require('http')
 const { WebSocketServer } = require('ws')
 const { v4: uuidv4 } = require('uuid')
 const crypto = require('crypto')
+const { execFile } = require('child_process')
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
 const config = require('./config')
+
+// Try to get video duration via ffprobe; returns seconds or null
+function probeVideoDuration(buffer) {
+  return new Promise((resolve) => {
+    const tmp = path.join(os.tmpdir(), `gzad_probe_${Date.now()}.mp4`)
+    fs.writeFileSync(tmp, buffer)
+    execFile('ffprobe', [
+      '-v', 'error',
+      '-show_entries', 'format=duration',
+      '-of', 'csv=p=0',
+      tmp,
+    ], { timeout: 10000 }, (err, stdout) => {
+      try { fs.unlinkSync(tmp) } catch {}
+      if (err) return resolve(null)
+      const dur = parseFloat(stdout.trim())
+      resolve(isFinite(dur) && dur > 0 ? Math.ceil(dur) : null)
+    })
+  })
+}
 
 const app = express()
 app.use(express.json({ limit: '100mb' }))
@@ -148,10 +171,23 @@ app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
       totalSize += fileSize
       console.log(`[${new Date().toISOString()}] Media: ${fileSize} bytes, MD5: ${fileMd5}`)
 
+      // For video, try to detect actual duration via ffprobe
+      let duration = item.duration || 10
+      const isVideo = (item.type || '').startsWith('video')
+      if (isVideo) {
+        const probedDuration = await probeVideoDuration(fileBuffer)
+        if (probedDuration) {
+          console.log(`[${new Date().toISOString()}] Probed video duration: ${probedDuration}s`)
+          duration = probedDuration
+        } else {
+          console.log(`[${new Date().toISOString()}] ffprobe not available, using duration=${duration}s`)
+        }
+      }
+
       processedItems.push({
         url: item.url,
         type: item.type || 'video/mp4',
-        duration: item.duration || 10,
+        duration,
         size: fileSize,
         md5: fileMd5,
       })
@@ -636,7 +672,7 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
                 id: uuidv4().replace(/-/g, ''),
                 url: item.url,
                 playTime: 0,
-                timeSpan: isVideo ? 0 : (item.duration || 10),
+                timeSpan: item.duration || (isVideo ? 30 : 10),
                 left: 0,
                 top: 0,
                 width: width,

@@ -168,7 +168,7 @@ export default function AdminCampaignsPage() {
         if (approved && approved.length > 0) {
           campaignNames.push(c.name)
           for (const m of approved) {
-            mediaItems.push({ url: m.file_url, type: m.file_type, duration: m.file_type.startsWith('video') ? 0 : 10, campaignName: c.name })
+            mediaItems.push({ url: m.file_url, type: m.file_type, duration: m.file_type.startsWith('video') ? 30 : 10, campaignName: c.name })
           }
         }
       }
