@@ -193,15 +193,7 @@ app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
       })
     }
 
-    // Clear existing program first to ensure clean replacement
-    try {
-      await sendCommand(req.params.cardId, { type: 'clearPlayerTask' })
-      // Small delay for device to process the clear
-      await new Promise(resolve => setTimeout(resolve, 500))
-    } catch (e) {
-      console.log(`[${new Date().toISOString()}] Clear before push warning: ${e.message}`)
-    }
-
+    // No clearPlayerTask here — insert:false replaces in-place without a visible gap
     console.log(`[${new Date().toISOString()}] Building program "${name}" with ${processedItems.length} media items, totalSize=${totalSize}`)
 
     const program = buildProgram({
@@ -209,8 +201,8 @@ app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
       mediaItems: processedItems,
       totalSize,
       schedule: schedule || {},
-      width: width || 960,
-      height: height || 320,
+      width: width || 240,
+      height: height || 80,
     })
     const result = await sendCommand(req.params.cardId, program)
     res.json({ success: true, result })
@@ -620,7 +612,7 @@ function sendCommand(cardId, data) {
   })
 }
 
-function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 960, height = 320 }) {
+function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 240, height = 80 }) {
   // Build an XixunPlayer PlayXixunTask program
   // Each media file becomes a separate item in the task (VeeHub approach)
   // This ensures reliable rotation with any number of ads
