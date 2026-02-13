@@ -135,6 +135,14 @@ export default function CampaignDetailPage() {
     ? Math.round(stats.reduce((sum, s) => sum + s.unique_taxis, 0) / stats.length)
     : 0
 
+  const formatScreenTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    return m > 0 ? `${h}h ${m}m` : `${h}h`
+  }
+
   return (
     <div className="portal-page">
       <Link href="/portal/dashboard/campaigns" className="portal-back-link">
@@ -166,7 +174,7 @@ export default function CampaignDetailPage() {
             <Clock size={24} color="#60A5FA" />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value">{Math.round(totalDuration / 3600)}h</span>
+            <span className="stat-card-value">{formatScreenTime(totalDuration)}</span>
             <span className="stat-card-label">{p.screenTime}</span>
           </div>
         </div>
