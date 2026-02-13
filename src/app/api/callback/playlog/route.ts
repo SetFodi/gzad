@@ -26,27 +26,22 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-
-    // The controller POSTs an array of play log objects:
-    // [{ beginAt, duration, lat, lng, name, pid, type }, ...]
     const logs = Array.isArray(body) ? body : [body]
 
     if (logs.length === 0) {
       return NextResponse.json({ _type: 'success', count: 0 })
     }
 
-    // Limit batch size to prevent DoS
-    if (logs.length > 500) {
-      return NextResponse.json({ _type: 'Error', message: 'Too many entries (max 500)' }, { status: 413 })
+    // Allow large backlogs (device may dump historical data)
+    if (logs.length > 5000) {
+      return NextResponse.json({ _type: 'Error', message: 'Too many entries (max 5000)' }, { status: 413 })
     }
 
-    // Extract device ID: prefer Card-Id header (sent by controller per SDK),
-    // then query param, then fallback
     const deviceId = request.headers.get('card-id')
       || request.nextUrl.searchParams.get('device')
       || 'unknown'
 
-    // Upsert device record (create if doesn't exist, update if does)
+    // Upsert device record
     await supabase
       .from('devices')
       .upsert(
@@ -54,7 +49,7 @@ export async function POST(request: NextRequest) {
         { onConflict: 'id' }
       )
 
-    // Try to match program names to campaigns (case-insensitive)
+    // Match program names to campaigns (case-insensitive)
     const programNames = [...new Set(
       logs.map((l: Record<string, unknown>) => l.name as string).filter(Boolean)
     )]
@@ -66,12 +61,10 @@ export async function POST(request: NextRequest) {
         .select('id, name')
 
       if (campaigns) {
-        // Build case-insensitive map: lowercase campaign name -> campaign id
         const campaignLookup = new Map(
           campaigns.map(c => [c.name.toLowerCase(), c.id])
         )
         for (const name of programNames) {
-          // Direct match first
           let id = campaignLookup.get(name.toLowerCase())
           // Fallback: strip trailing _N suffix (from old buildProgram format)
           if (!id) {
@@ -83,7 +76,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Insert raw play logs with validation
+    // Build rows with validation
     const rows = logs.map((log: Record<string, unknown>) => {
       const beginAt = log.beginAt as number
       const duration = Math.max(0, Math.min((log.duration as number) || 0, 86400))
@@ -105,75 +98,76 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    const { error: insertError } = await supabase.from('play_logs').insert(rows)
+    // Insert with ON CONFLICT DO NOTHING — skips duplicates via unique index
+    // Supabase JS doesn't support ON CONFLICT DO NOTHING for insert,
+    // so we use upsert with ignoreDuplicates
+    const { error: insertError } = await supabase
+      .from('play_logs')
+      .upsert(rows, { onConflict: 'device_id,program_name,began_at', ignoreDuplicates: true })
 
     if (insertError) {
       console.error('Play log insert error:', insertError)
-      // Don't fail completely — still try to aggregate stats
     }
 
-    // Aggregate into play_stats for the dashboard
-    // Group logs by campaign + date
-    const statsMap: Record<string, {
-      campaign_id: string
-      date: string
-      play_count: number
-      total_duration: number
-    }> = {}
-
+    // Recompute play_stats for affected campaign+date combos FROM play_logs
+    // This replaces (not adds to) existing stats — idempotent
+    const affectedKeys = new Set<string>()
     for (const row of rows) {
       if (!row.campaign_id) continue
       const date = row.began_at.split('T')[0]
-      const key = `${row.campaign_id}_${date}`
-
-      if (!statsMap[key]) {
-        statsMap[key] = {
-          campaign_id: row.campaign_id,
-          date,
-          play_count: 0,
-          total_duration: 0,
-        }
-      }
-      statsMap[key].play_count++
-      statsMap[key].total_duration += row.duration_seconds
+      affectedKeys.add(`${row.campaign_id}|${date}`)
     }
 
-    // Upsert aggregated stats
-    for (const stat of Object.values(statsMap)) {
-      const { data: existing } = await supabase
-        .from('play_stats')
-        .select('id, play_count, total_duration_seconds')
-        .eq('campaign_id', stat.campaign_id)
-        .eq('date', stat.date)
-        .maybeSingle()
+    for (const key of affectedKeys) {
+      const [campaignId, date] = key.split('|')
 
-      // Count unique devices for this campaign+date from all play_logs
-      const { count: uniqueDevices } = await supabase
-        .from('play_logs')
-        .select('device_id', { count: 'exact', head: true })
-        .eq('campaign_id', stat.campaign_id)
-        .gte('began_at', stat.date + 'T00:00:00')
-        .lt('began_at', stat.date + 'T23:59:59.999')
+      // Count actual plays and duration from deduplicated play_logs
+      const { data: agg } = await supabase.rpc('aggregate_play_stats', {
+        p_campaign_id: campaignId,
+        p_date: date,
+      }).maybeSingle()
 
-      if (existing) {
-        await supabase.from('play_stats').update({
-          play_count: existing.play_count + stat.play_count,
-          total_duration_seconds: existing.total_duration_seconds + stat.total_duration,
-          unique_taxis: uniqueDevices || 1,
-        }).eq('id', existing.id)
-      } else {
-        await supabase.from('play_stats').insert({
-          campaign_id: stat.campaign_id,
-          date: stat.date,
-          play_count: stat.play_count,
-          total_duration_seconds: stat.total_duration,
-          unique_taxis: uniqueDevices || 1,
-          km_covered: 0,
-        })
+      // Fallback: manual aggregation if RPC doesn't exist
+      if (!agg) {
+        const { count: playCount } = await supabase
+          .from('play_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('campaign_id', campaignId)
+          .gte('began_at', date + 'T00:00:00')
+          .lt('began_at', date + 'T23:59:59.999')
+
+        const { data: durationData } = await supabase
+          .from('play_logs')
+          .select('duration_seconds')
+          .eq('campaign_id', campaignId)
+          .gte('began_at', date + 'T00:00:00')
+          .lt('began_at', date + 'T23:59:59.999')
+
+        const totalDuration = durationData?.reduce((sum, r) => sum + r.duration_seconds, 0) || 0
+
+        const { data: deviceData } = await supabase
+          .from('play_logs')
+          .select('device_id')
+          .eq('campaign_id', campaignId)
+          .gte('began_at', date + 'T00:00:00')
+          .lt('began_at', date + 'T23:59:59.999')
+
+        const uniqueDevices = new Set(deviceData?.map(d => d.device_id)).size || 1
+
+        // Upsert — REPLACE existing stats (not add)
+        await supabase
+          .from('play_stats')
+          .upsert({
+            campaign_id: campaignId,
+            date: date,
+            play_count: playCount || 0,
+            total_duration_seconds: totalDuration,
+            unique_taxis: uniqueDevices,
+            km_covered: 0,
+          }, { onConflict: 'campaign_id,date' })
       }
     }
 
-    // Controller expects {"_type":"success"} per SDK protocol
     return NextResponse.json({ _type: 'success', count: rows.length })
   } catch (err) {
     console.error('Playlog callback error:', err)
