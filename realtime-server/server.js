@@ -775,16 +775,32 @@ async function autoSetupDevice(cardId) {
   // Small delay to let the WebSocket fully establish
   await new Promise(r => setTimeout(r, 1000))
 
-  // 1. Set play log callback
+  // 1a. Tell the XixunPlayer to upload play logs (player-level command)
+  try {
+    await sendCommand(cardId, {
+      type: 'commandXixunPlayer',
+      command: {
+        _type: 'UploadPlayLogs',
+        id: uuidv4(),
+        interval: 5, // minutes
+        url: `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${cardId}`,
+      },
+    })
+    console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) set for ${cardId}`)
+  } catch (err) {
+    console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) failed for ${cardId}: ${err.message}`)
+  }
+
+  // 1b. Also set system-level play log URL as fallback
   try {
     await sendCommand(cardId, {
       type: 'setUploadLogUrl',
       uploadurl: `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${cardId}`,
       interval: '5',
     })
-    console.log(`[${new Date().toISOString()}] Auto playlog callback set for ${cardId}`)
+    console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) set for ${cardId}`)
   } catch (err) {
-    console.log(`[${new Date().toISOString()}] Auto playlog callback failed for ${cardId}: ${err.message}`)
+    console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) failed for ${cardId}: ${err.message}`)
   }
 
   // 2. GPS subscription (best-effort, not all controllers support this)
