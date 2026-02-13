@@ -496,6 +496,9 @@ wss.on('connection', (ws) => {
         info: {},
       }
       console.log(`[${new Date().toISOString()}] Device connected: ${cardId}`)
+
+      // Auto-configure callbacks on every connection
+      autoSetupDevice(cardId)
       return
     }
 
@@ -743,6 +746,50 @@ async function forwardGPS(cardId, data) {
     // Don't log every GPS update — too noisy
   } catch (err) {
     console.error(`Failed to forward GPS for ${cardId}:`, err.message)
+  }
+}
+
+async function autoSetupDevice(cardId) {
+  // Small delay to let the WebSocket fully establish
+  await new Promise(r => setTimeout(r, 1000))
+
+  // 1. Time sync
+  try {
+    await sendCommand(cardId, {
+      type: 'callCardService',
+      fn: 'setTime',
+      arg1: Date.now(),
+    })
+    console.log(`[${new Date().toISOString()}] Auto time-sync sent to ${cardId}`)
+  } catch (err) {
+    console.log(`[${new Date().toISOString()}] Auto time-sync failed for ${cardId}: ${err.message}`)
+  }
+
+  // 2. Set play log callback
+  try {
+    await sendCommand(cardId, {
+      type: 'setUploadLogUrl',
+      uploadurl: `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${cardId}`,
+      interval: '5',
+    })
+    console.log(`[${new Date().toISOString()}] Auto playlog callback set for ${cardId}`)
+  } catch (err) {
+    console.log(`[${new Date().toISOString()}] Auto playlog callback failed for ${cardId}: ${err.message}`)
+  }
+
+  // 3. Set GPS subscription
+  try {
+    await sendCommand(cardId, {
+      type: 'setSubGPS',
+      openSub: true,
+      endpoint: `${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${cardId}`,
+      topic: 'gzad/gps/location',
+      interval: 30,
+      mode: 'http',
+    })
+    console.log(`[${new Date().toISOString()}] Auto GPS callback set for ${cardId}`)
+  } catch (err) {
+    console.log(`[${new Date().toISOString()}] Auto GPS callback failed for ${cardId}: ${err.message}`)
   }
 }
 
