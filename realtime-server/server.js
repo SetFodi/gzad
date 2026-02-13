@@ -429,6 +429,21 @@ app.post('/devices/:cardId/clean-storage', requireAuth, async (req, res) => {
   res.json({ success: true, ...results })
 })
 
+// Enable/disable play logging (SDK: callCardService + setLogSwitch)
+app.post('/devices/:cardId/set-log-switch', requireAuth, async (req, res) => {
+  const { enabled } = req.body // true or false, defaults to true
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      type: 'callCardService',
+      fn: 'setLogSwitch',
+      arg1: enabled !== false ? 1 : 0,
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // Configure play log + GPS callback URLs
 app.post('/devices/:cardId/setup-callbacks', requireAuth, async (req, res) => {
   const results = {}
@@ -753,16 +768,16 @@ async function autoSetupDevice(cardId) {
   // Small delay to let the WebSocket fully establish
   await new Promise(r => setTimeout(r, 1000))
 
-  // 1. Time sync
+  // 1. Enable play logging on the controller
   try {
     await sendCommand(cardId, {
       type: 'callCardService',
-      fn: 'setTime',
-      arg1: Date.now(),
+      fn: 'setLogSwitch',
+      arg1: 1,
     })
-    console.log(`[${new Date().toISOString()}] Auto time-sync sent to ${cardId}`)
+    console.log(`[${new Date().toISOString()}] Auto setLogSwitch enabled for ${cardId}`)
   } catch (err) {
-    console.log(`[${new Date().toISOString()}] Auto time-sync failed for ${cardId}: ${err.message}`)
+    console.log(`[${new Date().toISOString()}] Auto setLogSwitch failed for ${cardId}: ${err.message}`)
   }
 
   // 2. Set play log callback
@@ -777,7 +792,7 @@ async function autoSetupDevice(cardId) {
     console.log(`[${new Date().toISOString()}] Auto playlog callback failed for ${cardId}: ${err.message}`)
   }
 
-  // 3. Set GPS subscription
+  // 3. GPS subscription (best-effort, not all controllers support this)
   try {
     await sendCommand(cardId, {
       type: 'setSubGPS',
@@ -789,7 +804,7 @@ async function autoSetupDevice(cardId) {
     })
     console.log(`[${new Date().toISOString()}] Auto GPS callback set for ${cardId}`)
   } catch (err) {
-    console.log(`[${new Date().toISOString()}] Auto GPS callback failed for ${cardId}: ${err.message}`)
+    // Silently ignore — GPS subscription not critical
   }
 }
 

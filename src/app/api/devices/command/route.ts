@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     'get-sub-gps': `/devices/${cardId}/get-sub-gps`,
     'get-sim-info': `/devices/${cardId}/get-sim-info`,
     'clean-storage': `/devices/${cardId}/clean-storage`,
+    'set-log-switch': `/devices/${cardId}/set-log-switch`,
     'raw': `/command/${cardId}`,
   }
 
