@@ -488,11 +488,18 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (raw) => {
     let data
+    const rawStr = raw.toString()
     try {
-      data = JSON.parse(raw.toString())
+      data = JSON.parse(rawStr)
     } catch (e) {
-      console.error('Invalid JSON from controller:', raw.toString().slice(0, 200))
-      return
+      // Some controllers send cardId as plain text (not JSON) on initial connection
+      const plainId = rawStr.trim()
+      if (/^[a-zA-Z0-9\-_]+$/.test(plainId) && plainId.length > 3 && plainId.length < 50) {
+        data = { cardId: plainId }
+      } else {
+        // Binary/TLS data — silently ignore to avoid log spam
+        return
+      }
     }
 
     // Controller initial registration — sends { cardId: "xxx" }
@@ -768,19 +775,7 @@ async function autoSetupDevice(cardId) {
   // Small delay to let the WebSocket fully establish
   await new Promise(r => setTimeout(r, 1000))
 
-  // 1. Enable play logging on the controller
-  try {
-    await sendCommand(cardId, {
-      type: 'callCardService',
-      fn: 'setLogSwitch',
-      arg1: 1,
-    })
-    console.log(`[${new Date().toISOString()}] Auto setLogSwitch enabled for ${cardId}`)
-  } catch (err) {
-    console.log(`[${new Date().toISOString()}] Auto setLogSwitch failed for ${cardId}: ${err.message}`)
-  }
-
-  // 2. Set play log callback
+  // 1. Set play log callback
   try {
     await sendCommand(cardId, {
       type: 'setUploadLogUrl',
@@ -792,7 +787,7 @@ async function autoSetupDevice(cardId) {
     console.log(`[${new Date().toISOString()}] Auto playlog callback failed for ${cardId}: ${err.message}`)
   }
 
-  // 3. GPS subscription (best-effort, not all controllers support this)
+  // 2. GPS subscription (best-effort, not all controllers support this)
   try {
     await sendCommand(cardId, {
       type: 'setSubGPS',
