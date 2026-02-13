@@ -190,6 +190,7 @@ app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
         duration,
         size: fileSize,
         md5: fileMd5,
+        campaignName: item.campaignName || null,
       })
     }
 
