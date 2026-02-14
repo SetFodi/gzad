@@ -34,6 +34,11 @@ interface Media {
   status: string
 }
 
+const TZ = 'Asia/Tbilisi'
+function toTbilisiDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ })
+}
+
 function formatScreenTime(seconds: number) {
   if (seconds < 60) return `${seconds}s`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
@@ -86,7 +91,7 @@ export default function CampaignDetailPage() {
         if (rawLogs && rawLogs.length > 0) {
           const byDate: Record<string, { plays: number; duration: number }> = {}
           for (const log of rawLogs) {
-            const date = log.began_at?.split('T')[0] || 'unknown'
+            const date = log.began_at ? toTbilisiDate(log.began_at) : 'unknown'
             if (!byDate[date]) byDate[date] = { plays: 0, duration: 0 }
             byDate[date].plays++
             byDate[date].duration += log.duration_seconds || 0
@@ -114,7 +119,7 @@ export default function CampaignDetailPage() {
       const d = new Date(thirtyDaysAgo)
       const today = new Date()
       while (d <= today) {
-        const dateStr = d.toISOString().split('T')[0]
+        const dateStr = toTbilisiDate(d.toISOString())
         fullDays.push(dayMap[dateStr] || {
           date: dateStr,
           play_count: 0,

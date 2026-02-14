@@ -39,6 +39,11 @@ interface DailyTrend {
   duration: number
 }
 
+const TZ = 'Asia/Tbilisi'
+function toTbilisiDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ })
+}
+
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
@@ -101,7 +106,7 @@ export default function AdminStatsPage() {
     // Build daily trend
     const dailyMap: Record<string, { plays: number; duration: number }> = {}
     for (const log of logs || []) {
-      const date = log.began_at.split('T')[0]
+      const date = toTbilisiDate(log.began_at)
       if (!dailyMap[date]) dailyMap[date] = { plays: 0, duration: 0 }
       dailyMap[date].plays++
       dailyMap[date].duration += log.duration_seconds || 0
@@ -110,7 +115,7 @@ export default function AdminStatsPage() {
     const d = new Date(thirtyDaysAgo)
     const today = new Date()
     while (d <= today) {
-      const dateStr = d.toISOString().split('T')[0]
+      const dateStr = toTbilisiDate(d.toISOString())
       trend.push({ date: dateStr, plays: dailyMap[dateStr]?.plays || 0, duration: dailyMap[dateStr]?.duration || 0 })
       d.setDate(d.getDate() + 1)
     }
@@ -166,7 +171,7 @@ export default function AdminStatsPage() {
     const endDate = dailyTrend[Math.max(selStart, selEnd)]?.date
     if (!startDate || !endDate) return allLogs
     return allLogs.filter(l => {
-      const d = l.began_at.split('T')[0]
+      const d = toTbilisiDate(l.began_at)
       return d >= startDate && d <= endDate
     })
   }, [allLogs, selStart, selEnd, dailyTrend])

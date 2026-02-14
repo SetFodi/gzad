@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+const TZ = 'Asia/Tbilisi'
+function toTbilisiDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ })
+}
+function tbilisiDayRange(date: string) {
+  // Tbilisi is UTC+4 — convert day boundaries to UTC for DB queries
+  const start = new Date(date + 'T00:00:00+04:00').toISOString()
+  const end = new Date(date + 'T23:59:59.999+04:00').toISOString()
+  return { start, end }
+}
+
 function getSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -114,7 +125,7 @@ export async function POST(request: NextRequest) {
     const affectedKeys = new Set<string>()
     for (const row of rows) {
       if (!row.campaign_id) continue
-      const date = row.began_at.split('T')[0]
+      const date = toTbilisiDate(row.began_at)
       affectedKeys.add(`${row.campaign_id}|${date}`)
     }
 
@@ -129,19 +140,21 @@ export async function POST(request: NextRequest) {
 
       // Fallback: manual aggregation if RPC doesn't exist
       if (!agg) {
+        const { start: dayStart, end: dayEnd } = tbilisiDayRange(date)
+
         const { count: playCount } = await supabase
           .from('play_logs')
           .select('*', { count: 'exact', head: true })
           .eq('campaign_id', campaignId)
-          .gte('began_at', date + 'T00:00:00')
-          .lt('began_at', date + 'T23:59:59.999')
+          .gte('began_at', dayStart)
+          .lt('began_at', dayEnd)
 
         const { data: durationData } = await supabase
           .from('play_logs')
           .select('duration_seconds')
           .eq('campaign_id', campaignId)
-          .gte('began_at', date + 'T00:00:00')
-          .lt('began_at', date + 'T23:59:59.999')
+          .gte('began_at', dayStart)
+          .lt('began_at', dayEnd)
 
         const totalDuration = durationData?.reduce((sum, r) => sum + r.duration_seconds, 0) || 0
 
@@ -149,8 +162,8 @@ export async function POST(request: NextRequest) {
           .from('play_logs')
           .select('device_id')
           .eq('campaign_id', campaignId)
-          .gte('began_at', date + 'T00:00:00')
-          .lt('began_at', date + 'T23:59:59.999')
+          .gte('began_at', dayStart)
+          .lt('began_at', dayEnd)
 
         const uniqueDevices = new Set(deviceData?.map(d => d.device_id)).size || 1
 
