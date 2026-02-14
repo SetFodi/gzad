@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Play, Clock, MapPin, Car } from 'lucide-react'
+import { ArrowLeft, Play, Clock, MapPin, Car, X } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n'
 
@@ -18,7 +18,7 @@ interface Campaign {
   monthly_price: number
 }
 
-interface PlayStat {
+interface DayData {
   date: string
   play_count: number
   total_duration_seconds: number
@@ -34,16 +34,30 @@ interface Media {
   status: string
 }
 
+function formatScreenTime(seconds: number) {
+  if (seconds < 60) return `${seconds}s`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
 export default function CampaignDetailPage() {
   const params = useParams()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
-  const [stats, setStats] = useState<PlayStat[]>([])
+  const [allDays, setAllDays] = useState<DayData[]>([])
   const [media, setMedia] = useState<Media[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
   const { t } = useTranslations()
   const p = t.portal.campaignDetail
   const c = t.portal.common
+
+  // Date range selection
+  const [selStart, setSelStart] = useState<number | null>(null)
+  const [selEnd, setSelEnd] = useState<number | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const dragStart = useRef<number | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -59,11 +73,11 @@ export default function CampaignDetailPage() {
         .from('play_stats')
         .select('*')
         .eq('campaign_id', id)
-        .order('date', { ascending: false })
+        .order('date', { ascending: true })
 
       // If play_stats is empty, aggregate from raw play_logs
-      let finalStats = statsData || []
-      if (finalStats.length === 0) {
+      let dayStats = statsData || []
+      if (dayStats.length === 0) {
         const { data: rawLogs } = await supabase
           .from('play_logs')
           .select('began_at, duration_seconds')
@@ -77,7 +91,7 @@ export default function CampaignDetailPage() {
             byDate[date].plays++
             byDate[date].duration += log.duration_seconds || 0
           }
-          finalStats = Object.entries(byDate)
+          dayStats = Object.entries(byDate)
             .map(([date, d]) => ({
               date,
               play_count: d.plays,
@@ -85,8 +99,30 @@ export default function CampaignDetailPage() {
               unique_taxis: 1,
               km_covered: 0,
             }))
-            .sort((a, b) => b.date.localeCompare(a.date))
+            .sort((a, b) => a.date.localeCompare(b.date))
         }
+      }
+
+      // Build full 30-day range with gaps filled
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const dayMap: Record<string, DayData> = {}
+      for (const s of dayStats) {
+        dayMap[s.date] = s
+      }
+      const fullDays: DayData[] = []
+      const d = new Date(thirtyDaysAgo)
+      const today = new Date()
+      while (d <= today) {
+        const dateStr = d.toISOString().split('T')[0]
+        fullDays.push(dayMap[dateStr] || {
+          date: dateStr,
+          play_count: 0,
+          total_duration_seconds: 0,
+          unique_taxis: 0,
+          km_covered: 0,
+        })
+        d.setDate(d.getDate() + 1)
       }
 
       const { data: mediaData } = await supabase
@@ -96,12 +132,50 @@ export default function CampaignDetailPage() {
         .order('uploaded_at', { ascending: false })
 
       setCampaign(campaignData)
-      setStats(finalStats)
+      setAllDays(fullDays)
       setMedia(mediaData || [])
       setLoading(false)
     }
     load()
   }, [params.id])
+
+  // Selection logic
+  const hasSelection = selStart !== null && selEnd !== null
+  const selMin = hasSelection ? Math.min(selStart!, selEnd!) : -1
+  const selMax = hasSelection ? Math.max(selStart!, selEnd!) : -1
+
+  const filteredDays = hasSelection
+    ? allDays.slice(selMin, selMax + 1)
+    : allDays
+
+  const selLabel = hasSelection
+    ? allDays[selMin]?.date === allDays[selMax]?.date
+      ? allDays[selMin]?.date
+      : `${allDays[selMin]?.date} — ${allDays[selMax]?.date}`
+    : null
+
+  const handleBarMouseDown = (index: number) => {
+    dragStart.current = index
+    setDragging(true)
+    setSelStart(index)
+    setSelEnd(index)
+  }
+  const handleBarMouseEnter = (index: number) => {
+    if (dragging && dragStart.current !== null) {
+      setSelStart(dragStart.current)
+      setSelEnd(index)
+    }
+  }
+  const handleBarMouseUp = () => {
+    setDragging(false)
+    dragStart.current = null
+  }
+  const clearSelection = () => {
+    setSelStart(null)
+    setSelEnd(null)
+    setDragging(false)
+    dragStart.current = null
+  }
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -128,23 +202,18 @@ export default function CampaignDetailPage() {
   if (loading) return <div className="portal-loading">{c.loading}</div>
   if (!campaign) return <div className="portal-loading">{p.notFound}</div>
 
-  const totalPlays = stats.reduce((sum, s) => sum + s.play_count, 0)
-  const totalDuration = stats.reduce((sum, s) => sum + s.total_duration_seconds, 0)
-  const totalKm = stats.reduce((sum, s) => sum + s.km_covered, 0)
-  const avgTaxis = stats.length > 0
-    ? Math.round(stats.reduce((sum, s) => sum + s.unique_taxis, 0) / stats.length)
+  const totalPlays = filteredDays.reduce((sum, s) => sum + s.play_count, 0)
+  const totalDuration = filteredDays.reduce((sum, s) => sum + s.total_duration_seconds, 0)
+  const totalKm = filteredDays.reduce((sum, s) => sum + s.km_covered, 0)
+  const daysWithData = filteredDays.filter(s => s.unique_taxis > 0)
+  const avgTaxis = daysWithData.length > 0
+    ? Math.round(daysWithData.reduce((sum, s) => sum + s.unique_taxis, 0) / daysWithData.length)
     : 0
 
-  const formatScreenTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-    const h = Math.floor(seconds / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    return m > 0 ? `${h}h ${m}m` : `${h}h`
-  }
+  const maxDailyPlays = Math.max(...allDays.map(d => d.play_count), 1)
 
   return (
-    <div className="portal-page">
+    <div className="portal-page" onMouseUp={handleBarMouseUp}>
       <Link href="/portal/dashboard/campaigns" className="portal-back-link">
         <ArrowLeft size={16} /> {p.backToCampaigns}
       </Link>
@@ -200,35 +269,91 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {stats.length > 0 && (
-        <div className="portal-section">
-          <h2>{p.dailyPlayLog}</h2>
-          <div className="campaigns-table-wrapper">
-            <table className="portal-table">
-              <thead>
-                <tr>
-                  <th>{p.date}</th>
-                  <th>{p.plays}</th>
-                  <th>{p.duration}</th>
-                  <th>{p.taxisCol}</th>
-                  {totalKm > 0 && <th>{p.km}</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {stats.map((s, i) => (
-                  <tr key={i}>
-                    <td>{s.date}</td>
-                    <td>{s.play_count}</td>
-                    <td>{Math.round(s.total_duration_seconds / 60)} min</td>
-                    <td>{s.unique_taxis}</td>
-                    {totalKm > 0 && <td>{s.km_covered} km</td>}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Selectable Daily Chart */}
+      <div className="portal-section">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <h2 style={{ margin: 0 }}>{p.dailyPlayLog}</h2>
+          {hasSelection && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, color: '#CCF381', fontWeight: 500 }}>{selLabel}</span>
+              <button onClick={clearSelection} style={{
+                display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
+                borderRadius: 6, fontSize: 12, border: '1px solid rgba(204,243,129,0.3)',
+                background: 'rgba(204,243,129,0.08)', color: '#CCF381', cursor: 'pointer',
+              }}>
+                <X size={12} /> Clear
+              </button>
+            </div>
+          )}
         </div>
-      )}
+        <div
+          style={{
+            display: 'flex', alignItems: 'flex-end', gap: '2px', height: '80px',
+            padding: '1rem', background: 'var(--card)', borderRadius: '0.75rem',
+            border: '1px solid var(--border)', userSelect: 'none', marginBottom: 4,
+          }}
+          onMouseLeave={() => { if (dragging) handleBarMouseUp() }}
+        >
+          {allDays.map((d, i) => {
+            const isSelected = hasSelection && i >= selMin && i <= selMax
+            const isInactive = hasSelection && !isSelected
+            return (
+              <div
+                key={d.date}
+                title={`${d.date}: ${d.play_count} plays, ${formatScreenTime(d.total_duration_seconds)}`}
+                onMouseDown={() => handleBarMouseDown(i)}
+                onMouseEnter={() => handleBarMouseEnter(i)}
+                style={{
+                  flex: 1,
+                  height: `${Math.max((d.play_count / maxDailyPlays) * 100, 2)}%`,
+                  background: isSelected
+                    ? '#CCF381'
+                    : isInactive
+                      ? 'rgba(204,243,129,0.1)'
+                      : d.play_count > 0 ? 'rgba(204,243,129,0.5)' : 'rgba(204,243,129,0.12)',
+                  borderRadius: '2px 2px 0 0',
+                  minWidth: '3px',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+              />
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#525252', marginBottom: 16 }}>
+          <span>{allDays[0]?.date}</span>
+          <span>{allDays[allDays.length - 1]?.date}</span>
+        </div>
+
+        {/* Daily Table */}
+        <div className="campaigns-table-wrapper">
+          <table className="portal-table">
+            <thead>
+              <tr>
+                <th>{p.date}</th>
+                <th>{p.plays}</th>
+                <th>{p.duration}</th>
+                <th>{p.taxisCol}</th>
+                {totalKm > 0 && <th>{p.km}</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDays.filter(s => s.play_count > 0).reverse().map((s, i) => (
+                <tr key={i}>
+                  <td>{s.date}</td>
+                  <td>{s.play_count}</td>
+                  <td>{Math.round(s.total_duration_seconds / 60)} min</td>
+                  <td>{s.unique_taxis}</td>
+                  {totalKm > 0 && <td>{s.km_covered} km</td>}
+                </tr>
+              ))}
+              {filteredDays.filter(s => s.play_count > 0).length === 0 && (
+                <tr><td colSpan={totalKm > 0 ? 5 : 4} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No plays in this period</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {media.length > 0 && (
         <div className="portal-section">
