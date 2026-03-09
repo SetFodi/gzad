@@ -482,7 +482,26 @@ app.post('/devices/:cardId/setup-callbacks', requireAuth, async (req, res) => {
 // ─── WebSocket Server ────────────────────────────────────────────────────────
 
 const server = http.createServer(app)
-const wss = new WebSocketServer({ server })
+const wss = new WebSocketServer({
+  server,
+  verifyClient: (info, cb) => {
+    // If WS_SECRET is configured, require token in query string
+    if (config.wsSecret) {
+      const url = new URL(info.req.url, `http://${info.req.headers.host}`)
+      const token = url.searchParams.get('token')
+      if (token !== config.wsSecret) {
+        console.log(`[${new Date().toISOString()}] WebSocket connection rejected: invalid token from ${info.req.socket.remoteAddress}`)
+        return cb(false, 401, 'Unauthorized')
+      }
+    }
+    cb(true)
+  },
+})
+
+// Parse allowed devices into a Set for fast lookup
+const allowedDeviceSet = new Set(
+  config.allowedDevices ? config.allowedDevices.split(',').map(s => s.trim()).filter(Boolean) : []
+)
 
 wss.on('connection', (ws) => {
   let cardId = null
@@ -505,6 +524,13 @@ wss.on('connection', (ws) => {
 
     // Controller initial registration — sends { cardId: "xxx" }
     if (data.cardId) {
+      // Check device allowlist (if configured)
+      if (allowedDeviceSet.size > 0 && !allowedDeviceSet.has(data.cardId)) {
+        console.log(`[${new Date().toISOString()}] Device rejected (not in allowlist): ${data.cardId} from ${ws._socket?.remoteAddress || 'unknown'}`)
+        ws.close(4003, 'Device not allowed')
+        return
+      }
+
       cardId = data.cardId
 
       // Close old connection if exists

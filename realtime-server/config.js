@@ -11,6 +11,14 @@ module.exports = {
   // Secret for authenticating callbacks to your Gzad app
   callbackSecret: process.env.CALLBACK_SECRET || 'change-me-in-production',
 
+  // Secret for authenticating WebSocket connections from controllers
+  // Set the device's realtime server URL to: ws://HOST:PORT?token=THIS_SECRET
+  wsSecret: process.env.WS_SECRET || '',
+
+  // Allowed device IDs (comma-separated). If empty, all devices are allowed (when wsSecret is set).
+  // Example: 'y1c-825-61009,y1c-825-61010'
+  allowedDevices: process.env.ALLOWED_DEVICES || '',
+
   // WebSocket ping interval (ms) — keeps connections alive
   pingInterval: 30000,
 
