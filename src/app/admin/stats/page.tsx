@@ -6,6 +6,7 @@ import { BarChart3, Play, Clock, Monitor, Megaphone, FolderOpen, X } from 'lucid
 
 interface PlayLog {
   campaign_id: string | null
+  program_name: string
   device_id: string
   began_at: string
   duration_seconds: number
@@ -18,6 +19,7 @@ interface CampaignInfo {
   clientName: string
   groupName: string
   mediaCount: number
+  isDeleted?: boolean
 }
 
 interface DeviceInfo {
@@ -98,7 +100,7 @@ export default function AdminStatsPage() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     const { data: logs } = await supabase
       .from('play_logs')
-      .select('campaign_id, device_id, began_at, duration_seconds')
+      .select('campaign_id, program_name, device_id, began_at, duration_seconds')
       .gte('began_at', thirtyDaysAgo.toISOString())
       .order('began_at', { ascending: true })
     setAllLogs(logs || [])
@@ -130,14 +132,36 @@ export default function AdminStatsPage() {
     const mediaCounts: Record<string, number> = {}
     for (const m of mediaData || []) mediaCounts[m.campaign_id] = (mediaCounts[m.campaign_id] || 0) + 1
 
-    setCampaigns((campData || []).map((c: Record<string, unknown>) => ({
+    const liveCampaigns: CampaignInfo[] = (campData || []).map((c: Record<string, unknown>) => ({
       id: c.id as string,
       name: c.name as string,
       status: c.status as string,
       clientName: (c.clients as { company_name: string } | null)?.company_name || '—',
       groupName: (c.device_groups as { name: string } | null)?.name || '—',
       mediaCount: mediaCounts[c.id as string] || 0,
-    })))
+    }))
+
+    // Find deleted campaigns: play_logs with null campaign_id whose program_name
+    // doesn't match any live campaign (the campaign was deleted after it ran)
+    const liveCampaignNames = new Set(liveCampaigns.map(c => c.name.toLowerCase()))
+    const deletedNames = new Set<string>()
+    for (const l of logs || []) {
+      const pname = l.program_name
+      if (!l.campaign_id && pname && pname !== 'unknown' && !liveCampaignNames.has(pname.toLowerCase())) {
+        deletedNames.add(pname)
+      }
+    }
+    const deletedCampaigns: CampaignInfo[] = Array.from(deletedNames).map(name => ({
+      id: `deleted:${name}`,
+      name,
+      status: 'deleted',
+      clientName: '—',
+      groupName: '—',
+      mediaCount: 0,
+      isDeleted: true,
+    }))
+
+    setCampaigns([...liveCampaigns, ...deletedCampaigns])
 
     // Device info
     const { data: devData } = await supabase
@@ -188,14 +212,17 @@ export default function AdminStatsPage() {
   const totalPlays = logs.length
   const totalDuration = logs.reduce((s, l) => s + (l.duration_seconds || 0), 0)
 
+  // Key by program_name (lowercase) so deleted campaigns still show up —
+  // campaign_id becomes null when a campaign is deleted, but program_name is always preserved
   const campaignPlays: Record<string, { plays: number; duration: number; devices: Set<string> }> = {}
   const devicePlays: Record<string, { plays: number; duration: number }> = {}
   for (const l of logs) {
-    if (l.campaign_id) {
-      if (!campaignPlays[l.campaign_id]) campaignPlays[l.campaign_id] = { plays: 0, duration: 0, devices: new Set() }
-      campaignPlays[l.campaign_id].plays++
-      campaignPlays[l.campaign_id].duration += l.duration_seconds || 0
-      campaignPlays[l.campaign_id].devices.add(l.device_id)
+    const key = l.program_name?.toLowerCase()
+    if (key && key !== 'unknown') {
+      if (!campaignPlays[key]) campaignPlays[key] = { plays: 0, duration: 0, devices: new Set() }
+      campaignPlays[key].plays++
+      campaignPlays[key].duration += l.duration_seconds || 0
+      campaignPlays[key].devices.add(l.device_id)
     }
     if (!devicePlays[l.device_id]) devicePlays[l.device_id] = { plays: 0, duration: 0 }
     devicePlays[l.device_id].plays++
@@ -379,16 +406,21 @@ export default function AdminStatsPage() {
                   {campaigns.length === 0 ? (
                     <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No campaigns</td></tr>
                   ) : campaigns.map(c => {
-                    const cp = campaignPlays[c.id]
+                    const cp = campaignPlays[c.name.toLowerCase()]
                     return (
-                      <tr key={c.id}>
-                        <td style={{ fontWeight: 600 }}>{c.name}</td>
+                      <tr key={c.id} style={{ opacity: c.isDeleted ? 0.65 : 1 }}>
+                        <td style={{ fontWeight: 600 }}>
+                          {c.name}
+                          {c.isDeleted && (
+                            <span style={{ marginLeft: 6, fontSize: 11, color: '#EF4444', fontWeight: 400 }}>(deleted)</span>
+                          )}
+                        </td>
                         <td>{c.clientName}</td>
                         <td>{c.groupName}</td>
                         <td>
                           <span className="status-badge" style={{
-                            color: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : '#64748B',
-                            borderColor: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : '#64748B',
+                            color: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : c.status === 'deleted' ? '#EF4444' : '#64748B',
+                            borderColor: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : c.status === 'deleted' ? '#EF4444' : '#64748B',
                           }}>{c.status.replace('_', ' ')}</span>
                         </td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cp?.plays || 0).toLocaleString()}</td>

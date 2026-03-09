@@ -143,6 +143,12 @@ create policy "Admins can manage all invoices" on public.invoices
     exists (select 1 from public.clients where auth_user_id = auth.uid() and is_admin = true)
   );
 
+-- MIGRATION: Change play_stats FK from CASCADE to SET NULL so stats survive campaign deletion
+-- Run this in Supabase SQL Editor if not already applied:
+-- alter table public.play_stats drop constraint if exists play_stats_campaign_id_fkey;
+-- alter table public.play_stats add constraint play_stats_campaign_id_fkey
+--   foreign key (campaign_id) references public.campaigns(id) on delete set null;
+
 -- Storage bucket for ad media
 insert into storage.buckets (id, name, public) values ('ad-media', 'ad-media', true);
 
