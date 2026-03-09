@@ -59,7 +59,7 @@ export default function AdminStatsPage() {
   const [loading, setLoading] = useState(true)
   const [allLogs, setAllLogs] = useState<PlayLog[]>([])
   const [dailyTrend, setDailyTrend] = useState<DailyTrend[]>([])
-  const [campaigns, setCampaigns] = useState<CampaignInfo[]>([])
+  const [liveCampaigns, setLiveCampaigns] = useState<CampaignInfo[]>([])
   const [devices, setDevices] = useState<DeviceInfo[]>([])
   const [groups, setGroups] = useState<GroupInfo[]>([])
   const [totalDevices, setTotalDevices] = useState(0)
@@ -161,7 +161,7 @@ export default function AdminStatsPage() {
       isDeleted: true,
     }))
 
-    setCampaigns([...liveCampaigns, ...deletedCampaigns])
+    setLiveCampaigns(liveCampaigns)
 
     // Device info
     const { data: devData } = await supabase
@@ -207,6 +207,23 @@ export default function AdminStatsPage() {
       ? dailyTrend[selStart!]?.date
       : `${dailyTrend[Math.min(selStart!, selEnd!)]?.date} — ${dailyTrend[Math.max(selStart!, selEnd!)]?.date}`
     : null
+
+  // When a date range is selected, also surface deleted campaigns that ran in that period
+  const displayedCampaigns = (() => {
+    if (!hasSelection) return liveCampaigns
+    const liveNames = new Set(liveCampaigns.map(c => c.name.toLowerCase()))
+    const deletedNames = new Set<string>()
+    for (const l of logs) {
+      if (!l.campaign_id && l.program_name && l.program_name !== 'unknown' && !liveNames.has(l.program_name.toLowerCase())) {
+        deletedNames.add(l.program_name)
+      }
+    }
+    const deleted: CampaignInfo[] = Array.from(deletedNames).map(name => ({
+      id: `deleted:${name}`, name, status: 'deleted',
+      clientName: '—', groupName: '—', mediaCount: 0, isDeleted: true,
+    }))
+    return [...liveCampaigns, ...deleted]
+  })()
 
   // Compute stats from filtered logs
   const totalPlays = logs.length
@@ -403,9 +420,9 @@ export default function AdminStatsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {campaigns.length === 0 ? (
+                  {displayedCampaigns.length === 0 ? (
                     <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No campaigns</td></tr>
-                  ) : campaigns.map(c => {
+                  ) : displayedCampaigns.map(c => {
                     const cp = campaignPlays[c.name.toLowerCase()]
                     return (
                       <tr key={c.id} style={{ opacity: c.isDeleted ? 0.65 : 1 }}>

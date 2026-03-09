@@ -97,7 +97,9 @@ export async function POST(request: NextRequest) {
 
     // Build rows with validation
     const rows = logs.map((log: Record<string, unknown>) => {
-      const beginAt = log.beginAt as number
+      const beginAtRaw = log.beginAt as number
+      // Xixun may send beginAt in seconds or milliseconds — if < 10^10 it's seconds (before year 2286)
+      const beginAt = beginAtRaw && beginAtRaw < 10_000_000_000 ? beginAtRaw * 1000 : beginAtRaw
       const duration = Math.max(0, Math.min((log.duration as number) || 0, 86400))
       let lat = (log.lat as number) || 0
       let lng = (log.lng as number) || 0
