@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       )
 
     // Match program names to campaigns (case-insensitive)
-    const programNames = [...new Set(
+    const programNames = [...new Set<string>(
       logs.map((l: Record<string, unknown>) => l.name as string).filter(Boolean)
     )]
 
