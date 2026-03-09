@@ -776,48 +776,49 @@ async function autoSetupDevice(cardId) {
   // Small delay to let the WebSocket fully establish
   await new Promise(r => setTimeout(r, 1000))
 
-  // 1a. Tell the XixunPlayer to upload play logs (player-level command)
-  try {
-    await sendCommand(cardId, {
+  const playlogUrl = `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${cardId}`
+  const gpsUrl = `${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${cardId}`
+
+  // Run all setup commands in parallel — each has its own try/catch so one failure won't block others
+  await Promise.allSettled([
+    // 1a. Tell XixunPlayer to upload play logs (player-level command)
+    sendCommand(cardId, {
       type: 'commandXixunPlayer',
       command: {
         _type: 'UploadPlayLogs',
         id: uuidv4(),
         interval: 5, // minutes
-        url: `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${cardId}`,
+        url: playlogUrl,
       },
-    })
-    console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) set for ${cardId}`)
-  } catch (err) {
-    console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) failed for ${cardId}: ${err.message}`)
-  }
+    }).then(() => {
+      console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) set for ${cardId}`)
+    }).catch((err) => {
+      console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) failed for ${cardId}: ${err.message}`)
+    }),
 
-  // 1b. Also set system-level play log URL as fallback
-  try {
-    await sendCommand(cardId, {
+    // 1b. System-level play log URL (firmware fallback — handles setUploadLogUrl HTTP POST format)
+    sendCommand(cardId, {
       type: 'setUploadLogUrl',
-      uploadurl: `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${cardId}`,
+      uploadurl: playlogUrl,
       interval: '5',
-    })
-    console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) set for ${cardId}`)
-  } catch (err) {
-    console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) failed for ${cardId}: ${err.message}`)
-  }
+    }).then(() => {
+      console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) set for ${cardId}`)
+    }).catch((err) => {
+      console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) failed for ${cardId}: ${err.message}`)
+    }),
 
-  // 2. GPS subscription (best-effort, not all controllers support this)
-  try {
-    await sendCommand(cardId, {
+    // 2. GPS subscription (best-effort, not all controllers support this)
+    sendCommand(cardId, {
       type: 'setSubGPS',
       openSub: true,
-      endpoint: `${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${cardId}`,
-      topic: 'gzad/gps/location',
+      endpoint: gpsUrl,
       interval: 30,
-      mode: 'http',
-    })
-    console.log(`[${new Date().toISOString()}] Auto GPS callback set for ${cardId}`)
-  } catch (err) {
-    // Silently ignore — GPS subscription not critical
-  }
+    }).then(() => {
+      console.log(`[${new Date().toISOString()}] Auto GPS callback set for ${cardId}`)
+    }).catch(() => {
+      // Silently ignore — GPS subscription not critical
+    }),
+  ])
 }
 
 // ─── Start ───────────────────────────────────────────────────────────────────

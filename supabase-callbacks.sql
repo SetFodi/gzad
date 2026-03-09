@@ -37,6 +37,11 @@ create table if not exists public.devices (
   created_at timestamptz default now()
 );
 
+-- Unique constraint for deduplication — required for upsert with onConflict
+-- IMPORTANT: Run this migration in Supabase SQL Editor if not already applied:
+-- alter table public.play_logs add constraint play_logs_dedup unique (device_id, program_name, began_at);
+create unique index if not exists idx_play_logs_dedup on public.play_logs(device_id, program_name, began_at);
+
 -- Indexes for fast lookups
 create index if not exists idx_play_logs_device on public.play_logs(device_id);
 create index if not exists idx_play_logs_campaign on public.play_logs(campaign_id);

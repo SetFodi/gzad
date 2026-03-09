@@ -37,7 +37,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const logs = Array.isArray(body) ? body : [body]
+    // Device firmware (setUploadLogUrl) POSTs: { "sn": "...", "data": [...] }
+    // XixunPlayer HTTP upload POSTs: raw JSON array [...]
+    // Realtime-server forwarding POSTs: raw JSON array [...]
+    const logs = Array.isArray(body)
+      ? body
+      : Array.isArray(body?.data) ? body.data
+      : Array.isArray(body?.logs) ? body.logs
+      : [body]
 
     if (logs.length === 0) {
       return NextResponse.json({ _type: 'success', count: 0 })
@@ -50,6 +57,7 @@ export async function POST(request: NextRequest) {
 
     const deviceId = request.headers.get('card-id')
       || request.nextUrl.searchParams.get('device')
+      || (!Array.isArray(body) && (body?.sn as string))  // firmware POSTs include sn field
       || 'unknown'
 
     // Upsert device record
