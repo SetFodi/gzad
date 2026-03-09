@@ -98,11 +98,23 @@ export default function AdminStatsPage() {
     // Fetch ALL play_logs with needed fields
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const { data: logs } = await supabase
-      .from('play_logs')
-      .select('campaign_id, program_name, device_id, began_at, duration_seconds')
-      .gte('began_at', thirtyDaysAgo.toISOString())
-      .order('began_at', { ascending: true })
+    // Fetch in pages of 1000 (Supabase default limit) to get ALL logs
+    let allFetched: PlayLog[] = []
+    let page = 0
+    const PAGE_SIZE = 1000
+    while (true) {
+      const { data: batch } = await supabase
+        .from('play_logs')
+        .select('campaign_id, program_name, device_id, began_at, duration_seconds')
+        .gte('began_at', thirtyDaysAgo.toISOString())
+        .order('began_at', { ascending: true })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+      if (!batch || batch.length === 0) break
+      allFetched = allFetched.concat(batch)
+      if (batch.length < PAGE_SIZE) break
+      page++
+    }
+    const logs = allFetched
     setAllLogs(logs || [])
 
     // Build daily trend
