@@ -208,23 +208,6 @@ export default function AdminStatsPage() {
       : `${dailyTrend[Math.min(selStart!, selEnd!)]?.date} — ${dailyTrend[Math.max(selStart!, selEnd!)]?.date}`
     : null
 
-  // When a date range is selected, also surface deleted campaigns that ran in that period
-  const displayedCampaigns = (() => {
-    if (!hasSelection) return liveCampaigns
-    const liveNames = new Set(liveCampaigns.map(c => c.name.toLowerCase()))
-    const deletedNames = new Set<string>()
-    for (const l of logs) {
-      if (!l.campaign_id && l.program_name && l.program_name !== 'unknown' && !liveNames.has(l.program_name.toLowerCase())) {
-        deletedNames.add(l.program_name)
-      }
-    }
-    const deleted: CampaignInfo[] = Array.from(deletedNames).map(name => ({
-      id: `deleted:${name}`, name, status: 'deleted',
-      clientName: '—', groupName: '—', mediaCount: 0, isDeleted: true,
-    }))
-    return [...liveCampaigns, ...deleted]
-  })()
-
   // Compute stats from filtered logs
   const totalPlays = logs.length
   const totalDuration = logs.reduce((s, l) => s + (l.duration_seconds || 0), 0)
@@ -245,6 +228,27 @@ export default function AdminStatsPage() {
     devicePlays[l.device_id].plays++
     devicePlays[l.device_id].duration += l.duration_seconds || 0
   }
+
+  // When a date range is selected, only show campaigns that actually ran in that period
+  const displayedCampaigns = (() => {
+    if (!hasSelection) return liveCampaigns
+    // Find deleted campaigns that played during the selection
+    const liveNames = new Set(liveCampaigns.map(c => c.name.toLowerCase()))
+    const deletedNames = new Set<string>()
+    for (const l of logs) {
+      if (!l.campaign_id && l.program_name && l.program_name !== 'unknown' && !liveNames.has(l.program_name.toLowerCase())) {
+        deletedNames.add(l.program_name)
+      }
+    }
+    const deleted: CampaignInfo[] = Array.from(deletedNames).map(name => ({
+      id: `deleted:${name}`, name, status: 'deleted',
+      clientName: '—', groupName: '—', mediaCount: 0, isDeleted: true,
+    }))
+    // Only include campaigns with at least one play in the selected period
+    return [...liveCampaigns, ...deleted].filter(c =>
+      (campaignPlays[c.name.toLowerCase()]?.plays || 0) > 0
+    )
+  })()
 
   // Bar interaction handlers
   const handleBarMouseDown = (index: number) => {
