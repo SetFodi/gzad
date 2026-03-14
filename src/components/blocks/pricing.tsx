@@ -70,11 +70,10 @@ export function Pricing({
     const [hoursPerDay, setHoursPerDay] = useState(1);
     const [quantity, setQuantity] = useState(1);
 
-    // Package definitions for matching (the target fixed points)
+    // Package definitions for matching (Basic = 6 GEL/hr, Pro = 14 GEL/hr)
     const packages = [
-        { name: "სტარტი", nameEn: "Start", days: 30, hours: 1, displays: 1, price: 400 },
-        { name: "ოპტიმალური", nameEn: "Optimal", days: 30, hours: 2, displays: 1, price: 800 },
-        { name: "პრომო", nameEn: "Promo", days: 7, hours: 1, displays: 1, price: 100 }, // Fixed Package
+        { name: "ბეისიქი", nameEn: "Basic", days: 100, hours: 1, displays: 1, price: 600 },
+        { name: "პრო", nameEn: "Pro", days: 100, hours: 1, displays: 1, price: 1400 },
     ];
 
     // Check if current selection matches a package exactly
@@ -83,15 +82,14 @@ export function Pricing({
     );
 
     /**
-     * DAILY PROPORTIONAL PRICING MODEL
-     * Base Rate: ₾400 per 30 Days @ 1 Hour/Day @ 1 Display
-     * Rate per Hour-Day: 400 / 30 = ₾13.3333
+     * HOUR-BANK PRICING MODEL
+     * Basic Rate: 6 GEL / hour / taxi
      */
     const calculateCustomPrice = () => {
-        const totalUnits = duration * hoursPerDay * quantity;
-        const ratePerUnit = 400 / 30;
+        const totalHours = duration * hoursPerDay * quantity;
+        const ratePerHour = 6; // Basic rate
 
-        return Math.round(totalUnits * ratePerUnit);
+        return Math.round(totalHours * ratePerHour);
     };
 
     const totalPrice = matchedPackage ? matchedPackage.price : calculateCustomPrice();
@@ -177,13 +175,19 @@ export function Pricing({
                                 </div>
 
                                 <div className="mb-8 flex items-baseline justify-center gap-1">
-                                    <span className="text-sm font-semibold text-muted-foreground relative -top-4">₾</span>
-                                    <span className="text-5xl font-bold tracking-tight text-foreground">
-                                        <NumberFlow
-                                            value={Number(plan.price)}
-                                            format={{ useGrouping: true }}
-                                        />
-                                    </span>
+                                    {isNaN(Number(plan.price)) ? (
+                                        <span className="text-4xl font-bold tracking-tight text-foreground">{plan.price}</span>
+                                    ) : (
+                                        <>
+                                            <span className="text-sm font-semibold text-muted-foreground relative -top-4">₾</span>
+                                            <span className="text-5xl font-bold tracking-tight text-foreground">
+                                                <NumberFlow
+                                                    value={Number(plan.price)}
+                                                    format={{ useGrouping: true }}
+                                                />
+                                            </span>
+                                        </>
+                                    )}
                                     <span className="text-sm text-muted-foreground font-medium">{plan.period}</span>
                                 </div>
 

@@ -190,45 +190,49 @@ export const translations = {
                 requestQuote: "Request Quote"
             },
             standard1: {
-                title: "Start",
-                price: "400",
-                period: "/ Month",
-                desc: "1 Hour daily for 30 days",
+                title: "Basic",
+                price: "600",
+                period: "/ 100 Hours",
+                desc: "6 GEL/hr per taxi — shared rotation with up to 5 advertisers",
                 btn: "Get Started",
                 features: [
-                    "P4 LED Screen (1000x360mm)",
-                    "1 Hour Daily Exposure",
-                    "30 Days Campaign",
-                    "City Center Coverage",
-                    "Real-time Monitoring"
+                    "100-Hour On-Road Bank",
+                    "6.00 GEL / Hour (Per Taxi)",
+                    "10-sec slot in 60-sec rotation",
+                    "Max 5 advertisers sharing screen",
+                    "Weekly GPS Heatmaps",
+                    "Weekly Hour Bank updates",
+                    "Full active fleet deployment"
                 ]
             },
             standard2: {
-                title: "Optimal",
-                price: "800",
-                period: "/ Month",
-                desc: "2 Hours daily for 30 days",
+                title: "Pro",
+                price: "1400",
+                period: "/ 100 Hours",
+                desc: "14 GEL/hr per taxi — 100% screen, no rotation, no competition",
                 btn: "Get Started",
                 features: [
-                    "P4 LED Screen (1000x360mm)",
-                    "2 Hours Daily Exposure",
-                    "30 Days Campaign",
-                    "Priority Scheduling",
-                    "Detailed Analytics"
+                    "100-Hour On-Road Bank",
+                    "14.00 GEL / Hour (Per Taxi)",
+                    "100% Screen Persistence (Always On)",
+                    "Zero rotation — exclusive takeover",
+                    "Priority peak-traffic dispatch",
+                    "Instant cloud ad updates",
+                    "Advanced impressions analytics"
                 ]
             },
             event: {
-                title: "Promo",
-                price: "100",
-                period: "/ Week",
-                desc: "1 Hour daily for 7 days",
+                title: "Add-Ons",
+                price: "Custom",
+                period: "",
+                desc: "Target-specific triggers — spend your hours only on your best audience",
                 btn: "Contact Sales",
                 features: [
-                    "P4 LED Screen (1000x360mm)",
-                    "1 Hour Daily Exposure",
-                    "7 Days Campaign",
-                    "Quick Setup",
-                    "Event Targeting"
+                    "District / Zone targeting",
+                    "Time-of-day scheduling",
+                    "Peak-hour priority windows",
+                    "Custom fleet selection",
+                    "Combined plan discounts"
                 ]
             }
         },
@@ -600,45 +604,49 @@ export const translations = {
                 requestQuote: "შეკვეთა"
             },
             standard1: {
-                title: "სტარტი",
-                price: "400",
-                period: "/ თვე",
-                desc: "1 საათი დღიურად 30 დღე",
+                title: "ბეისიქ",
+                price: "600",
+                period: "/ 100 საათი",
+                desc: "6 ლარი/სთ თითო ტაქსიზე — როტაცია მაქს. 5 რეკლამოდანთან",
                 btn: "დაწყება",
                 features: [
-                    "P4 LED ეკრანი (1000x360მმ)",
-                    "1 საათი დღიური ჩვენება",
-                    "30 დღიანი კამპანია",
-                    "ქალაქის ცენტრის დაფარვა",
-                    "ლაივ მონიტორინგი"
+                    "100 საათიანი საბანკო გეგმა",
+                    "6.00 ₾ / საათი (თითო ტაქსი)",
+                    "10 წმ სლოტი 60 წმ როტაციაში",
+                    "მაქს. 5 რეკლამოდანი ეკრანზე",
+                    "ყოველკვირეული GPS ჰიტმაფი",
+                    "ყოველკვირეული საათების ანგარიში",
+                    "მთელ აქტიურ ფლოტზე განლაგება"
                 ]
             },
             standard2: {
-                title: "ოპტიმალური",
-                price: "800",
-                period: "/ თვე",
-                desc: "2 საათი დღიურად 30 დღე",
+                title: "პრო",
+                price: "1400",
+                period: "/ 100 საათი",
+                desc: "14 ₾/სთ თითო ტაქსიზე — 100% ეკრანი, ექსკლუზიური",
                 btn: "დაწყება",
                 features: [
-                    "P4 LED ეკრანი (1000x360მმ)",
-                    "2 საათი დღიური ჩვენება",
-                    "30 დღიანი კამპანია",
-                    "პრიორიტეტული დაგეგმვა",
+                    "100 საათიანი საბანკო გეგმა",
+                    "14.00 ₾ / საათი (თითო ტაქსი)",
+                    "100% ეკრანის დაკავება (ყოველთვის)",
+                    "ნულოვანი როტაცია — ექსკლუზიური",
+                    "პიკ-საათების პრიორიტეტი",
+                    "კრეატივის მყისიერი განახლება",
                     "დეტალური ანალიტიკა"
                 ]
             },
             event: {
-                title: "პრომო",
-                price: "100",
-                period: "/ კვირა",
-                desc: "1 საათი დღიურად 7 დღე",
+                title: "დამატებები",
+                price: "Custom",
+                period: "",
+                desc: "ტარგეტ-სპეციფიკური ტრიგერები — ბიუჯეტი მხოლოდ სასურველ აუდიტორიაზე",
                 btn: "დაგვიკავშირდით",
                 features: [
-                    "P4 LED ეკრანი (1000x360მმ)",
-                    "1 საათი დღიური ჩვენება",
-                    "7 დღიანი კამპანია",
-                    "სწრაფი გაშვება",
-                    "ტარგეტირება"
+                    "რაიონული / ზონალური ტარგეტინგი",
+                    "დღის განრიგის მიხედვით",
+                    "პიკ-საათების პრიორიტეტი",
+                    "ფლოტის ინდივიდუალური შერჩევა",
+                    "კომბინირებული ფასდაკლებები"
                 ]
             }
         },
