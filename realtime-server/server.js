@@ -896,7 +896,7 @@ function startGpsPolling(cardId) {
 server.listen(config.port, () => {
   console.log(`
 ╔════════════════════════════════════════════════════╗
-║         Gzad Realtime Server v1.0.0               ║
+║         Gzad Realtime Server v1.1.0               ║
 ║                                                    ║
 ║  HTTP API:    http://0.0.0.0:${config.port}              ║
 ║  WebSocket:   ws://0.0.0.0:${config.port}                ║
