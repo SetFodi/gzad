@@ -6,6 +6,10 @@ import { useParams } from 'next/navigation'
 import { ArrowLeft, Play, Clock, MapPin, Car, X } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n'
+import dynamic from 'next/dynamic'
+import type { PlayPoint } from '@/components/portal/CampaignMapView'
+
+const CampaignMapView = dynamic(() => import('@/components/portal/CampaignMapView'), { ssr: false })
 
 interface Campaign {
   id: string
@@ -52,6 +56,7 @@ export default function CampaignDetailPage() {
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [allDays, setAllDays] = useState<DayData[]>([])
   const [media, setMedia] = useState<Media[]>([])
+  const [playPoints, setPlayPoints] = useState<PlayPoint[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
   const { t } = useTranslations()
@@ -136,9 +141,31 @@ export default function CampaignDetailPage() {
         .eq('campaign_id', id)
         .order('uploaded_at', { ascending: false })
 
+      // Fetch play log GPS points for map
+      const { data: gpsLogs } = await supabase
+        .from('play_logs')
+        .select('lat, lng')
+        .eq('campaign_id', id)
+        .not('lat', 'eq', 0)
+        .not('lng', 'eq', 0)
+        .not('lat', 'is', null)
+        .not('lng', 'is', null)
+
+      // Group by rounded coordinates (~11m precision)
+      const pointMap: Record<string, PlayPoint> = {}
+      for (const log of gpsLogs || []) {
+        const key = `${Number(log.lat).toFixed(4)},${Number(log.lng).toFixed(4)}`
+        if (!pointMap[key]) {
+          pointMap[key] = { lat: Number(log.lat), lng: Number(log.lng), count: 0 }
+        }
+        pointMap[key].count++
+      }
+      const points = Object.values(pointMap).sort((a, b) => b.count - a.count)
+
       setCampaign(campaignData)
       setAllDays(fullDays)
       setMedia(mediaData || [])
+      setPlayPoints(points)
       setLoading(false)
     }
     load()
@@ -359,6 +386,21 @@ export default function CampaignDetailPage() {
           </table>
         </div>
       </div>
+
+      {playPoints.length > 0 && (
+        <div className="portal-section">
+          <h2 style={{ marginBottom: 4 }}>Ad Coverage Map</h2>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 12 }}>
+            {playPoints.reduce((s, p) => s + p.count, 0).toLocaleString()} plays across {playPoints.length} locations · larger dots = more plays
+          </p>
+          <div style={{
+            background: 'var(--card)', border: '1px solid var(--border)',
+            borderRadius: 12, overflow: 'hidden', height: 380,
+          }}>
+            <CampaignMapView points={playPoints} />
+          </div>
+        </div>
+      )}
 
       {media.length > 0 && (
         <div className="portal-section">
