@@ -71,6 +71,8 @@ export async function GET() {
       lastSeen: live?.lastSeen || reg.last_seen_at || null,
       info: live?.info || {},
       registered: true,
+      last_lat: reg.last_lat ?? null,
+      last_lng: reg.last_lng ?? null,
     }
   })
 
@@ -84,6 +86,8 @@ export async function GET() {
       lastSeen: live.lastSeen,
       info: live.info,
       registered: false,
+      last_lat: null,
+      last_lng: null,
     })
 
     // Auto-register the new device in Supabase

@@ -1,60 +1,58 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { RefreshCw, Wifi, WifiOff, Monitor } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { DevicePoint } from '@/components/admin/FleetMapView'
 
 const FleetMapView = dynamic(() => import('@/components/admin/FleetMapView'), { ssr: false })
 
-interface DeviceRow {
-  id: string
+interface ApiDevice {
+  cardId: string
   name: string | null
+  online: boolean
+  connectedAt: string | null
+  lastSeen: string | null
   last_lat: number | null
   last_lng: number | null
-  last_seen_at: string | null
-}
-
-function isOnline(lastSeen: string | null): boolean {
-  if (!lastSeen) return false
-  return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000
 }
 
 export default function FleetPage() {
-  const [allDevices, setAllDevices] = useState<DeviceRow[]>([])
+  const [allDevices, setAllDevices] = useState<ApiDevice[]>([])
   const [loading, setLoading] = useState(true)
   const [focusedId, setFocusedId] = useState<string | null>(null)
-  const supabase = createClient()
 
   const load = async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('devices')
-      .select('id, name, last_lat, last_lng, last_seen_at')
-      .order('last_seen_at', { ascending: false })
-    setAllDevices(data || [])
-    setLoading(false)
+    try {
+      const res = await fetch('/api/devices')
+      const data = await res.json()
+      setAllDevices(data.devices || [])
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     load()
-    const interval = setInterval(load, 60000)
+    const interval = setInterval(load, 30000)
     return () => clearInterval(interval)
   }, [])
 
   const mappedDevices: DevicePoint[] = allDevices
     .filter(d => d.last_lat !== null && d.last_lng !== null)
     .map(d => ({
-      id: d.id,
+      id: d.cardId,
       name: d.name,
       lat: d.last_lat!,
       lng: d.last_lng!,
-      online: isOnline(d.last_seen_at),
-      lastSeen: d.last_seen_at,
+      online: d.online,
+      lastSeen: d.lastSeen,
     }))
 
-  const onlineCount = allDevices.filter(d => isOnline(d.last_seen_at)).length
+  const onlineCount = allDevices.filter(d => d.online).length
   const offlineCount = allDevices.length - onlineCount
 
   return (
@@ -108,15 +106,14 @@ export default function FleetPage() {
             <div style={{ padding: 16, color: '#525252', fontSize: 13 }}>No devices</div>
           )}
           {allDevices.map(d => {
-            const online = isOnline(d.last_seen_at)
             const hasFix = d.last_lat !== null && d.last_lng !== null
             return (
               <button
-                key={d.id}
-                onClick={() => hasFix ? setFocusedId(d.id) : undefined}
+                key={d.cardId}
+                onClick={() => hasFix ? setFocusedId(d.cardId) : undefined}
                 style={{
                   width: '100%', textAlign: 'left', padding: '10px 14px',
-                  background: focusedId === d.id ? 'rgba(204,243,129,0.08)' : 'transparent',
+                  background: focusedId === d.cardId ? 'rgba(204,243,129,0.08)' : 'transparent',
                   border: 'none', borderBottom: '1px solid #141414',
                   cursor: hasFix ? 'pointer' : 'default',
                   display: 'flex', alignItems: 'center', gap: 10,
@@ -124,18 +121,18 @@ export default function FleetPage() {
               >
                 <div style={{
                   width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: online ? '#CCF381' : '#525252',
-                  boxShadow: online ? '0 0 6px rgba(204,243,129,0.6)' : 'none',
+                  background: d.online ? '#CCF381' : '#525252',
+                  boxShadow: d.online ? '0 0 6px rgba(204,243,129,0.6)' : 'none',
                 }} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{
                     fontSize: 13, color: '#F1F5F9', fontWeight: 500,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
-                    {d.name || d.id}
+                    {d.name || d.cardId}
                   </div>
                   <div style={{ fontSize: 11, color: '#525252' }}>
-                    {d.last_seen_at ? new Date(d.last_seen_at).toLocaleTimeString() : 'Never seen'}
+                    {d.lastSeen ? new Date(d.lastSeen).toLocaleTimeString() : 'Never seen'}
                     {!hasFix && ' · no GPS'}
                   </div>
                 </div>
@@ -165,7 +162,7 @@ export default function FleetPage() {
       </div>
 
       <div style={{ marginTop: 12, color: '#525252', fontSize: 13 }}>
-        {mappedDevices.length} of {allDevices.length} device(s) have GPS · auto-refreshes every 60s
+        {mappedDevices.length} of {allDevices.length} device(s) have GPS · auto-refreshes every 30s
       </div>
     </div>
   )
