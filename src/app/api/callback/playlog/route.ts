@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If any log has a valid GPS fix, update device last_lat/last_lng
-    const gpsLog = rows.filter(r => r.lat !== 0 || r.lng !== 0).at(-1)
+    const gpsLog = rows.filter((r: typeof rows[number]) => r.lat !== 0 || r.lng !== 0).at(-1)
     if (gpsLog) {
       await supabase
         .from('devices')

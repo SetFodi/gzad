@@ -339,26 +339,22 @@ app.post('/devices/:cardId/is-screen-on', requireAuth, async (req, res) => {
   }
 })
 
-// Get GPS location one-shot (SDK: GetGpsInfo)
+// Get GPS location via getCardInformation (Y12-EU doesn't support dedicated GPS commands)
 app.post('/devices/:cardId/get-gps', requireAuth, async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
-      _type: 'GetGpsInfo',
+      type: 'getCardInformation',
     })
-    res.json(result)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// Enable GPS location feedback on the device
-app.post('/devices/:cardId/enable-gps', requireAuth, async (req, res) => {
-  try {
-    const result = await sendCommand(req.params.cardId, {
-      _type: 'SetConnectionConfig',
-      locationFeedback: 30, // report GPS every 30 seconds
+    const lat = result?.card?.lat || 0
+    const lng = result?.card?.lng || 0
+    res.json({
+      lat,
+      lng,
+      speed: result?.card?.speed || 0,
+      temperature: result?.card?.temperature,
+      screenStatus: result?.card?.screenStatus,
+      currentProgram: result?.card?.currentProgramName,
     })
-    res.json({ success: true, result })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
