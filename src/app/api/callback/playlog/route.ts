@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       || (!Array.isArray(body) && (body?.sn as string))  // firmware POSTs include sn field
       || 'unknown'
 
-    // Upsert device record
+    // Upsert device record (last_seen_at updated on every log batch)
     await supabase
       .from('devices')
       .upsert(
@@ -128,6 +128,17 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Play log insert error:', insertError)
+    }
+
+    // If any log has a valid GPS fix, update device last_lat/last_lng
+    const gpsLog = rows.filter(r => r.lat !== 0 || r.lng !== 0).at(-1)
+    if (gpsLog) {
+      await supabase
+        .from('devices')
+        .upsert(
+          { id: deviceId, last_lat: gpsLog.lat, last_lng: gpsLog.lng, last_seen_at: new Date().toISOString() },
+          { onConflict: 'id' }
+        )
     }
 
     // Recompute play_stats for affected campaign+date combos FROM play_logs

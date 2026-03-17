@@ -613,6 +613,11 @@ wss.on('connection', (ws) => {
       console.log(`[${new Date().toISOString()}] Device disconnected: ${cardId}`)
       if (devices[cardId]) {
         devices[cardId].lastSeen = new Date().toISOString()
+        // Stop GPS polling for this device
+        if (devices[cardId].gpsInterval) {
+          clearInterval(devices[cardId].gpsInterval)
+          devices[cardId].gpsInterval = null
+        }
         // Clean up: null out the WebSocket reference to free memory
         devices[cardId].ws = null
         // Remove stale pending commands for this device
@@ -847,6 +852,43 @@ async function autoSetupDevice(cardId) {
 
     // 2. GPS is handled by startGpsPolling() — Y12-EU doesn't support setSubGPS push
   ])
+
+  // Start periodic GPS polling after setup commands complete
+  startGpsPolling(cardId)
+}
+
+function startGpsPolling(cardId) {
+  // Clear any existing interval for this device (reconnect case)
+  if (devices[cardId] && devices[cardId].gpsInterval) {
+    clearInterval(devices[cardId].gpsInterval)
+  }
+
+  // Poll immediately, then every 60 seconds
+  async function pollGps() {
+    const d = devices[cardId]
+    if (!d || !d.ws || d.ws.readyState !== 1) return
+    try {
+      const result = await sendCommand(cardId, { type: 'getCardInformation' })
+      const card = result?.card || result
+      const lat = card?.lat || 0
+      const lng = card?.lng || 0
+      if (lat !== 0 || lng !== 0) {
+        await fetch(`${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${cardId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lng, speed: 0 }),
+        })
+        console.log(`[${new Date().toISOString()}] GPS polled for ${cardId}: ${lat},${lng}`)
+      }
+    } catch (err) {
+      // Silently ignore — device may not respond or be offline
+    }
+  }
+
+  pollGps()
+  if (devices[cardId]) {
+    devices[cardId].gpsInterval = setInterval(pollGps, 60 * 1000)
+  }
 }
 
 // ─── Start ───────────────────────────────────────────────────────────────────
