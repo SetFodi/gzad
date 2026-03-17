@@ -216,21 +216,40 @@ export default function DevicesPage() {
     setActionLoading(`${cardId}-get-gps`)
     setActionResult(null)
     try {
-      const supabase = createClient()
-      const { data: device } = await supabase
-        .from('devices')
-        .select('last_lat, last_lng, last_seen_at')
-        .eq('id', cardId)
-        .single()
+      // Query the device live via realtime server
+      const res = await fetch('/api/devices/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardId, action: 'get-gps' }),
+      })
+      const data = await res.json()
+      const lat = data?.lat || data?.latitude || data?.result?.lat || data?.result?.latitude
+      const lng = data?.lng || data?.longitude || data?.result?.lng || data?.result?.longitude
 
-      if (device?.last_lat && device?.last_lng) {
+      if (lat && lng && (lat !== 0 || lng !== 0)) {
         setActionResult({
           ok: true,
-          msg: `Last Known Location (${device.last_seen_at ? new Date(device.last_seen_at).toLocaleString() : 'unknown time'})`,
-          data: `Lat: ${device.last_lat}, Lng: ${device.last_lng}\nhttps://www.google.com/maps?q=${device.last_lat},${device.last_lng}`,
+          msg: `Live GPS Location`,
+          data: `Lat: ${lat}, Lng: ${lng}${data?.speed ? `, Speed: ${data.speed} km/h` : ''}\nhttps://www.google.com/maps?q=${lat},${lng}`,
         })
       } else {
-        setActionResult({ ok: false, msg: 'GPS: No location data yet — wait for GPS callbacks to report' })
+        // Fallback to DB
+        const supabase = createClient()
+        const { data: device } = await supabase
+          .from('devices')
+          .select('last_lat, last_lng, last_seen_at')
+          .eq('id', cardId)
+          .single()
+
+        if (device?.last_lat && device?.last_lng) {
+          setActionResult({
+            ok: true,
+            msg: `Last Known Location (${device.last_seen_at ? new Date(device.last_seen_at).toLocaleString() : 'unknown time'})`,
+            data: `Lat: ${device.last_lat}, Lng: ${device.last_lng}\nhttps://www.google.com/maps?q=${device.last_lat},${device.last_lng}`,
+          })
+        } else {
+          setActionResult({ ok: false, msg: 'GPS: No location data available' })
+        }
       }
     } catch {
       setActionResult({ ok: false, msg: 'GPS: Failed to fetch location' })

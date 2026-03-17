@@ -339,13 +339,26 @@ app.post('/devices/:cardId/is-screen-on', requireAuth, async (req, res) => {
   }
 })
 
-// Get GPS location one-shot (SDK: getGpsLocation)
+// Get GPS location one-shot (SDK: GetGpsInfo)
 app.post('/devices/:cardId/get-gps', requireAuth, async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
-      type: 'getGpsLocation',
+      _type: 'GetGpsInfo',
     })
     res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Enable GPS location feedback on the device
+app.post('/devices/:cardId/enable-gps', requireAuth, async (req, res) => {
+  try {
+    const result = await sendCommand(req.params.cardId, {
+      _type: 'SetConnectionConfig',
+      locationFeedback: 30, // report GPS every 30 seconds
+    })
+    res.json({ success: true, result })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -803,7 +816,6 @@ async function autoSetupDevice(cardId) {
   await new Promise(r => setTimeout(r, 1000))
 
   const playlogUrl = `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${cardId}`
-  const gpsUrl = `${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${cardId}`
 
   // Run all setup commands in parallel — each has its own try/catch so one failure won't block others
   await Promise.allSettled([
@@ -833,17 +845,7 @@ async function autoSetupDevice(cardId) {
       console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) failed for ${cardId}: ${err.message}`)
     }),
 
-    // 2. GPS subscription (best-effort, not all controllers support this)
-    sendCommand(cardId, {
-      type: 'setSubGPS',
-      openSub: true,
-      endpoint: gpsUrl,
-      interval: 30,
-    }).then(() => {
-      console.log(`[${new Date().toISOString()}] Auto GPS callback set for ${cardId}`)
-    }).catch(() => {
-      // Silently ignore — GPS subscription not critical
-    }),
+    // 2. GPS is handled by startGpsPolling() — Y12-EU doesn't support setSubGPS push
   ])
 }
 
