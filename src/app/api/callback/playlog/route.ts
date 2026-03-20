@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { isPointInDistrict } from '@/lib/districts'
 
 const TZ = 'Asia/Tbilisi'
 function toTbilisiDate(iso: string): string {
@@ -62,22 +61,12 @@ export async function POST(request: NextRequest) {
       || 'unknown'
 
     // Upsert device record (last_seen_at updated on every log batch)
-    // Also fetch last known GPS for geo-filtering (same source as push filter)
-    const [, deviceGpsRes] = await Promise.all([
-      supabase
-        .from('devices')
-        .upsert(
-          { id: deviceId, last_seen_at: new Date().toISOString() },
-          { onConflict: 'id' }
-        ),
-      supabase
-        .from('devices')
-        .select('last_lat, last_lng')
-        .eq('id', deviceId)
-        .maybeSingle(),
-    ])
-    const deviceLat: number = deviceGpsRes.data?.last_lat || 0
-    const deviceLng: number = deviceGpsRes.data?.last_lng || 0
+    await supabase
+      .from('devices')
+      .upsert(
+        { id: deviceId, last_seen_at: new Date().toISOString() },
+        { onConflict: 'id' }
+      )
 
     // Match program names to campaigns (case-insensitive)
     const programNames = [...new Set<string>(
@@ -85,11 +74,10 @@ export async function POST(request: NextRequest) {
     )]
 
     let campaignMap: Record<string, string> = {}
-    let campaignDistrictsMap: Record<string, string[] | null> = {}
     if (programNames.length > 0) {
       const { data: campaigns } = await supabase
         .from('campaigns')
-        .select('id, name, districts')
+        .select('id, name')
 
       if (campaigns) {
         const campaignLookup = new Map(
@@ -104,7 +92,6 @@ export async function POST(request: NextRequest) {
           }
           if (campaign) {
             campaignMap[name] = campaign.id
-            campaignDistrictsMap[name] = campaign.districts || null
           }
         }
       }
@@ -134,18 +121,10 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Filter out geo-restricted logs: if a campaign has districts and the device
-    // is outside all of them, discard the log entirely.
-    // Use device's last known GPS (same source as push filter) — fall back to
-    // log-embedded GPS, then allow through if no fix available at all.
-    const filteredRows = rows.filter((row: typeof rows[number]) => {
-      const districts = campaignDistrictsMap[row.program_name]
-      if (!districts || districts.length === 0) return true // no restriction
-      const lat = deviceLat || row.lat
-      const lng = deviceLng || row.lng
-      if (!lat || !lng) return true // no GPS anywhere — let it through
-      return districts.some(d => isPointInDistrict(lat, lng, d))
-    })
+    // Trust all play logs — geo-filtering happens at push time (sync-single),
+    // so if the device is playing a geo-restricted campaign it was already verified.
+    // Re-filtering here causes valid logs to be dropped due to GPS timing races.
+    const filteredRows = rows
 
     // Insert with ON CONFLICT DO NOTHING — skips duplicates via unique index
     // Supabase JS doesn't support ON CONFLICT DO NOTHING for insert,
