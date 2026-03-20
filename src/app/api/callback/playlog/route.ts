@@ -124,49 +124,25 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Geo-filter: for district-restricted campaigns, verify the device was
-    // actually in the required district AT THE TIME OF THE PLAY using gps_logs.
-    // This avoids timing races with stale last_lat/last_lng while still
-    // blocking logs from devices playing stale cached content outside the district.
-    const districtRestrictedRows = rows.filter((row: typeof rows[number]) => {
-      const d = campaignDistrictsMap[row.program_name]
-      return d && d.length > 0
-    })
+    // Fetch device's last known GPS as fallback
+    const { data: deviceData } = await supabase
+      .from('devices')
+      .select('last_lat, last_lng')
+      .eq('id', deviceId)
+      .maybeSingle()
+    const deviceLat: number = deviceData?.last_lat || 0
+    const deviceLng: number = deviceData?.last_lng || 0
 
-    let gpsHistory: Array<{ recorded_at: string; lat: number; lng: number }> = []
-    if (districtRestrictedRows.length > 0) {
-      const times = districtRestrictedRows.map((r: typeof rows[number]) => new Date(r.began_at).getTime())
-      const minTime = new Date(Math.min(...times) - 5 * 60 * 1000).toISOString()
-      const maxTime = new Date(Math.max(...times) + 5 * 60 * 1000).toISOString()
-      const { data: gpsData } = await supabase
-        .from('gps_logs')
-        .select('recorded_at, lat, lng')
-        .eq('device_serial', deviceId)
-        .gte('recorded_at', minTime)
-        .lte('recorded_at', maxTime)
-        .order('recorded_at', { ascending: true })
-      gpsHistory = (gpsData || []).map((g: { recorded_at: string; lat: number; lng: number }) => ({
-        recorded_at: g.recorded_at,
-        lat: Number(g.lat),
-        lng: Number(g.lng),
-      }))
-    }
-
-    function closestGps(timestamp: string) {
-      if (gpsHistory.length === 0) return null
-      const t = new Date(timestamp).getTime()
-      return gpsHistory.reduce((best, g) =>
-        Math.abs(new Date(g.recorded_at).getTime() - t) < Math.abs(new Date(best.recorded_at).getTime() - t)
-          ? g : best
-      )
-    }
-
+    // Geo-filter: for district-restricted campaigns, use GPS embedded in the
+    // play log (most accurate — recorded at play time), falling back to the
+    // device's last known GPS. Let through if no GPS is available anywhere.
     const filteredRows = rows.filter((row: typeof rows[number]) => {
       const districts = campaignDistrictsMap[row.program_name]
       if (!districts || districts.length === 0) return true // no restriction
-      const gps = closestGps(row.began_at)
-      if (!gps) return true // no GPS history → can't verify → let through
-      return districts.some((d: string) => isPointInDistrict(gps.lat, gps.lng, d))
+      const lat = row.lat || deviceLat  // prefer log-embedded GPS over DB GPS
+      const lng = row.lng || deviceLng
+      if (!lat || !lng) return true // no GPS anywhere — let through
+      return districts.some((d: string) => isPointInDistrict(lat, lng, d))
     })
 
     // Insert with ON CONFLICT DO NOTHING — skips duplicates via unique index
