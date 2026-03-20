@@ -9,6 +9,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const config = require('./config')
+const { getDistrictsForPoint } = require('./districts')
 
 // Try to get video duration via ffprobe; returns seconds or null
 function probeVideoDuration(buffer) {
@@ -858,12 +859,32 @@ function startGpsPolling(cardId) {
       const lat = card?.lat || 0
       const lng = card?.lng || 0
       if (lat !== 0 || lng !== 0) {
+        // Forward GPS to callback
         await fetch(`${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${cardId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ lat, lng, speed: 0 }),
         })
         console.log(`[${new Date().toISOString()}] GPS polled for ${cardId}: ${lat},${lng}`)
+
+        // Check if districts changed — trigger playlist sync if so
+        const currentDistricts = getDistrictsForPoint(lat, lng)
+        const lastDistricts = devices[cardId]?.lastDistricts
+        const changed = !lastDistricts ||
+          JSON.stringify(currentDistricts) !== JSON.stringify(lastDistricts)
+
+        if (changed) {
+          if (devices[cardId]) devices[cardId].lastDistricts = currentDistricts
+          console.log(`[${new Date().toISOString()}] District change for ${cardId}: [${currentDistricts.join(', ') || 'none'}] — syncing playlist`)
+          fetch(`${config.gzadAppUrl}/api/devices/sync-single`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.callbackSecret}` },
+            body: JSON.stringify({ cardId, lat, lng }),
+          }).catch(err => console.error(`sync-single failed for ${cardId}:`, err.message))
+        }
+      } else {
+        // GPS lost fix — reset lastDistricts so next valid reading always triggers a sync
+        if (devices[cardId]) devices[cardId].lastDistricts = null
       }
     } catch (err) {
       // Silently ignore — device may not respond or be offline
