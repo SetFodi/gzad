@@ -171,18 +171,7 @@ app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
       totalSize += fileSize
       console.log(`[${new Date().toISOString()}] Media: ${fileSize} bytes, MD5: ${fileMd5}`)
 
-      // For video, try to detect actual duration via ffprobe
-      let duration = item.duration || 10
-      const isVideo = (item.type || '').startsWith('video')
-      if (isVideo) {
-        const probedDuration = await probeVideoDuration(fileBuffer)
-        if (probedDuration) {
-          console.log(`[${new Date().toISOString()}] Probed video duration: ${probedDuration}s`)
-          duration = probedDuration
-        } else {
-          console.log(`[${new Date().toISOString()}] ffprobe not available, using duration=${duration}s`)
-        }
-      }
+      const duration = 10 // All content plays for 10 seconds regardless of file length
 
       processedItems.push({
         url: item.url,
