@@ -730,7 +730,7 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
                 id: uuidv4().replace(/-/g, ''),
                 url: item.url,
                 playTime: 0,
-                timeSpan: item.duration || (isVideo ? 30 : 10),
+                timeSpan: 10,
                 left: 0,
                 top: 0,
                 width: width,
