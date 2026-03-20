@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isPointInDistrict } from '@/lib/districts'
 
 const TZ = 'Asia/Tbilisi'
 function toTbilisiDate(iso: string): string {
@@ -74,10 +75,11 @@ export async function POST(request: NextRequest) {
     )]
 
     let campaignMap: Record<string, string> = {}
+    let campaignDistrictsMap: Record<string, string[] | null> = {}
     if (programNames.length > 0) {
       const { data: campaigns } = await supabase
         .from('campaigns')
-        .select('id, name')
+        .select('id, name, districts')
 
       if (campaigns) {
         const campaignLookup = new Map(
@@ -92,6 +94,7 @@ export async function POST(request: NextRequest) {
           }
           if (campaign) {
             campaignMap[name] = campaign.id
+            campaignDistrictsMap[name] = campaign.districts || null
           }
         }
       }
@@ -121,10 +124,50 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Trust all play logs — geo-filtering happens at push time (sync-single),
-    // so if the device is playing a geo-restricted campaign it was already verified.
-    // Re-filtering here causes valid logs to be dropped due to GPS timing races.
-    const filteredRows = rows
+    // Geo-filter: for district-restricted campaigns, verify the device was
+    // actually in the required district AT THE TIME OF THE PLAY using gps_logs.
+    // This avoids timing races with stale last_lat/last_lng while still
+    // blocking logs from devices playing stale cached content outside the district.
+    const districtRestrictedRows = rows.filter((row: typeof rows[number]) => {
+      const d = campaignDistrictsMap[row.program_name]
+      return d && d.length > 0
+    })
+
+    let gpsHistory: Array<{ recorded_at: string; lat: number; lng: number }> = []
+    if (districtRestrictedRows.length > 0) {
+      const times = districtRestrictedRows.map((r: typeof rows[number]) => new Date(r.began_at).getTime())
+      const minTime = new Date(Math.min(...times) - 5 * 60 * 1000).toISOString()
+      const maxTime = new Date(Math.max(...times) + 5 * 60 * 1000).toISOString()
+      const { data: gpsData } = await supabase
+        .from('gps_logs')
+        .select('recorded_at, lat, lng')
+        .eq('device_serial', deviceId)
+        .gte('recorded_at', minTime)
+        .lte('recorded_at', maxTime)
+        .order('recorded_at', { ascending: true })
+      gpsHistory = (gpsData || []).map((g: { recorded_at: string; lat: number; lng: number }) => ({
+        recorded_at: g.recorded_at,
+        lat: Number(g.lat),
+        lng: Number(g.lng),
+      }))
+    }
+
+    function closestGps(timestamp: string) {
+      if (gpsHistory.length === 0) return null
+      const t = new Date(timestamp).getTime()
+      return gpsHistory.reduce((best, g) =>
+        Math.abs(new Date(g.recorded_at).getTime() - t) < Math.abs(new Date(best.recorded_at).getTime() - t)
+          ? g : best
+      )
+    }
+
+    const filteredRows = rows.filter((row: typeof rows[number]) => {
+      const districts = campaignDistrictsMap[row.program_name]
+      if (!districts || districts.length === 0) return true // no restriction
+      const gps = closestGps(row.began_at)
+      if (!gps) return true // no GPS history → can't verify → let through
+      return districts.some((d: string) => isPointInDistrict(gps.lat, gps.lng, d))
+    })
 
     // Insert with ON CONFLICT DO NOTHING — skips duplicates via unique index
     // Supabase JS doesn't support ON CONFLICT DO NOTHING for insert,
