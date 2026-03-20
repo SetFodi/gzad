@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Layers } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 const MapView = dynamic(() => import('@/components/admin/MapView'), { ssr: false })
@@ -19,6 +19,7 @@ interface GpsPoint {
 export default function MapPage() {
   const [points, setPoints] = useState<GpsPoint[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDistricts, setShowDistricts] = useState(false)
   const supabase = createClient()
 
   const loadGPS = async () => {
@@ -56,9 +57,23 @@ export default function MapPage() {
     <div className="portal-page">
       <div className="portal-page-header">
         <h1 className="portal-page-title">GPS Map</h1>
-        <button onClick={loadGPS} className="portal-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <RefreshCw size={16} /> Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setShowDistricts(v => !v)}
+            className="portal-btn-secondary"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: showDistricts ? 'rgba(204,243,129,0.1)' : undefined,
+              color: showDistricts ? '#CCF381' : undefined,
+              borderColor: showDistricts ? 'rgba(204,243,129,0.3)' : undefined,
+            }}
+          >
+            <Layers size={16} /> {showDistricts ? 'Hide Districts' : 'Show Districts'}
+          </button>
+          <button onClick={loadGPS} className="portal-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <RefreshCw size={16} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div style={{
@@ -79,7 +94,7 @@ export default function MapPage() {
             <p style={{ fontSize: 13 }}>GPS data will appear once the controller starts reporting.</p>
           </div>
         ) : (
-          <MapView positions={devicePositions} allPoints={points} />
+          <MapView positions={devicePositions} allPoints={points} showDistricts={showDistricts} />
         )}
       </div>
 

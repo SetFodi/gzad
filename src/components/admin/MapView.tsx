@@ -1,8 +1,9 @@
 'use client'
 
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Polygon, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { TBILISI_DISTRICTS } from '@/lib/districts'
 
 interface GpsPoint {
   id: string
@@ -16,6 +17,7 @@ interface GpsPoint {
 interface MapViewProps {
   positions: GpsPoint[]
   allPoints: GpsPoint[]
+  showDistricts?: boolean
 }
 
 // Custom marker icon (green dot)
@@ -26,11 +28,17 @@ const deviceIcon = new L.DivIcon({
   className: '',
 })
 
-export default function MapView({ positions, allPoints }: MapViewProps) {
-  // Center on Tbilisi by default, or on first device
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
+export default function MapView({ positions, allPoints, showDistricts = false }: MapViewProps) {
   const center: [number, number] = positions.length > 0
     ? [positions[0].lat, positions[0].lng]
-    : [41.7151, 44.8271] // Tbilisi
+    : [41.7151, 44.8271]
 
   // Group trail points by device
   const trails = new Map<string, [number, number][]>()
@@ -51,6 +59,23 @@ export default function MapView({ positions, allPoints }: MapViewProps) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+
+      {/* District overlays */}
+      {showDistricts && TBILISI_DISTRICTS.map(district => (
+        <Polygon
+          key={district.name}
+          positions={district.polygon}
+          pathOptions={{
+            color: district.color,
+            weight: 2,
+            opacity: 0.8,
+            fillColor: district.color,
+            fillOpacity: 0.15,
+          }}
+        >
+          <Tooltip sticky>{district.name}</Tooltip>
+        </Polygon>
+      ))}
 
       {/* Device trails */}
       {Array.from(trails.entries()).map(([deviceId, trail]) => (
