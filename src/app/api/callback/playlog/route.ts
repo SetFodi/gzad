@@ -62,12 +62,22 @@ export async function POST(request: NextRequest) {
       || 'unknown'
 
     // Upsert device record (last_seen_at updated on every log batch)
-    await supabase
-      .from('devices')
-      .upsert(
-        { id: deviceId, last_seen_at: new Date().toISOString() },
-        { onConflict: 'id' }
-      )
+    // Also fetch last known GPS for geo-filtering (same source as push filter)
+    const [, deviceGpsRes] = await Promise.all([
+      supabase
+        .from('devices')
+        .upsert(
+          { id: deviceId, last_seen_at: new Date().toISOString() },
+          { onConflict: 'id' }
+        ),
+      supabase
+        .from('devices')
+        .select('last_lat, last_lng')
+        .eq('id', deviceId)
+        .maybeSingle(),
+    ])
+    const deviceLat: number = deviceGpsRes.data?.last_lat || 0
+    const deviceLng: number = deviceGpsRes.data?.last_lng || 0
 
     // Match program names to campaigns (case-insensitive)
     const programNames = [...new Set<string>(
@@ -124,13 +134,17 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Filter out geo-restricted logs: if a campaign has districts and the play
-    // location is outside all of them, discard the log entirely
+    // Filter out geo-restricted logs: if a campaign has districts and the device
+    // is outside all of them, discard the log entirely.
+    // Use device's last known GPS (same source as push filter) — fall back to
+    // log-embedded GPS, then allow through if no fix available at all.
     const filteredRows = rows.filter((row: typeof rows[number]) => {
       const districts = campaignDistrictsMap[row.program_name]
       if (!districts || districts.length === 0) return true // no restriction
-      if (!row.lat || !row.lng) return true // no GPS fix — let it through
-      return districts.some(d => isPointInDistrict(row.lat, row.lng, d))
+      const lat = deviceLat || row.lat
+      const lng = deviceLng || row.lng
+      if (!lat || !lng) return true // no GPS anywhere — let it through
+      return districts.some(d => isPointInDistrict(lat, lng, d))
     })
 
     // Insert with ON CONFLICT DO NOTHING — skips duplicates via unique index
