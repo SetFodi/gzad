@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     // Filter out geo-restricted logs: if a campaign has districts and the play
     // location is outside all of them, discard the log entirely
-    const filteredRows = rows.filter(row => {
+    const filteredRows = rows.filter((row: typeof rows[number]) => {
       const districts = campaignDistrictsMap[row.program_name]
       if (!districts || districts.length === 0) return true // no restriction
       if (!row.lat || !row.lng) return true // no GPS fix — let it through
