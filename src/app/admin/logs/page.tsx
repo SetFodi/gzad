@@ -207,7 +207,7 @@ export default function LogsPage() {
                         )}
                       </td>
                       <td style={tdStyle}>{new Date(log.began_at).toLocaleString()}</td>
-                      <td style={{ ...tdStyle, color: '#71717a' }}>{timeAgo(log.received_at)}</td>
+                      <td style={{ ...tdStyle, color: '#71717a' }}>{log.received_at ? new Date(log.received_at).toLocaleString() : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -252,7 +252,7 @@ export default function LogsPage() {
                           Open
                         </a>
                       </td>
-                      <td style={{ ...tdStyle, color: '#71717a' }}>{timeAgo(log.recorded_at)}</td>
+                      <td style={{ ...tdStyle, color: '#71717a' }}>{log.recorded_at ? new Date(log.recorded_at).toLocaleString() : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -290,7 +290,7 @@ export default function LogsPage() {
                             ? '#CCF381'
                             : '#71717a',
                         }}>
-                          {timeAgo(dev.last_seen_at)}
+                          {dev.last_seen_at ? new Date(dev.last_seen_at).toLocaleString() : '—'}
                         </span>
                       </td>
                       <td style={tdStyle}>
@@ -307,7 +307,7 @@ export default function LogsPage() {
                           <span style={{ color: '#3f3f46' }}>—</span>
                         )}
                       </td>
-                      <td style={{ ...tdStyle, color: '#71717a' }}>{timeAgo(dev.created_at)}</td>
+                      <td style={{ ...tdStyle, color: '#71717a' }}>{dev.created_at ? new Date(dev.created_at).toLocaleString() : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
