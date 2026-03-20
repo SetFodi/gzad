@@ -12,7 +12,7 @@ export interface District {
 export const TBILISI_DISTRICTS: District[] = [
   {
     name: 'Mtatsminda',
-    color: '#FF6B6B',
+    color: '#FF3333',
     neighborhoods: ['Rustaveli', 'Liberty Square', 'Sololaki', 'Okrokana'],
     polygon: [
       [41.706, 44.768],
@@ -25,7 +25,7 @@ export const TBILISI_DISTRICTS: District[] = [
   },
   {
     name: 'Vake',
-    color: '#4ECDC4',
+    color: '#00BFA5',
     neighborhoods: ['Vake', 'Vera', 'Bagebi', 'Tskneti'],
     polygon: [
       [41.776, 44.718],
@@ -37,7 +37,7 @@ export const TBILISI_DISTRICTS: District[] = [
   },
   {
     name: 'Saburtalo',
-    color: '#45B7D1',
+    color: '#0288D1',
     neighborhoods: ['Saburtalo', 'Didi Dighomi', 'Nutsubidze', 'Lisi'],
     polygon: [
       [41.842, 44.718],
@@ -48,7 +48,7 @@ export const TBILISI_DISTRICTS: District[] = [
   },
   {
     name: 'Chughureti',
-    color: '#96CEB4',
+    color: '#2E7D32',
     neighborhoods: ['Marjanishvili', 'Plekhanov', 'Station Square'],
     polygon: [
       [41.739, 44.782],
@@ -62,7 +62,7 @@ export const TBILISI_DISTRICTS: District[] = [
   },
   {
     name: 'Didube',
-    color: '#FFEAA7',
+    color: '#F9A825',
     neighborhoods: ['Tsereteli', 'Didube', 'Dighomi Massive'],
     polygon: [
       [41.796, 44.782],
@@ -73,7 +73,7 @@ export const TBILISI_DISTRICTS: District[] = [
   },
   {
     name: 'Nadzaladevi',
-    color: '#DDA0DD',
+    color: '#AB47BC',
     neighborhoods: ['Temka', 'Sanzona', 'Lotkini'],
     polygon: [
       [41.800, 44.848],
@@ -84,7 +84,7 @@ export const TBILISI_DISTRICTS: District[] = [
   },
   {
     name: 'Gldani',
-    color: '#98D8C8',
+    color: '#00897B',
     neighborhoods: ['Gldani', 'Mukhiani', 'Avchala'],
     polygon: [
       [41.895, 44.798],
@@ -95,7 +95,7 @@ export const TBILISI_DISTRICTS: District[] = [
   },
   {
     name: 'Isani',
-    color: '#F0E68C',
+    color: '#F57F17',
     neighborhoods: ['Avlabari', 'Isani', 'Vazisubani'],
     polygon: [
       [41.706, 44.826],
@@ -108,7 +108,7 @@ export const TBILISI_DISTRICTS: District[] = [
   },
   {
     name: 'Samgori',
-    color: '#FFA07A',
+    color: '#E64A19',
     neighborhoods: ['Varketili', 'Airport', 'Lilo', 'Africa'],
     polygon: [
       [41.693, 44.908],
@@ -119,7 +119,7 @@ export const TBILISI_DISTRICTS: District[] = [
   },
   {
     name: 'Krtsanisi',
-    color: '#87CEEB',
+    color: '#1565C0',
     neighborhoods: ['Old Town', 'Ortachala', 'Ponichala'],
     polygon: [
       [41.700, 44.793],

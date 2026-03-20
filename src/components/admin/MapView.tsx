@@ -70,7 +70,7 @@ export default function MapView({ positions, allPoints, showDistricts = false }:
             weight: 2,
             opacity: 0.8,
             fillColor: district.color,
-            fillOpacity: 0.15,
+            fillOpacity: 0.35,
           }}
         >
           <Tooltip sticky>{district.name}</Tooltip>
