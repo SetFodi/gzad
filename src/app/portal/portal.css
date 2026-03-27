@@ -1,6 +1,5 @@
 @layer components {
 
-    /* Page Layout */
     .portal-page {
         min-height: 100vh;
         padding: 1.5rem;
@@ -67,10 +66,10 @@
         justify-content: center;
         padding: 3rem;
         border-radius: 1rem;
-        border: 1px dashed #1f2937;
+        border: 1px dashed var(--border);
         text-align: center;
         gap: 1rem;
-        background-color: rgba(10, 10, 10, 0.5);
+        background-color: var(--background);
         min-height: 400px;
     }
 
@@ -114,7 +113,7 @@
     .campaign-card:hover {
         transform: translateY(-0.25rem);
         border-color: var(--primary);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
     }
 
     .campaign-card-header {
@@ -143,7 +142,7 @@
         letter-spacing: 0.05em;
         border-width: 1px;
         border-style: solid;
-        background-color: rgba(255, 255, 255, 0.05);
+        background-color: var(--accent);
     }
 
     .campaign-card-details {
@@ -196,7 +195,7 @@
     }
 
     .stat-card:hover {
-        background-color: #18181b;
+        background-color: var(--accent);
         /* zinc-900 */
     }
 
@@ -261,14 +260,14 @@
         padding: 1rem 1.5rem;
         font-weight: 600;
         color: var(--muted-foreground);
-        background-color: rgba(24, 24, 27, 0.5);
+        background-color: var(--accent);
         /* zinc-900/50 */
         border-bottom: 1px solid var(--border);
     }
 
     .portal-table td {
         padding: 1rem 1.5rem;
-        border-bottom: 1px solid rgba(204, 243, 129, 0.1);
+        border-bottom: 1px solid var(--border);
         color: var(--foreground);
     }
 
@@ -277,7 +276,7 @@
     }
 
     .portal-table tr:hover td {
-        background-color: rgba(24, 24, 27, 0.5);
+        background-color: var(--accent);
     }
 
     .campaign-link {
@@ -319,7 +318,7 @@
         display: flex;
         min-height: 100vh;
         font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-        background-color: #050505;
+        background-color: var(--background);
     }
 
     .portal-main {
@@ -346,12 +345,12 @@
         width: 260px;
         display: flex;
         flex-direction: column;
-        border-right: 1px solid #141414;
+        border-right: 1px solid var(--border);
         z-index: 40;
         overflow-y: auto;
         overflow-x: hidden;
         transition: transform 0.3s ease;
-        background-color: #0A0A0A;
+        background-color: var(--card);
     }
 
     @media (max-width: 1023px) {
@@ -420,21 +419,21 @@
         transition-property: all;
         transition-duration: 200ms;
         white-space: nowrap;
-        color: #525252;
+        color: var(--muted-foreground);
         text-decoration: none;
     }
 
     .nav-item:hover {
-        color: #9ca3af;
+        color: var(--foreground);
         /* gray-400 */
-        background-color: rgba(255, 255, 255, 0.05);
+        background-color: var(--accent);
         /* white/5 */
     }
 
     .nav-item.active {
         font-weight: 600;
         color: var(--primary);
-        background-color: rgba(204, 243, 129, 0.1);
+        background-color: var(--accent);
     }
 
     .sidebar-logout {
@@ -454,7 +453,7 @@
         transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
-        color: #3f3f3f;
+        color: var(--muted-foreground);
         background: transparent;
         border: none;
     }

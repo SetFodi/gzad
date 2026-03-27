@@ -32,7 +32,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="portal-login-page">
+    <div className="dark portal-login-page">
       <div className="portal-login-container">
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
           <button

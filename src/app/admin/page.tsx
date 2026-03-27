@@ -72,8 +72,8 @@ export default function AdminOverview() {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(96,165,250,0.1)' }}>
-            <Users size={24} color="#60A5FA" />
+          <div className="stat-card-icon" style={{ background: 'rgba(59,130,246,0.1)' }}>
+            <Users size={24} color="#3B82F6" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{stats.totalClients}</span>
@@ -81,8 +81,8 @@ export default function AdminOverview() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(204,243,129,0.1)' }}>
-            <Megaphone size={24} color="#CCF381" />
+          <div className="stat-card-icon" style={{ background: 'rgba(16,185,129,0.1)' }}>
+            <Megaphone size={24} color="#10B981" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{stats.activeCampaigns}</span>
@@ -90,8 +90,8 @@ export default function AdminOverview() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(251,191,36,0.1)' }}>
-            <Play size={24} color="#FBBF24" />
+          <div className="stat-card-icon" style={{ background: 'rgba(234,179,8,0.1)' }}>
+            <Play size={24} color="#EAB308" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{stats.totalPlays.toLocaleString()}</span>
@@ -127,8 +127,9 @@ export default function AdminOverview() {
                   <td>{c.company_name}</td>
                   <td>
                     <span className="status-badge" style={{
-                      color: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : '#64748B',
-                      borderColor: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : '#64748B',
+                      color: c.status === 'active' ? '#10B981' : c.status === 'pending_review' ? '#EAB308' : '#64748B',
+                      borderColor: c.status === 'active' ? '#10B981' : c.status === 'pending_review' ? '#EAB308' : '#64748B',
+                      backgroundColor: c.status === 'active' ? 'rgba(16,185,129,0.05)' : c.status === 'pending_review' ? 'rgba(234,179,8,0.05)' : 'rgba(100,116,139,0.05)',
                     }}>
                       {c.status.replace('_', ' ')}
                     </span>

@@ -43,10 +43,10 @@ export default function AdminSidebar() {
         {/* Logo */}
         <div className="sidebar-logo">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="8" width="18" height="10" rx="2" fill="#0A0A0A" />
-            <rect x="5" y="10" width="14" height="6" rx="1" fill="#60A5FA" />
+            <rect x="3" y="8" width="18" height="10" rx="2" fill="var(--foreground)" />
+            <rect x="5" y="10" width="14" height="6" rx="1" fill="var(--primary)" />
           </svg>
-          <span className="sidebar-logo-text" style={{ color: '#60A5FA' }}>Gzad Admin</span>
+          <span className="sidebar-logo-text">Gzad Admin</span>
         </div>
 
         {/* Nav Links */}
@@ -69,7 +69,7 @@ export default function AdminSidebar() {
         </div>
 
         {/* Footer */}
-        <div style={{ borderTop: '1px solid #141414', padding: '8px 12px', flexShrink: 0 }}>
+        <div style={{ borderTop: '1px solid var(--border)', padding: '8px 12px', flexShrink: 0 }}>
           <Link
             href="/portal/dashboard"
             onClick={() => setMobileOpen(false)}
