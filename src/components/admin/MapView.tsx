@@ -20,9 +20,9 @@ interface MapViewProps {
   showDistricts?: boolean
 }
 
-// Custom marker icon (green dot)
+// Custom marker icon (green dot — matches brand green #166534)
 const deviceIcon = new L.DivIcon({
-  html: `<div style="width:14px;height:14px;border-radius:50%;background:#CCF381;border:2px solid #050505;box-shadow:0 0 8px rgba(204,243,129,0.6)"></div>`,
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:#166534;border:2px solid #fff;box-shadow:0 0 8px rgba(22,101,52,0.6)"></div>`,
   iconSize: [14, 14],
   iconAnchor: [7, 7],
   className: '',
@@ -82,9 +82,9 @@ export default function MapView({ positions, allPoints, showDistricts = false }:
         <Polyline
           key={deviceId}
           positions={trail}
-          color="#CCF381"
+          color="#166534"
           weight={3}
-          opacity={0.5}
+          opacity={0.8}
         />
       ))}
 
