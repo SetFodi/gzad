@@ -435,74 +435,24 @@ export default function Home() {
             <p className="text-lg text-[#6B6561] dark:text-zinc-400 font-light">{t.pricing.subtitle}</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 items-center max-w-5xl mx-auto">
-            
-            {/* Standard Plan */}
-            <div className="bg-white dark:bg-black/60 border border-[#E5E0D8] dark:border-white/10 rounded-3xl p-10 md:p-12 order-2 md:order-1 transition-transform hover:-translate-y-2 duration-500 shadow-sm">
-              <h3 className="text-xl font-medium text-[#1C1A19] dark:text-[#FAFAFA] mb-2">{t.pricing.standard1.title}</h3>
-              <p className="text-[#8C857E] dark:text-zinc-500 text-[13px] font-light mb-8 h-10">{t.pricing.standard1.desc}</p>
-              <div className="mb-10 flex items-baseline gap-2">
-                <span className="text-4xl font-light text-[#1C1A19] dark:text-[#FAFAFA]">{t.pricing.standard1.price}</span>
-                <span className="text-[#8C857E] dark:text-zinc-500 text-[13px]">{t.pricing.standard1.period}</span>
-              </div>
-              <ul className="space-y-4 mb-10 text-[14px] text-[#6B6561] dark:text-zinc-400 font-light">
-                {t.pricing.standard1.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-3">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#8C857E] dark:text-zinc-500"><polyline points="20 6 9 17 4 12"/></svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <a href="#contact" className="block w-full text-center py-4 rounded-full border border-[#E5E0D8] dark:border-white/10 text-[#1C1A19] dark:text-[#FAFAFA] font-bold tracking-wide text-[13px] hover:bg-[#FDFBF7] dark:bg-[#050505] transition-colors">
-                {t.pricing.standard1.btn}
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-white dark:bg-black/60 border border-[#E5E0D8] dark:border-white/10 rounded-3xl p-10 md:p-14 text-center shadow-sm">
+              <h3 className="text-2xl md:text-3xl font-medium text-[#1C1A19] dark:text-[#FAFAFA] mb-4">
+                {t.pricing.contactOnlyTitle}
+              </h3>
+              <p className="text-[#6B6561] dark:text-zinc-400 text-[15px] font-light mb-10 leading-relaxed max-w-2xl mx-auto">
+                {t.pricing.contactOnlyDesc}
+              </p>
+              <a
+                href="mailto:gzadvertisment@gmail.com"
+                className="inline-flex items-center justify-center px-10 py-4 rounded-full bg-[#166534] dark:bg-emerald-500 text-white font-bold tracking-wide text-[13px] hover:bg-[#14532D] dark:hover:bg-emerald-400 transition-colors shadow-[0_10px_30px_rgba(22,101,52,0.25)]"
+              >
+                {t.pricing.contactOnlyBtn}
               </a>
+              <p className="mt-6 text-[13px] text-[#8C857E] dark:text-zinc-500">
+                gzadvertisment@gmail.com
+              </p>
             </div>
-
-            {/* Premium / Popular Plan (Deep Espresso) */}
-            <div className="bg-[#1C1A19] border border-[#1C1A19] rounded-3xl p-10 md:p-12 order-1 md:order-2 relative shadow-[0_20px_50px_rgba(28,26,25,0.2)] transform md:-translate-y-4 hover:-translate-y-6 transition-transform duration-500 z-20 overflow-hidden">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-[#166534] dark:bg-emerald-500 text-white text-[10px] font-black tracking-widest uppercase px-5 py-2 rounded-b-xl shadow-[0_5px_15px_rgba(22,101,52,0.3)]">MOST POPULAR</div>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-[#166534] dark:bg-emerald-500/20 blur-[50px] pointer-events-none rounded-full" />
-              
-              <h3 className="text-2xl font-medium text-white mb-2 pt-4">{t.pricing.standard2.title}</h3>
-              <p className="text-[#E5E0D8]/70 text-[13px] font-light mb-8 h-10">{t.pricing.standard2.desc}</p>
-              <div className="mb-10 flex items-baseline gap-2">
-                <span className="text-5xl font-medium text-white tracking-tight">{t.pricing.standard2.price}</span>
-                <span className="text-[#8C857E] dark:text-zinc-500 text-[13px]">{t.pricing.standard2.period}</span>
-              </div>
-              <ul className="space-y-4 mb-10 text-[14px] text-[#E5E0D8] font-light relative z-10">
-                {t.pricing.standard2.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-3">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#166534] dark:text-emerald-400 shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <a href="#contact" className="block w-full text-center py-4 rounded-full bg-[#166534] dark:bg-emerald-500 text-white font-bold tracking-wide text-[13px] hover:bg-[#14532D] dark:hover:bg-emerald-400 transition-colors shadow-[0_10px_30px_rgba(22,101,52,0.3)]">
-                {t.pricing.standard2.btn}
-              </a>
-            </div>
-
-            {/* Event Plan */}
-            <div className="bg-white dark:bg-black/60 border border-[#E5E0D8] dark:border-white/10 rounded-3xl p-10 md:p-12 order-3 transition-transform hover:-translate-y-2 duration-500 shadow-sm">
-              <h3 className="text-xl font-medium text-[#1C1A19] dark:text-[#FAFAFA] mb-2">{t.pricing.event.title}</h3>
-              <p className="text-[#8C857E] dark:text-zinc-500 text-[13px] font-light mb-8 h-10">{t.pricing.event.desc}</p>
-              <div className="mb-10 flex items-baseline gap-2">
-                <span className="text-4xl font-light text-[#1C1A19] dark:text-[#FAFAFA]">{t.pricing.event.price}</span>
-                <span className="text-[#8C857E] dark:text-zinc-500 text-[13px]">{t.pricing.event.period}</span>
-              </div>
-              <ul className="space-y-4 mb-10 text-[14px] text-[#6B6561] dark:text-zinc-400 font-light">
-                {t.pricing.event.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-3">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#8C857E] dark:text-zinc-500"><polyline points="20 6 9 17 4 12"/></svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <a href="mailto:gzadvertisment@gmail.com" className="block w-full text-center py-4 rounded-full border border-[#E5E0D8] dark:border-white/10 text-[#1C1A19] dark:text-[#FAFAFA] font-bold tracking-wide text-[13px] hover:bg-[#FDFBF7] dark:bg-[#050505] transition-colors">
-                {t.pricing.event.btn}
-              </a>
-            </div>
-
           </div>
         </div>
       </section>

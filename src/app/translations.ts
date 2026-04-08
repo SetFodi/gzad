@@ -164,6 +164,9 @@ export const translations = {
             titlePrefix: "Simple,",
             titleGradient: "Flexible Pricing",
             subtitle: "Choose the perfect package for your needs or customize your own.",
+            contactOnlyTitle: "Contact Sales for Custom Pricing",
+            contactOnlyDesc: "Campaign rates depend on ad format, district targeting, and delivery goals. Contact our team and we will prepare a custom media plan for your brand.",
+            contactOnlyBtn: "Contact Sales",
             switch: {
                 standard: "Standard Packages",
                 custom: "Custom Calculator"
@@ -578,6 +581,9 @@ export const translations = {
             titlePrefix: "მარტივი,",
             titleGradient: "მოქნილი ფასები",
             subtitle: "აირჩიეთ სტანდარტული პაკეტი ან შექმენით თქვენი საკუთარი.",
+            contactOnlyTitle: "დაგვიკავშირდით ინდივიდუალური ფასებისთვის",
+            contactOnlyDesc: "ფასი განისაზღვრება რეკლამის ფორმატით, რაიონული ტარგეტინგით და კამპანიის მიზნებით. მოგვწერეთ და მოვამზადებთ თქვენზე მორგებულ მედია გეგმას.",
+            contactOnlyBtn: "დაგვიკავშირდით",
             switch: {
                 standard: "სტანდარტული",
                 custom: "კალკულატორი"
