@@ -38,6 +38,8 @@ app.use(express.json({ limit: '100mb' }))
 const devices = {}
 // Pending commands: { commandId: { resolve, reject, timer } }
 const pendingCommands = {}
+// GPS polling intervals — separate from devices{} to avoid race conditions on reconnect
+const gpsIntervals = {}
 
 // ─── Auth middleware ─────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
@@ -597,13 +599,13 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     if (cardId) {
       console.log(`[${new Date().toISOString()}] Device disconnected: ${cardId}`)
+      // Stop GPS polling — use separate map to avoid race with reconnect replacing devices[cardId]
+      if (gpsIntervals[cardId]) {
+        clearInterval(gpsIntervals[cardId])
+        delete gpsIntervals[cardId]
+      }
       if (devices[cardId]) {
         devices[cardId].lastSeen = new Date().toISOString()
-        // Stop GPS polling for this device
-        if (devices[cardId].gpsInterval) {
-          clearInterval(devices[cardId].gpsInterval)
-          devices[cardId].gpsInterval = null
-        }
         // Clean up: null out the WebSocket reference to free memory
         devices[cardId].ws = null
         // Remove stale pending commands for this device
@@ -844,9 +846,10 @@ async function autoSetupDevice(cardId) {
 }
 
 function startGpsPolling(cardId) {
-  // Clear any existing interval for this device (reconnect case)
-  if (devices[cardId] && devices[cardId].gpsInterval) {
-    clearInterval(devices[cardId].gpsInterval)
+  // Always clear any existing interval — use separate map to avoid race conditions on reconnect
+  if (gpsIntervals[cardId]) {
+    clearInterval(gpsIntervals[cardId])
+    delete gpsIntervals[cardId]
   }
 
   // Poll immediately, then every 60 seconds
@@ -892,9 +895,7 @@ function startGpsPolling(cardId) {
   }
 
   pollGps()
-  if (devices[cardId]) {
-    devices[cardId].gpsInterval = setInterval(pollGps, 60 * 1000)
-  }
+  gpsIntervals[cardId] = setInterval(pollGps, 60 * 1000)
 }
 
 // ─── Start ───────────────────────────────────────────────────────────────────
