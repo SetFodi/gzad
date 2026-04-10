@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { isPointInDistrict } from '@/lib/districts'
 
 const TZ = 'Asia/Tbilisi'
 function toTbilisiDate(iso: string): string {
@@ -74,12 +73,11 @@ export async function POST(request: NextRequest) {
       logs.map((l: Record<string, unknown>) => l.name as string).filter(Boolean)
     )]
 
-    let campaignMap: Record<string, string> = {}
-    let campaignDistrictsMap: Record<string, string[] | null> = {}
+    const campaignMap: Record<string, string> = {}
     if (programNames.length > 0) {
       const { data: campaigns } = await supabase
         .from('campaigns')
-        .select('id, name, districts')
+        .select('id, name')
 
       if (campaigns) {
         const campaignLookup = new Map(
@@ -94,7 +92,6 @@ export async function POST(request: NextRequest) {
           }
           if (campaign) {
             campaignMap[name] = campaign.id
-            campaignDistrictsMap[name] = campaign.districts || null
           }
         }
       }
@@ -124,33 +121,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Fetch device's last known GPS as fallback
-    const { data: deviceData } = await supabase
-      .from('devices')
-      .select('last_lat, last_lng')
-      .eq('id', deviceId)
-      .maybeSingle()
-    const deviceLat: number = deviceData?.last_lat || 0
-    const deviceLng: number = deviceData?.last_lng || 0
-
-    // Geo-filter: for district-restricted campaigns, use GPS embedded in the
-    // play log (most accurate — recorded at play time), falling back to the
-    // device's last known GPS. Let through if no GPS is available anywhere.
-    const filteredRows = rows.filter((row: typeof rows[number]) => {
-      const districts = campaignDistrictsMap[row.program_name]
-      if (!districts || districts.length === 0) return true // no restriction
-      const lat = row.lat || deviceLat  // prefer log-embedded GPS over DB GPS
-      const lng = row.lng || deviceLng
-      if (!lat || !lng) return true // no GPS anywhere — let through
-      return districts.some((d: string) => isPointInDistrict(lat, lng, d))
-    })
-
     // Insert with ON CONFLICT DO NOTHING — skips duplicates via unique index
     // Supabase JS doesn't support ON CONFLICT DO NOTHING for insert,
     // so we use upsert with ignoreDuplicates
     const { error: insertError } = await supabase
       .from('play_logs')
-      .upsert(filteredRows, { onConflict: 'device_id,program_name,began_at', ignoreDuplicates: true })
+      .upsert(rows, { onConflict: 'device_id,program_name,began_at', ignoreDuplicates: true })
 
     if (insertError) {
       console.error('Play log insert error:', insertError)
@@ -170,7 +146,7 @@ export async function POST(request: NextRequest) {
     // Recompute play_stats for affected campaign+date combos FROM play_logs
     // This replaces (not adds to) existing stats — idempotent
     const affectedKeys = new Set<string>()
-    for (const row of filteredRows) {
+    for (const row of rows) {
       if (!row.campaign_id) continue
       const date = toTbilisiDate(row.began_at)
       affectedKeys.add(`${row.campaign_id}|${date}`)
@@ -228,7 +204,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ _type: 'success', count: filteredRows.length })
+    return NextResponse.json({ _type: 'success', count: rows.length })
   } catch (err) {
     console.error('Playlog callback error:', err)
     return NextResponse.json({ _type: 'Error', message: 'Invalid request' }, { status: 400 })

@@ -9,7 +9,6 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const config = require('./config')
-const { getDistrictsForPoint } = require('./districts')
 
 // Try to get video duration via ffprobe; returns seconds or null
 function probeVideoDuration(buffer) {
@@ -38,8 +37,6 @@ app.use(express.json({ limit: '100mb' }))
 const devices = {}
 // Pending commands: { commandId: { resolve, reject, timer } }
 const pendingCommands = {}
-// GPS polling intervals — separate from devices{} to avoid race conditions on reconnect
-const gpsIntervals = {}
 
 // ─── Auth middleware ─────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
@@ -599,11 +596,6 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     if (cardId) {
       console.log(`[${new Date().toISOString()}] Device disconnected: ${cardId}`)
-      // Stop GPS polling — use separate map to avoid race with reconnect replacing devices[cardId]
-      if (gpsIntervals[cardId]) {
-        clearInterval(gpsIntervals[cardId])
-        delete gpsIntervals[cardId]
-      }
       if (devices[cardId]) {
         devices[cardId].lastSeen = new Date().toISOString()
         // Clean up: null out the WebSocket reference to free memory
@@ -699,6 +691,7 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
     const fileExt = isVideo ? '.mp4' : (item.type && item.type.includes('png') ? '.png' : '.jpg')
     // Use per-item campaign name if provided (for playlog matching), else fall back to playlist name
     const itemName = item.campaignName || name
+    const timeSpan = Number(item.duration) > 0 ? Number(item.duration) : 10
 
     return {
       _id: uuidv4().replace(/-/g, ''),
@@ -722,7 +715,7 @@ function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 
                 id: uuidv4().replace(/-/g, ''),
                 url: item.url,
                 playTime: 0,
-                timeSpan: 10,
+                timeSpan: timeSpan,
                 left: 0,
                 top: 0,
                 width: width,
@@ -838,64 +831,8 @@ async function autoSetupDevice(cardId) {
       console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) failed for ${cardId}: ${err.message}`)
     }),
 
-    // 2. GPS is handled by startGpsPolling() — Y12-EU doesn't support setSubGPS push
+    // GPS is captured per-ad via the play log callback (lat/lng embedded in each log entry)
   ])
-
-  // Start periodic GPS polling after setup commands complete
-  startGpsPolling(cardId)
-}
-
-function startGpsPolling(cardId) {
-  // Always clear any existing interval — use separate map to avoid race conditions on reconnect
-  if (gpsIntervals[cardId]) {
-    clearInterval(gpsIntervals[cardId])
-    delete gpsIntervals[cardId]
-  }
-
-  // Poll immediately, then every 60 seconds
-  async function pollGps() {
-    const d = devices[cardId]
-    if (!d || !d.ws || d.ws.readyState !== 1) return
-    try {
-      const result = await sendCommand(cardId, { type: 'getCardInformation' })
-      const card = result?.card || result
-      const lat = card?.lat || 0
-      const lng = card?.lng || 0
-      if (lat !== 0 || lng !== 0) {
-        // Forward GPS to callback
-        await fetch(`${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${cardId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lng, speed: 0 }),
-        })
-        console.log(`[${new Date().toISOString()}] GPS polled for ${cardId}: ${lat},${lng}`)
-
-        // Check if districts changed — trigger playlist sync if so
-        const currentDistricts = getDistrictsForPoint(lat, lng)
-        const lastDistricts = devices[cardId]?.lastDistricts
-        const changed = !lastDistricts ||
-          JSON.stringify(currentDistricts) !== JSON.stringify(lastDistricts)
-
-        if (changed) {
-          if (devices[cardId]) devices[cardId].lastDistricts = currentDistricts
-          console.log(`[${new Date().toISOString()}] District change for ${cardId}: [${currentDistricts.join(', ') || 'none'}] — syncing playlist`)
-          fetch(`${config.gzadAppUrl}/api/devices/sync-single`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.callbackSecret}` },
-            body: JSON.stringify({ cardId, lat, lng }),
-          }).catch(err => console.error(`sync-single failed for ${cardId}:`, err.message))
-        }
-      } else {
-        // GPS lost fix — reset lastDistricts so next valid reading always triggers a sync
-        if (devices[cardId]) devices[cardId].lastDistricts = null
-      }
-    } catch (err) {
-      // Silently ignore — device may not respond or be offline
-    }
-  }
-
-  pollGps()
-  gpsIntervals[cardId] = setInterval(pollGps, 60 * 1000)
 }
 
 // ─── Start ───────────────────────────────────────────────────────────────────

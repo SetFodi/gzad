@@ -10,10 +10,13 @@ const NAME_REGEX = /^[a-z0-9][a-z0-9 ]*[a-z0-9]$|^[a-z0-9]$/
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
 
+type AdDuration = 10 | 20 | 30
+
 export default function SubmitAdPage() {
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  const [duration, setDuration] = useState<AdDuration>(10)
   const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -123,6 +126,7 @@ export default function SubmitAdPage() {
           file_url: publicUrl,
           file_type: file.type,
           file_name: file.name,
+          display_duration_seconds: duration,
         })
       }
 
@@ -202,6 +206,39 @@ export default function SubmitAdPage() {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="portal-input-group">
+          <label>Ad Duration</label>
+          <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+            {([10, 20, 30] as AdDuration[]).map(d => {
+              const active = duration === d
+              return (
+                <button
+                  type="button"
+                  key={d}
+                  onClick={() => setDuration(d)}
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    background: active ? 'rgba(204,243,129,0.12)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${active ? 'rgba(204,243,129,0.5)' : '#1a1a1a'}`,
+                    color: active ? '#CCF381' : '#a3a3a3',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {d} sec
+                </button>
+              )
+            })}
+          </div>
+          <span style={{ color: '#525252', fontSize: 12, marginTop: 6, display: 'block' }}>
+            How long each ad is shown on the LED before rotating.
+          </span>
         </div>
 
         <button type="submit" disabled={uploading} className="portal-btn-primary full-width">

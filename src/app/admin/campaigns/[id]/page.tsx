@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Check, X, DollarSign, Copy, Download, Send, Monitor, Upload, MapPin } from 'lucide-react'
+import { ArrowLeft, Check, X, DollarSign, Copy, Download, Send, Monitor, Upload } from 'lucide-react'
 import Link from 'next/link'
-import { DISTRICT_NAMES } from '@/lib/districts'
 
 interface Campaign {
   id: string
@@ -17,7 +16,6 @@ interface Campaign {
   taxi_count: number
   monthly_price: number
   device_group_id: string | null
-  districts: string[] | null
   clients: { company_name: string; id: string } | null
 }
 
@@ -32,6 +30,7 @@ interface Media {
   file_type: string
   file_name: string
   status: string
+  display_duration_seconds: number
 }
 
 export default function AdminCampaignDetailPage() {
@@ -44,8 +43,6 @@ export default function AdminCampaignDetailPage() {
   const [selectedGroup, setSelectedGroup] = useState('')
   const [pushing, setPushing] = useState(false)
   const [pushResult, setPushResult] = useState<{ ok: boolean; msg: string } | null>(null)
-  const [districtEdit, setDistrictEdit] = useState(false)
-  const [selectedDistricts, setSelectedDistricts] = useState<string[]>([])
   const [groups, setGroups] = useState<DeviceGroup[]>([])
   const [form, setForm] = useState({
     start_date: '',
@@ -66,7 +63,6 @@ export default function AdminCampaignDetailPage() {
     ])
 
     setCampaign(campaignRes.data)
-    setSelectedDistricts(campaignRes.data?.districts || [])
     setGroups(groupsRes.data || [])
     if (campaignRes.data?.device_group_id && !selectedGroup) {
       setSelectedGroup(campaignRes.data.device_group_id)
@@ -91,16 +87,14 @@ export default function AdminCampaignDetailPage() {
     await load()
   }
 
-  const saveCampaign = async () => {
-    await supabase.from('campaigns').update(form).eq('id', params.id as string)
-    setEditMode(false)
+  const updateMediaDuration = async (mediaId: string, seconds: number) => {
+    await supabase.from('ad_media').update({ display_duration_seconds: seconds }).eq('id', mediaId)
     await load()
   }
 
-  const saveDistricts = async () => {
-    const value = selectedDistricts.length > 0 ? selectedDistricts : null
-    await supabase.from('campaigns').update({ districts: value }).eq('id', params.id as string)
-    setDistrictEdit(false)
+  const saveCampaign = async () => {
+    await supabase.from('campaigns').update(form).eq('id', params.id as string)
+    setEditMode(false)
     await load()
   }
 
@@ -154,10 +148,10 @@ export default function AdminCampaignDetailPage() {
         await supabase.from('campaigns').update({ device_group_id: selectedGroup }).eq('id', campaign.id)
       }
 
-      // 2. Fetch all active campaigns in this group (include districts for geo-filtering)
+      // 2. Fetch all active campaigns in this group
       const { data: activeCampaigns } = await supabase
         .from('campaigns')
-        .select('id, name, districts')
+        .select('id, name')
         .eq('status', 'active')
         .eq('device_group_id', selectedGroup)
         .order('created_at', { ascending: true })
@@ -165,17 +159,17 @@ export default function AdminCampaignDetailPage() {
       // Include this campaign if it's active but wasn't in the group yet
       const campaignIds = new Set((activeCampaigns || []).map(c => c.id))
       if (campaign.status === 'active' && !campaignIds.has(campaign.id)) {
-        activeCampaigns?.push({ id: campaign.id, name: campaign.name, districts: campaign.districts })
+        activeCampaigns?.push({ id: campaign.id, name: campaign.name })
       }
 
-      interface MediaItem { url: string; type: string; duration: number; campaignName: string; campaignDistricts: string[] | null }
+      interface MediaItem { url: string; type: string; duration: number; campaignName: string }
       const allMediaItems: MediaItem[] = []
       const campaignNames: string[] = []
 
       for (const c of activeCampaigns || []) {
         const { data: approved } = await supabase
           .from('ad_media')
-          .select('file_url, file_type')
+          .select('file_url, file_type, display_duration_seconds')
           .eq('campaign_id', c.id)
           .eq('status', 'approved')
 
@@ -185,9 +179,8 @@ export default function AdminCampaignDetailPage() {
             allMediaItems.push({
               url: m.file_url,
               type: m.file_type,
-              duration: 10,
+              duration: (m as { display_duration_seconds?: number }).display_duration_seconds || 10,
               campaignName: c.name,
-              campaignDistricts: (c as { districts?: string[] | null }).districts || null,
             })
           }
         }
@@ -217,23 +210,10 @@ export default function AdminCampaignDetailPage() {
         return
       }
 
-      // 4. Push to all online devices in the group (geo-filter per device)
-      const { isPointInDistrict } = await import('@/lib/districts')
+      // 4. Push to all online devices in the group
       const programName = campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist'
       let pushed = 0
       for (const device of onlineInGroup) {
-        const devLat = (device as { last_lat?: number | null }).last_lat
-        const devLng = (device as { last_lng?: number | null }).last_lng
-
-        // Filter media: include if campaign has no district restriction, or device is in an allowed district
-        const deviceItems = allMediaItems.filter(item => {
-          if (!item.campaignDistricts || item.campaignDistricts.length === 0) return true
-          if (!devLat || !devLng) return true // no GPS fix → show everything
-          return item.campaignDistricts.some(d => isPointInDistrict(devLat, devLng, d))
-        })
-
-        if (deviceItems.length === 0) continue
-
         const res = await fetch('/api/devices/command', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -241,7 +221,7 @@ export default function AdminCampaignDetailPage() {
             cardId: device.cardId,
             action: 'push-program',
             name: programName,
-            mediaItems: deviceItems,
+            mediaItems: allMediaItems,
             schedule: { startTime: '00:00', endTime: '23:59' },
             width: 240,
             height: 80,
@@ -291,6 +271,7 @@ export default function AdminCampaignDetailPage() {
           file_type: file.type,
           file_name: file.name,
           status: 'approved', // Admin uploads are auto-approved
+          display_duration_seconds: 10,
         })
       }
       setUploadMsg({ ok: true, msg: `${files.length} file(s) uploaded and auto-approved` })
@@ -512,97 +493,6 @@ export default function AdminCampaignDetailPage() {
         </div>
       )}
 
-      {/* Location Targeting */}
-      <div className="portal-section">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MapPin size={18} style={{ color: '#FBBF24' }} />
-            <h2 style={{ margin: 0 }}>Location Targeting</h2>
-          </div>
-          {!districtEdit ? (
-            <button
-              onClick={() => setDistrictEdit(true)}
-              className="portal-btn-secondary"
-              style={{ padding: '6px 14px', fontSize: 13 }}
-            >
-              Edit
-            </button>
-          ) : (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={saveDistricts} className="portal-btn-primary" style={{ padding: '6px 14px', fontSize: 13 }}>
-                Save
-              </button>
-              <button
-                onClick={() => { setSelectedDistricts(campaign?.districts || []); setDistrictEdit(false) }}
-                className="portal-btn-secondary"
-                style={{ padding: '6px 14px', fontSize: 13 }}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-        </div>
-
-        {!districtEdit ? (
-          <div>
-            {!campaign?.districts || campaign.districts.length === 0 ? (
-              <span style={{ color: '#525252', fontSize: 14 }}>All Tbilisi — no district restriction</span>
-            ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {campaign.districts.map(d => (
-                  <span key={d} style={{
-                    padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-                    background: 'rgba(251,191,36,0.1)', color: '#FBBF24',
-                    border: '1px solid rgba(251,191,36,0.3)',
-                  }}>
-                    {d}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div>
-            <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#94a3b8', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedDistricts.length === 0}
-                  onChange={() => setSelectedDistricts([])}
-                  style={{ accentColor: '#CCF381' }}
-                />
-                All Tbilisi (no restriction)
-              </label>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
-              {DISTRICT_NAMES.map(d => (
-                <label key={d} style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
-                  background: selectedDistricts.includes(d) ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${selectedDistricts.includes(d) ? 'rgba(251,191,36,0.4)' : '#1a1a1a'}`,
-                  fontSize: 13,
-                  color: selectedDistricts.includes(d) ? '#FBBF24' : '#d4d4d8',
-                  transition: 'all 0.15s',
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedDistricts.includes(d)}
-                    onChange={e => {
-                      setSelectedDistricts(prev =>
-                        e.target.checked ? [...prev, d] : prev.filter(x => x !== d)
-                      )
-                    }}
-                    style={{ accentColor: '#FBBF24' }}
-                  />
-                  {d}
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Media Upload + Review */}
       <div className="portal-section">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
@@ -670,6 +560,30 @@ export default function AdminCampaignDetailPage() {
                   }}>
                     {m.status.replace('_', ' ')}
                   </span>
+                </div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
+                  <span style={{ fontSize: 12, color: '#737373' }}>Duration:</span>
+                  {[10, 20, 30].map(sec => {
+                    const active = (m.display_duration_seconds || 10) === sec
+                    return (
+                      <button
+                        key={sec}
+                        onClick={() => updateMediaDuration(m.id, sec)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: active ? 'rgba(204,243,129,0.12)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${active ? 'rgba(204,243,129,0.5)' : '#27272a'}`,
+                          color: active ? '#CCF381' : '#a3a3a3',
+                        }}
+                      >
+                        {sec}s
+                      </button>
+                    )
+                  })}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {/* Download button */}
