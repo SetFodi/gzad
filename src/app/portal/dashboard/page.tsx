@@ -2,28 +2,35 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Megaphone, Play, Eye, TrendingUp } from 'lucide-react'
+import { Megaphone, Play, Clock, Plus } from 'lucide-react'
+import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n'
 
-interface Stats {
-  activeCampaigns: number
-  totalPlays: number
-  totalImpressions: number
-  totalSpent: number
-}
-
-interface Campaign {
+interface CampaignWithMedia {
   id: string
   name: string
   status: string
   start_date: string
   end_date: string
   monthly_price: number
+  media_count: number
+  first_media_url?: string
+  first_media_type?: string
+}
+
+function formatScreenTime(seconds: number) {
+  if (seconds < 60) return `${seconds}s`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<Stats>({ activeCampaigns: 0, totalPlays: 0, totalImpressions: 0, totalSpent: 0 })
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [activeCampaigns, setActiveCampaigns] = useState(0)
+  const [totalPlays, setTotalPlays] = useState(0)
+  const [totalScreenTime, setTotalScreenTime] = useState(0)
+  const [campaigns, setCampaigns] = useState<CampaignWithMedia[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
   const { t } = useTranslations()
@@ -49,41 +56,52 @@ export default function DashboardPage() {
         .eq('client_id', client.id)
         .order('created_at', { ascending: false })
 
-      const activeCampaigns = campaignsData?.filter(c => c.status === 'active') || []
-
+      const active = campaignsData?.filter(c => c.status === 'active') || []
       const campaignIds = campaignsData?.map(c => c.id) || []
-      let totalPlays = 0
-      let totalSpent = 0
+
+      let plays = 0
+      let screenTime = 0
 
       if (campaignIds.length > 0) {
-        // Try play_stats first, fall back to raw play_logs count
         const { data: statsData } = await supabase
           .from('play_stats')
-          .select('play_count')
+          .select('play_count, total_duration_seconds')
           .in('campaign_id', campaignIds)
 
-        totalPlays = statsData?.reduce((sum, s) => sum + s.play_count, 0) || 0
+        plays = statsData?.reduce((sum, s) => sum + s.play_count, 0) || 0
+        screenTime = statsData?.reduce((sum, s) => sum + (s.total_duration_seconds || 0), 0) || 0
 
-        // Fallback: if play_stats is empty, count from play_logs directly
-        if (totalPlays === 0) {
-          const { count } = await supabase
+        if (plays === 0) {
+          const { data: rawLogs } = await supabase
             .from('play_logs')
-            .select('*', { count: 'exact', head: true })
+            .select('duration_seconds')
             .in('campaign_id', campaignIds)
 
-          totalPlays = count || 0
+          plays = rawLogs?.length || 0
+          screenTime = rawLogs?.reduce((sum, l) => sum + (l.duration_seconds || 0), 0) || 0
         }
-
-        totalSpent = campaignsData?.reduce((sum, c) => sum + (c.monthly_price || 0), 0) || 0
       }
 
-      setStats({
-        activeCampaigns: activeCampaigns.length,
-        totalPlays,
-        totalImpressions: totalPlays * 45,
-        totalSpent,
-      })
-      setCampaigns(campaignsData || [])
+      // Fetch first media for each campaign
+      const withMedia = await Promise.all(
+        (campaignsData || []).map(async (camp) => {
+          const [{ count: mediaCount }, { data: firstMedia }] = await Promise.all([
+            supabase.from('ad_media').select('*', { count: 'exact', head: true }).eq('campaign_id', camp.id),
+            supabase.from('ad_media').select('file_url, file_type').eq('campaign_id', camp.id).order('uploaded_at', { ascending: true }).limit(1),
+          ])
+          return {
+            ...camp,
+            media_count: mediaCount || 0,
+            first_media_url: firstMedia?.[0]?.file_url || undefined,
+            first_media_type: firstMedia?.[0]?.file_type || undefined,
+          }
+        })
+      )
+
+      setActiveCampaigns(active.length)
+      setTotalPlays(plays)
+      setTotalScreenTime(screenTime)
+      setCampaigns(withMedia)
       setLoading(false)
     }
 
@@ -116,7 +134,13 @@ export default function DashboardPage() {
 
   return (
     <div className="portal-page">
-      <h1 className="portal-page-title">{p.title}</h1>
+      <div className="portal-page-header">
+        <h1 className="portal-page-title">{p.title}</h1>
+        <Link href="/portal/dashboard/submit" className="portal-btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Plus size={16} />
+          {p.submitAd}
+        </Link>
+      </div>
 
       <div className="stats-grid">
         <div className="stat-card">
@@ -124,7 +148,7 @@ export default function DashboardPage() {
             <Megaphone size={24} color="#CCF381" />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value">{stats.activeCampaigns}</span>
+            <span className="stat-card-value">{activeCampaigns}</span>
             <span className="stat-card-label">{p.activeCampaigns}</span>
           </div>
         </div>
@@ -133,26 +157,17 @@ export default function DashboardPage() {
             <Play size={24} color="#60A5FA" />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value">{stats.totalPlays.toLocaleString()}</span>
+            <span className="stat-card-value">{totalPlays.toLocaleString()}</span>
             <span className="stat-card-label">{p.totalPlays}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-icon" style={{ background: 'rgba(251,191,36,0.1)' }}>
-            <Eye size={24} color="#FBBF24" />
+            <Clock size={24} color="#FBBF24" />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value">{stats.totalImpressions.toLocaleString()}</span>
-            <span className="stat-card-label">{p.estImpressions}</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(163,230,53,0.1)' }}>
-            <TrendingUp size={24} color="#A3E635" />
-          </div>
-          <div className="stat-card-info">
-            <span className="stat-card-value">{stats.totalSpent.toLocaleString()} GEL</span>
-            <span className="stat-card-label">{p.totalSpent}</span>
+            <span className="stat-card-value">{formatScreenTime(totalScreenTime)}</span>
+            <span className="stat-card-label">{p.screenTime}</span>
           </div>
         </div>
       </div>
@@ -162,40 +177,58 @@ export default function DashboardPage() {
         {campaigns.length === 0 ? (
           <div className="portal-empty">
             <p>{p.noCampaigns}</p>
-            <a href="/portal/dashboard/submit" className="portal-btn-primary">{p.submitAd}</a>
+            <Link href="/portal/dashboard/submit" className="portal-btn-primary">{p.submitAd}</Link>
           </div>
         ) : (
-          <div className="campaigns-table-wrapper">
-            <table className="portal-table">
-              <thead>
-                <tr>
-                  <th>{c.campaign}</th>
-                  <th>{t.portal.billing.status}</th>
-                  <th>{c.startDate}</th>
-                  <th>{c.endDate}</th>
-                  <th>{t.portal.campaigns.price}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.map((campaign) => (
-                  <tr key={campaign.id}>
-                    <td>
-                      <a href={`/portal/dashboard/campaigns/${campaign.id}`} className="campaign-link">
-                        {campaign.name}
-                      </a>
-                    </td>
-                    <td>
-                      <span className="status-badge" style={{ color: statusColor(campaign.status), borderColor: statusColor(campaign.status) }}>
-                        {statusLabel(campaign.status)}
-                      </span>
-                    </td>
-                    <td>{campaign.start_date || '—'}</td>
-                    <td>{campaign.end_date || '—'}</td>
-                    <td>{campaign.monthly_price ? `${campaign.monthly_price} GEL/mo` : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="campaigns-grid">
+            {campaigns.map((camp) => (
+              <Link key={camp.id} href={`/portal/dashboard/campaigns/${camp.id}`} className="campaign-card">
+                {camp.first_media_url && (
+                  <div style={{
+                    marginBottom: 12,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    border: '1px solid var(--border)',
+                    height: 100,
+                    background: '#000',
+                  }}>
+                    {camp.first_media_type?.startsWith('video') ? (
+                      <video
+                        src={camp.first_media_url}
+                        muted
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <img
+                        src={camp.first_media_url}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    )}
+                  </div>
+                )}
+                <div className="campaign-card-header">
+                  <h3>{camp.name}</h3>
+                  <span className="status-badge" style={{ color: statusColor(camp.status), borderColor: statusColor(camp.status) }}>
+                    {statusLabel(camp.status)}
+                  </span>
+                </div>
+                <div className="campaign-card-details">
+                  <div>
+                    <span className="detail-label">{c.startDate}</span>
+                    <span>{camp.start_date || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="detail-label">{c.endDate}</span>
+                    <span>{camp.end_date || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="detail-label">{p.mediaFiles}</span>
+                    <span>{camp.media_count} file{camp.media_count !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </div>

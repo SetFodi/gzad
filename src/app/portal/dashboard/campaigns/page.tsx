@@ -5,20 +5,21 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n'
 
-interface Campaign {
+interface CampaignWithMedia {
   id: string
   name: string
   status: string
   start_date: string
   end_date: string
-  daily_hours: number
-  taxi_count: number
   monthly_price: number
   created_at: string
+  media_count: number
+  first_media_url?: string
+  first_media_type?: string
 }
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [campaigns, setCampaigns] = useState<CampaignWithMedia[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
   const { t } = useTranslations()
@@ -44,7 +45,22 @@ export default function CampaignsPage() {
         .eq('client_id', client.id)
         .order('created_at', { ascending: false })
 
-      setCampaigns(data || [])
+      const withMedia = await Promise.all(
+        (data || []).map(async (camp) => {
+          const [{ count: mediaCount }, { data: firstMedia }] = await Promise.all([
+            supabase.from('ad_media').select('*', { count: 'exact', head: true }).eq('campaign_id', camp.id),
+            supabase.from('ad_media').select('file_url, file_type').eq('campaign_id', camp.id).order('uploaded_at', { ascending: true }).limit(1),
+          ])
+          return {
+            ...camp,
+            media_count: mediaCount || 0,
+            first_media_url: firstMedia?.[0]?.file_url || undefined,
+            first_media_type: firstMedia?.[0]?.file_type || undefined,
+          }
+        })
+      )
+
+      setCampaigns(withMedia)
       setLoading(false)
     }
     load()
@@ -88,6 +104,30 @@ export default function CampaignsPage() {
         <div className="campaigns-grid">
           {campaigns.map((camp) => (
             <Link key={camp.id} href={`/portal/dashboard/campaigns/${camp.id}`} className="campaign-card">
+              {camp.first_media_url && (
+                <div style={{
+                  marginBottom: 12,
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  border: '1px solid var(--border)',
+                  height: 100,
+                  background: '#000',
+                }}>
+                  {camp.first_media_type?.startsWith('video') ? (
+                    <video
+                      src={camp.first_media_url}
+                      muted
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <img
+                      src={camp.first_media_url}
+                      alt=""
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  )}
+                </div>
+              )}
               <div className="campaign-card-header">
                 <h3>{camp.name}</h3>
                 <span className="status-badge" style={{ color: statusColor(camp.status), borderColor: statusColor(camp.status) }}>
@@ -95,10 +135,20 @@ export default function CampaignsPage() {
                 </span>
               </div>
               <div className="campaign-card-details">
-                <div><span className="detail-label">{p.duration}</span><span>{camp.start_date || '—'} → {camp.end_date || '—'}</span></div>
-                <div><span className="detail-label">{p.dailyHours}</span><span>{camp.daily_hours}h</span></div>
-                <div><span className="detail-label">{p.taxis}</span><span>{camp.taxi_count}</span></div>
-                <div><span className="detail-label">{p.price}</span><span>{camp.monthly_price ? `${camp.monthly_price} GEL/mo` : '—'}</span></div>
+                <div>
+                  <span className="detail-label">{p.duration}</span>
+                  <span>{camp.start_date || '—'} → {camp.end_date || '—'}</span>
+                </div>
+                <div>
+                  <span className="detail-label">{p.mediaFiles}</span>
+                  <span>{camp.media_count} file{camp.media_count !== 1 ? 's' : ''}</span>
+                </div>
+                {camp.monthly_price > 0 && (
+                  <div>
+                    <span className="detail-label">{p.price}</span>
+                    <span>{camp.monthly_price} GEL/mo</span>
+                  </div>
+                )}
               </div>
             </Link>
           ))}

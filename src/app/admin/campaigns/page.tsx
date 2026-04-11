@@ -129,6 +129,16 @@ export default function AdminCampaignsPage() {
   const updateStatus = async (campaignId: string, newStatus: string) => {
     const campaign = campaigns.find(c => c.id === campaignId)
     await supabase.from('campaigns').update({ status: newStatus }).eq('id', campaignId)
+
+    // When approving a campaign, auto-approve all pending media
+    if (newStatus === 'active') {
+      await supabase
+        .from('ad_media')
+        .update({ status: 'approved' })
+        .eq('campaign_id', campaignId)
+        .eq('status', 'pending_review')
+    }
+
     // Re-sync group when rotation changes (resume/pause/complete)
     if (newStatus === 'active' || newStatus === 'paused' || newStatus === 'completed') {
       await syncGroupDevices(campaign?.device_group_id || null)

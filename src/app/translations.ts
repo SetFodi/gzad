@@ -339,11 +339,11 @@ export const translations = {
                 title: "Dashboard",
                 activeCampaigns: "Active Campaigns",
                 totalPlays: "Total Plays",
-                estImpressions: "Est. Impressions",
-                totalSpent: "Total Spent",
-                recentCampaigns: "Recent Campaigns",
+                screenTime: "Screen Time",
+                recentCampaigns: "Your Campaigns",
                 noCampaigns: "No campaigns yet. Submit your first ad to get started.",
-                submitAd: "Submit Ad"
+                submitAd: "Submit Ad",
+                mediaFiles: "Media"
             },
             campaigns: {
                 title: "Campaigns",
@@ -351,9 +351,8 @@ export const translations = {
                 noCampaigns: "No campaigns yet.",
                 createFirst: "Create your first campaign",
                 duration: "Duration",
-                dailyHours: "Daily Hours",
-                taxis: "Taxis",
-                price: "Price"
+                price: "Price",
+                mediaFiles: "Media"
             },
             campaignDetail: {
                 backToCampaigns: "Back to Campaigns",
@@ -391,7 +390,10 @@ export const translations = {
                 successMessage: "Your ad is under review. We will notify you once it is approved.",
                 fileTooLarge: "is too large",
                 maxForVideos: "Max 100MB for videos",
-                maxForImages: "Max 10MB for images"
+                maxForImages: "Max 10MB for images",
+                adDuration: "Ad Duration",
+                adDurationHint: "How long each ad is shown on the LED before rotating.",
+                seconds: "sec"
             },
             billing: {
                 title: "Billing",
@@ -847,11 +849,11 @@ export const translations = {
                 title: "მიმოხილვა",
                 activeCampaigns: "აქტიური კამპანიები",
                 totalPlays: "ჯამური ჩვენებები",
-                estImpressions: "სავარაუდო ნახვები",
-                totalSpent: "ჯამური ხარჯი",
-                recentCampaigns: "ბოლო კამპანიები",
+                screenTime: "ეკრანის დრო",
+                recentCampaigns: "თქვენი კამპანიები",
                 noCampaigns: "ჯერ არ გაქვთ კამპანიები. ატვირთეთ პირველი რეკლამა დასაწყებად.",
-                submitAd: "რეკლამის ატვირთვა"
+                submitAd: "რეკლამის ატვირთვა",
+                mediaFiles: "მედია"
             },
             campaigns: {
                 title: "კამპანიები",
@@ -859,9 +861,8 @@ export const translations = {
                 noCampaigns: "ჯერ არ გაქვთ კამპანიები.",
                 createFirst: "შექმენით პირველი კამპანია",
                 duration: "ხანგრძლივობა",
-                dailyHours: "დღიური საათები",
-                taxis: "ტაქსები",
-                price: "ფასი"
+                price: "ფასი",
+                mediaFiles: "მედია"
             },
             campaignDetail: {
                 backToCampaigns: "კამპანიებზე დაბრუნება",
@@ -899,7 +900,10 @@ export const translations = {
                 successMessage: "თქვენი რეკლამა განხილვის პროცესშია. შეგატყობინებთ დამტკიცების შემდეგ.",
                 fileTooLarge: "ზედმეტად დიდია",
                 maxForVideos: "მაქს 100MB ვიდეოსთვის",
-                maxForImages: "მაქს 10MB ფოტოსთვის"
+                maxForImages: "მაქს 10MB ფოტოსთვის",
+                adDuration: "რეკლამის ხანგრძლივობა",
+                adDurationHint: "რამდენ ხანს ჩანს თითოეული რეკლამა LED-ზე როტაციამდე.",
+                seconds: "წმ"
             },
             billing: {
                 title: "გადახდები",

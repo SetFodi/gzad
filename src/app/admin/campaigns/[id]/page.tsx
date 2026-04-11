@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Check, X, DollarSign, Copy, Download, Send, Monitor, Upload } from 'lucide-react'
+import { ArrowLeft, Check, X, DollarSign, Download, Send, Monitor, Upload } from 'lucide-react'
 import Link from 'next/link'
 
 interface Campaign {
@@ -39,7 +39,6 @@ export default function AdminCampaignDetailPage() {
   const [media, setMedia] = useState<Media[]>([])
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState('')
   const [pushing, setPushing] = useState(false)
   const [pushResult, setPushResult] = useState<{ ok: boolean; msg: string } | null>(null)
@@ -87,6 +86,17 @@ export default function AdminCampaignDetailPage() {
     await load()
   }
 
+  const approveAllMedia = async () => {
+    const pending = media.filter(m => m.status === 'pending_review')
+    if (pending.length === 0) return
+    await supabase
+      .from('ad_media')
+      .update({ status: 'approved' })
+      .eq('campaign_id', params.id as string)
+      .eq('status', 'pending_review')
+    await load()
+  }
+
   const updateMediaDuration = async (mediaId: string, seconds: number) => {
     await supabase.from('ad_media').update({ display_duration_seconds: seconds }).eq('id', mediaId)
     await load()
@@ -98,26 +108,22 @@ export default function AdminCampaignDetailPage() {
     await load()
   }
 
+  const [invoiceMsg, setInvoiceMsg] = useState<string | null>(null)
+
   const createInvoice = async () => {
     if (!campaign?.clients?.id || !campaign.monthly_price) return
     const dueDate = new Date()
     dueDate.setDate(dueDate.getDate() + 30)
 
-    await supabase.from('invoices').insert({
+    const { error } = await supabase.from('invoices').insert({
       client_id: campaign.clients.id,
       campaign_id: campaign.id,
       amount: campaign.monthly_price,
       status: 'pending',
       due_date: dueDate.toISOString().split('T')[0],
     })
-    alert('Invoice created')
-  }
-
-  const copyName = () => {
-    if (!campaign) return
-    navigator.clipboard.writeText(campaign.name)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setInvoiceMsg(error ? error.message : 'Invoice created successfully')
+    setTimeout(() => setInvoiceMsg(null), 3000)
   }
 
   const downloadFile = async (url: string, fileName: string) => {
@@ -309,48 +315,18 @@ export default function AdminCampaignDetailPage() {
         </div>
       </div>
 
-      {/* vehhub.top helper */}
-      <div style={{
-        background: 'rgba(96,165,250,0.08)',
-        border: '1px solid rgba(96,165,250,0.2)',
-        borderRadius: '12px',
-        padding: '16px 20px',
-        marginBottom: '24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-      }}>
-        <div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px', fontWeight: 500 }}>
-            Use this name in vehhub.top &quot;Ad Name&quot; field:
-          </div>
-          <div style={{ fontSize: '18px', fontWeight: 700, color: '#60A5FA', fontFamily: 'monospace' }}>
-            {campaign.name}
-          </div>
+      {invoiceMsg && (
+        <div style={{
+          padding: '10px 16px',
+          borderRadius: 8,
+          fontSize: 13,
+          marginBottom: 16,
+          background: invoiceMsg.includes('success') ? 'rgba(204,243,129,0.1)' : 'rgba(239,68,68,0.1)',
+          color: invoiceMsg.includes('success') ? '#CCF381' : '#EF4444',
+        }}>
+          {invoiceMsg}
         </div>
-        <button
-          onClick={copyName}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: '1px solid rgba(96,165,250,0.3)',
-            background: copied ? 'rgba(204,243,129,0.15)' : 'rgba(96,165,250,0.1)',
-            color: copied ? '#CCF381' : '#60A5FA',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 500,
-            transition: 'all 0.15s',
-          }}
-        >
-          {copied ? <Check size={16} /> : <Copy size={16} />}
-          {copied ? 'Copied!' : 'Copy Name'}
-        </button>
-      </div>
+      )}
 
       {/* Push to Group */}
       <div style={{
@@ -497,33 +473,45 @@ export default function AdminCampaignDetailPage() {
       <div className="portal-section">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
           <h2 style={{ margin: 0 }}>Ad Media ({media.length})</h2>
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: '1px solid #27272a',
-              background: 'rgba(255,255,255,0.05)',
-              color: '#e4e4e7',
-              cursor: uploadingMedia ? 'wait' : 'pointer',
-              fontSize: 14,
-              fontWeight: 500,
-              opacity: uploadingMedia ? 0.6 : 1,
-            }}
-          >
-            <Upload size={16} />
-            {uploadingMedia ? 'Uploading...' : 'Upload Media'}
-            <input
-              type="file"
-              multiple
-              accept="image/*,video/mp4"
-              onChange={handleAdminUpload}
-              disabled={uploadingMedia}
-              style={{ display: 'none' }}
-            />
-          </label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {media.some(m => m.status === 'pending_review') && (
+              <button
+                onClick={approveAllMedia}
+                className="portal-btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}
+              >
+                <Check size={16} />
+                Approve All ({media.filter(m => m.status === 'pending_review').length})
+              </button>
+            )}
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: '1px solid #27272a',
+                background: 'rgba(255,255,255,0.05)',
+                color: '#e4e4e7',
+                cursor: uploadingMedia ? 'wait' : 'pointer',
+                fontSize: 14,
+                fontWeight: 500,
+                opacity: uploadingMedia ? 0.6 : 1,
+              }}
+            >
+              <Upload size={16} />
+              {uploadingMedia ? 'Uploading...' : 'Upload Media'}
+              <input
+                type="file"
+                multiple
+                accept="image/*,video/mp4"
+                onChange={handleAdminUpload}
+                disabled={uploadingMedia}
+                style={{ display: 'none' }}
+              />
+            </label>
+          </div>
         </div>
 
         {uploadMsg && (

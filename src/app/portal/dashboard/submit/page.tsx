@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, CheckCircle, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -25,6 +25,16 @@ export default function SubmitAdPage() {
   const { t } = useTranslations()
   const p = t.portal.submit
   const c = t.portal.common
+
+  // Generate preview URLs for selected files
+  const previews = useMemo(() => {
+    return files.map(file => ({
+      url: URL.createObjectURL(file),
+      isVideo: file.type.startsWith('video/'),
+      name: file.name,
+      size: file.size,
+    }))
+  }, [files])
 
   function validateName(value: string): string | null {
     if (!value.trim()) return p.nameRequired
@@ -194,13 +204,66 @@ export default function SubmitAdPage() {
           </div>
 
           {files.length > 0 && (
-            <div className="file-list">
-              {files.map((file, i) => (
-                <div key={i} className="file-item">
-                  <span>{file.name}</span>
-                  <span className="file-size">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                  <button type="button" onClick={() => removeFile(i)} className="file-remove">
-                    <X size={16} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              {previews.map((preview, i) => (
+                <div key={i} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '8px 12px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  background: 'var(--card)',
+                }}>
+                  <div style={{
+                    width: 64,
+                    height: 40,
+                    borderRadius: 6,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    background: '#000',
+                    border: '1px solid var(--border)',
+                  }}>
+                    {preview.isVideo ? (
+                      <video
+                        src={preview.url}
+                        muted
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <img
+                        src={preview.url}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {preview.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
+                      {(preview.size / 1024 / 1024).toFixed(1)} MB
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      border: '1px solid var(--border)',
+                      background: 'transparent',
+                      color: 'var(--muted-foreground)',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <X size={14} />
                   </button>
                 </div>
               ))}
@@ -209,7 +272,7 @@ export default function SubmitAdPage() {
         </div>
 
         <div className="portal-input-group">
-          <label>Ad Duration</label>
+          <label>{p.adDuration}</label>
           <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
             {([10, 20, 30] as AdDuration[]).map(d => {
               const active = duration === d
@@ -231,13 +294,13 @@ export default function SubmitAdPage() {
                     transition: 'all 0.15s',
                   }}
                 >
-                  {d} sec
+                  {d} {p.seconds}
                 </button>
               )
             })}
           </div>
           <span style={{ color: '#525252', fontSize: 12, marginTop: 6, display: 'block' }}>
-            How long each ad is shown on the LED before rotating.
+            {p.adDurationHint}
           </span>
         </div>
 
