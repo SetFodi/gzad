@@ -133,9 +133,14 @@ export default function Home() {
               )}
             </button>
             
-            {/* Outline Glow Button Light */}
-            <a href="#get-started" className="hidden lg:inline-flex items-center justify-center px-7 py-2.5 bg-white dark:bg-black/60 border border-[#E5E0D8] dark:border-white/10 text-[#166534] dark:text-emerald-400 text-[13px] font-bold tracking-wide rounded-full hover:bg-[#166534] dark:hover:bg-emerald-400 hover:text-white dark:hover:text-[#050505] hover:border-[#166534] dark:hover:border-emerald-400 transition-all duration-500 shadow-[0_4px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_20px_rgba(22,101,52,0.25)] dark:hover:shadow-[0_8px_20px_rgba(16,185,129,0.3)]">
-              {t.nav.getStarted}
+            {/* Login Button */}
+            <a href="/portal/login" className="hidden lg:inline-flex items-center justify-center px-6 py-2.5 text-[#6B6561] dark:text-zinc-400 text-[13px] font-medium tracking-wide hover:text-[#166534] dark:hover:text-emerald-400 transition-all duration-300">
+              {lang === 'en' ? 'Log In' : 'შესვლა'}
+            </a>
+
+            {/* Fleet Signup Button */}
+            <a href="/portal/fleet-signup" className="hidden lg:inline-flex items-center justify-center px-7 py-2.5 bg-white dark:bg-black/60 border border-[#E5E0D8] dark:border-white/10 text-[#166534] dark:text-emerald-400 text-[13px] font-bold tracking-wide rounded-full hover:bg-[#166534] dark:hover:bg-emerald-400 hover:text-white dark:hover:text-[#050505] hover:border-[#166534] dark:hover:border-emerald-400 transition-all duration-500 shadow-[0_4px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_20px_rgba(22,101,52,0.25)] dark:hover:shadow-[0_8px_20px_rgba(16,185,129,0.3)]">
+              {lang === 'en' ? 'Sign Up' : 'რეგისტრაცია'}
             </a>
           </div>
 
