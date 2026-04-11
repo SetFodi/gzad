@@ -1,8 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
-import { BarChart3, Play, Clock, Monitor, Megaphone, FolderOpen, X } from 'lucide-react'
+import { BarChart3, Play, Clock, Monitor, Megaphone, FolderOpen, X, MapPin, ChevronDown } from 'lucide-react'
+
+const StatsMapView = dynamic(() => import('@/components/admin/StatsMapView'), { ssr: false })
 
 interface PlayLog {
   campaign_id: string | null
@@ -10,6 +13,8 @@ interface PlayLog {
   device_id: string
   began_at: string
   duration_seconds: number
+  lat: number
+  lng: number
 }
 
 interface CampaignInfo {
@@ -18,6 +23,7 @@ interface CampaignInfo {
   status: string
   clientName: string
   groupName: string
+  groupId: string | null
   mediaCount: number
   isDeleted?: boolean
 }
@@ -25,6 +31,7 @@ interface CampaignInfo {
 interface DeviceInfo {
   id: string
   groupName: string
+  groupId: string | null
   lastSeen: string
 }
 
@@ -45,6 +52,9 @@ const TZ = 'Asia/Tbilisi'
 function toTbilisiDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ })
 }
+function toTbilisiHour(iso: string): number {
+  return parseInt(new Date(iso).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }), 10)
+}
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
@@ -54,6 +64,117 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
+function formatHour(h: number): string {
+  return `${h.toString().padStart(2, '0')}:00`
+}
+
+// ─── Dual-handle range slider ────────────────────────────────────────────────
+function RangeSlider({ min, max, value, onChange }: {
+  min: number; max: number
+  value: [number, number]
+  onChange: (v: [number, number]) => void
+}) {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const draggingRef = useRef<'low' | 'high' | null>(null)
+
+  function pctFromEvent(e: React.MouseEvent | MouseEvent) {
+    const rect = trackRef.current!.getBoundingClientRect()
+    return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+  }
+  function valFromPct(pct: number) {
+    return Math.round(min + pct * (max - min))
+  }
+
+  function onMouseDown(handle: 'low' | 'high') {
+    return (e: React.MouseEvent) => {
+      e.preventDefault()
+      draggingRef.current = handle
+
+      const onMove = (ev: MouseEvent) => {
+        const v = valFromPct(pctFromEvent(ev))
+        if (draggingRef.current === 'low') {
+          onChange([Math.min(v, value[1]), value[1]])
+        } else {
+          onChange([value[0], Math.max(v, value[0])])
+        }
+      }
+      const onUp = () => {
+        draggingRef.current = null
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+      }
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUp)
+    }
+  }
+
+  const lowPct = ((value[0] - min) / (max - min)) * 100
+  const highPct = ((value[1] - min) / (max - min)) * 100
+
+  return (
+    <div style={{ position: 'relative', height: 36, userSelect: 'none' }}>
+      {/* Track */}
+      <div ref={trackRef} style={{
+        position: 'absolute', top: 14, left: 0, right: 0, height: 8,
+        background: 'var(--border)', borderRadius: 4,
+      }}>
+        {/* Active range */}
+        <div style={{
+          position: 'absolute', top: 0, left: `${lowPct}%`, width: `${highPct - lowPct}%`,
+          height: '100%', background: '#60A5FA', borderRadius: 4,
+        }} />
+      </div>
+      {/* Low handle */}
+      <div onMouseDown={onMouseDown('low')} style={{
+        position: 'absolute', top: 8, left: `${lowPct}%`, transform: 'translateX(-50%)',
+        width: 20, height: 20, borderRadius: '50%', background: '#fff',
+        border: '2px solid #60A5FA', cursor: 'grab', zIndex: 2,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+      }} />
+      {/* High handle */}
+      <div onMouseDown={onMouseDown('high')} style={{
+        position: 'absolute', top: 8, left: `${highPct}%`, transform: 'translateX(-50%)',
+        width: 20, height: 20, borderRadius: '50%', background: '#fff',
+        border: '2px solid #60A5FA', cursor: 'grab', zIndex: 2,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+      }} />
+    </div>
+  )
+}
+
+// ─── Dropdown select ─────────────────────────────────────────────────────────
+function FilterSelect({ label, value, options, onChange }: {
+  label: string
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
+}) {
+  return (
+    <div style={{ position: 'relative', minWidth: 150 }}>
+      <label style={{ fontSize: 11, color: 'var(--muted-foreground)', display: 'block', marginBottom: 4 }}>{label}</label>
+      <div style={{ position: 'relative' }}>
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={{
+            width: '100%', padding: '6px 28px 6px 10px', fontSize: 13,
+            background: 'var(--card)', color: 'var(--foreground)',
+            border: '1px solid var(--border)', borderRadius: 8,
+            appearance: 'none', cursor: 'pointer', outline: 'none',
+          }}
+        >
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <ChevronDown size={14} style={{
+          position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+          pointerEvents: 'none', color: 'var(--muted-foreground)',
+        }} />
+      </div>
+    </div>
+  )
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 export default function AdminStatsPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
@@ -73,6 +194,12 @@ export default function AdminStatsPage() {
   const [selEnd, setSelEnd] = useState<number | null>(null)
   const [dragging, setDragging] = useState(false)
   const dragStart = useRef<number | null>(null)
+
+  // Map filters
+  const [mapCampaign, setMapCampaign] = useState('all')
+  const [mapGroup, setMapGroup] = useState('all')
+  const [mapDevice, setMapDevice] = useState('all')
+  const [hourRange, setHourRange] = useState<[number, number]>([0, 23])
 
   useEffect(() => { load() }, [])
 
@@ -95,17 +222,16 @@ export default function AdminStatsPage() {
     setActiveCampaigns(activeCount || 0)
     setTotalGroups(grpCount || 0)
 
-    // Fetch ALL play_logs with needed fields
+    // Fetch ALL play_logs with needed fields (including lat/lng for map)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    // Fetch in pages of 1000 (Supabase default limit) to get ALL logs
     let allFetched: PlayLog[] = []
     let page = 0
     const PAGE_SIZE = 1000
     while (true) {
       const { data: batch } = await supabase
         .from('play_logs')
-        .select('campaign_id, program_name, device_id, began_at, duration_seconds')
+        .select('campaign_id, program_name, device_id, began_at, duration_seconds, lat, lng')
         .gte('began_at', thirtyDaysAgo.toISOString())
         .order('began_at', { ascending: true })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
@@ -114,12 +240,11 @@ export default function AdminStatsPage() {
       if (batch.length < PAGE_SIZE) break
       page++
     }
-    const logs = allFetched
-    setAllLogs(logs || [])
+    setAllLogs(allFetched)
 
     // Build daily trend
     const dailyMap: Record<string, { plays: number; duration: number }> = {}
-    for (const log of logs || []) {
+    for (const log of allFetched) {
       const date = toTbilisiDate(log.began_at)
       if (!dailyMap[date]) dailyMap[date] = { plays: 0, duration: 0 }
       dailyMap[date].plays++
@@ -138,42 +263,22 @@ export default function AdminStatsPage() {
     // Campaign info
     const { data: campData } = await supabase
       .from('campaigns')
-      .select('id, name, status, clients(company_name), device_groups(name)')
+      .select('id, name, status, device_group_id, clients(company_name), device_groups(name)')
       .order('created_at', { ascending: false })
     const { data: mediaData } = await supabase.from('ad_media').select('campaign_id')
     const mediaCounts: Record<string, number> = {}
     for (const m of mediaData || []) mediaCounts[m.campaign_id] = (mediaCounts[m.campaign_id] || 0) + 1
 
-    const liveCampaigns: CampaignInfo[] = (campData || []).map((c: Record<string, unknown>) => ({
+    const campaigns: CampaignInfo[] = (campData || []).map((c: Record<string, unknown>) => ({
       id: c.id as string,
       name: c.name as string,
       status: c.status as string,
       clientName: (c.clients as { company_name: string } | null)?.company_name || '—',
       groupName: (c.device_groups as { name: string } | null)?.name || '—',
+      groupId: (c.device_group_id as string) || null,
       mediaCount: mediaCounts[c.id as string] || 0,
     }))
-
-    // Find deleted campaigns: play_logs with null campaign_id whose program_name
-    // doesn't match any live campaign (the campaign was deleted after it ran)
-    const liveCampaignNames = new Set(liveCampaigns.map(c => c.name.toLowerCase()))
-    const deletedNames = new Set<string>()
-    for (const l of logs || []) {
-      const pname = l.program_name
-      if (!l.campaign_id && pname && pname !== 'unknown' && !liveCampaignNames.has(pname.toLowerCase())) {
-        deletedNames.add(pname)
-      }
-    }
-    const deletedCampaigns: CampaignInfo[] = Array.from(deletedNames).map(name => ({
-      id: `deleted:${name}`,
-      name,
-      status: 'deleted',
-      clientName: '—',
-      groupName: '—',
-      mediaCount: 0,
-      isDeleted: true,
-    }))
-
-    setLiveCampaigns(liveCampaigns)
+    setLiveCampaigns(campaigns)
 
     // Device info
     const { data: devData } = await supabase
@@ -183,6 +288,7 @@ export default function AdminStatsPage() {
     setDevices((devData || []).map((d: Record<string, unknown>) => ({
       id: d.id as string,
       groupName: (d.device_groups as { name: string } | null)?.name || '—',
+      groupId: (d.group_id as string) || null,
       lastSeen: (d.last_seen_at as string) || '—',
     })))
 
@@ -220,12 +326,75 @@ export default function AdminStatsPage() {
       : `${dailyTrend[Math.min(selStart!, selEnd!)]?.date} — ${dailyTrend[Math.max(selStart!, selEnd!)]?.date}`
     : null
 
+  // Build lookup: device → group
+  const deviceGroupMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    for (const d of devices) {
+      if (d.groupId) m[d.id] = d.groupId
+    }
+    return m
+  }, [devices])
+
+  // Build lookup: campaign name (lowercase) → campaign
+  const campaignByName = useMemo(() => {
+    const m = new Map<string, CampaignInfo>()
+    for (const c of liveCampaigns) m.set(c.name.toLowerCase(), c)
+    return m
+  }, [liveCampaigns])
+
+  // Map points: apply all filters (date range already applied via `logs`)
+  const mapPoints = useMemo(() => {
+    return logs.filter(l => {
+      // Must have valid GPS
+      if (!l.lat || !l.lng) return false
+      // Campaign filter
+      if (mapCampaign !== 'all' && l.program_name.toLowerCase() !== mapCampaign) return false
+      // Group filter
+      if (mapGroup !== 'all') {
+        const camp = campaignByName.get(l.program_name.toLowerCase())
+        const deviceGroup = deviceGroupMap[l.device_id]
+        const campGroup = camp?.groupId
+        if (campGroup !== mapGroup && deviceGroup !== mapGroup) return false
+      }
+      // Device filter
+      if (mapDevice !== 'all' && l.device_id !== mapDevice) return false
+      // Hour filter
+      const hour = toTbilisiHour(l.began_at)
+      if (hour < hourRange[0] || hour > hourRange[1]) return false
+      return true
+    })
+  }, [logs, mapCampaign, mapGroup, mapDevice, hourRange, campaignByName, deviceGroupMap])
+
+  // Build filter options from current data
+  const campaignOptions = useMemo(() => {
+    const names = new Set<string>()
+    for (const l of logs) {
+      if (l.program_name && l.program_name !== 'unknown') names.add(l.program_name)
+    }
+    return [
+      { value: 'all', label: 'All campaigns' },
+      ...Array.from(names).sort().map(n => ({ value: n.toLowerCase(), label: n })),
+    ]
+  }, [logs])
+
+  const groupOptions = useMemo(() => [
+    { value: 'all', label: 'All groups' },
+    ...groups.map(g => ({ value: g.id, label: g.name })),
+  ], [groups])
+
+  const deviceOptions = useMemo(() => {
+    const ids = new Set<string>()
+    for (const l of logs) ids.add(l.device_id)
+    return [
+      { value: 'all', label: 'All devices' },
+      ...Array.from(ids).sort().map(id => ({ value: id, label: id })),
+    ]
+  }, [logs])
+
   // Compute stats from filtered logs
   const totalPlays = logs.length
   const totalDuration = logs.reduce((s, l) => s + (l.duration_seconds || 0), 0)
 
-  // Key by program_name (lowercase) so deleted campaigns still show up —
-  // campaign_id becomes null when a campaign is deleted, but program_name is always preserved
   const campaignPlays: Record<string, { plays: number; duration: number; devices: Set<string> }> = {}
   const devicePlays: Record<string, { plays: number; duration: number }> = {}
   for (const l of logs) {
@@ -244,7 +413,6 @@ export default function AdminStatsPage() {
   // When a date range is selected, only show campaigns that actually ran in that period
   const displayedCampaigns = (() => {
     if (!hasSelection) return liveCampaigns
-    // Find deleted campaigns that played during the selection
     const liveNames = new Set(liveCampaigns.map(c => c.name.toLowerCase()))
     const deletedNames = new Set<string>()
     for (const l of logs) {
@@ -254,9 +422,8 @@ export default function AdminStatsPage() {
     }
     const deleted: CampaignInfo[] = Array.from(deletedNames).map(name => ({
       id: `deleted:${name}`, name, status: 'deleted',
-      clientName: '—', groupName: '—', mediaCount: 0, isDeleted: true,
+      clientName: '—', groupName: '—', groupId: null, mediaCount: 0, isDeleted: true,
     }))
-    // Only include campaigns with at least one play in the selected period
     return [...liveCampaigns, ...deleted].filter(c =>
       (campaignPlays[c.name.toLowerCase()]?.plays || 0) > 0
     )
@@ -308,8 +475,8 @@ export default function AdminStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(204,243,129,0.1)' }}>
-            <Clock size={24} color="#CCF381" />
+          <div className="stat-card-icon" style={{ background: 'rgba(22,101,52,0.1)' }}>
+            <Clock size={24} color="#166534" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatDuration(totalDuration)}</span>
@@ -393,6 +560,45 @@ export default function AdminStatsPage() {
         </div>
       </div>
 
+      {/* Play Location Map */}
+      <div className="portal-section" style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <MapPin size={20} color="#60A5FA" />
+          <h2 style={{ margin: 0 }}>Play Locations</h2>
+          <span style={{ fontSize: 12, color: 'var(--muted-foreground)', marginLeft: 4 }}>
+            {mapPoints.length.toLocaleString()} plays on map
+          </span>
+        </div>
+
+        {/* Filters row */}
+        <div style={{
+          display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end',
+          marginBottom: 12, padding: '12px 16px',
+          background: 'var(--card)', borderRadius: '0.75rem',
+          border: '1px solid var(--border)',
+        }}>
+          <FilterSelect label="Campaign" value={mapCampaign} options={campaignOptions} onChange={setMapCampaign} />
+          <FilterSelect label="Group" value={mapGroup} options={groupOptions} onChange={setMapGroup} />
+          <FilterSelect label="Device" value={mapDevice} options={deviceOptions} onChange={setMapDevice} />
+
+          {/* Time-of-day slider */}
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <label style={{ fontSize: 11, color: 'var(--muted-foreground)', display: 'block', marginBottom: 4 }}>
+              Time of day: {formatHour(hourRange[0])} — {formatHour(hourRange[1])}
+            </label>
+            <RangeSlider min={0} max={23} value={hourRange} onChange={setHourRange} />
+          </div>
+        </div>
+
+        {/* Map */}
+        <div style={{
+          height: 420, borderRadius: '0.75rem', overflow: 'hidden',
+          border: '1px solid var(--border)',
+        }}>
+          <StatsMapView points={mapPoints} showDistricts />
+        </div>
+      </div>
+
       {/* Tab Navigation */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {([
@@ -452,8 +658,8 @@ export default function AdminStatsPage() {
                         <td>{c.groupName}</td>
                         <td>
                           <span className="status-badge" style={{
-                            color: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : c.status === 'deleted' ? '#EF4444' : '#64748B',
-                            borderColor: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : c.status === 'deleted' ? '#EF4444' : '#64748B',
+                            color: c.status === 'active' ? '#22c55e' : c.status === 'pending_review' ? '#FBBF24' : c.status === 'deleted' ? '#EF4444' : '#64748B',
+                            borderColor: c.status === 'active' ? '#22c55e' : c.status === 'pending_review' ? '#FBBF24' : c.status === 'deleted' ? '#EF4444' : '#64748B',
                           }}>{c.status.replace('_', ' ')}</span>
                         </td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cp?.plays || 0).toLocaleString()}</td>
