@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Car, LogOut, Menu, X, Globe } from 'lucide-react'
+import { LayoutDashboard, Car, BarChart3, LogOut, Menu, X, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -18,6 +18,7 @@ export default function FleetSidebar() {
   const navItems = [
     { href: '/fleet', label: t.fleet.sidebar.overview, icon: LayoutDashboard },
     { href: '/fleet/vehicles', label: t.fleet.sidebar.vehicles, icon: Car },
+    { href: '/fleet/stats', label: t.fleet.sidebar.stats, icon: BarChart3 },
   ]
 
   const handleLogout = async () => {

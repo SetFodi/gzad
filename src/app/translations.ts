@@ -431,6 +431,7 @@ export const translations = {
             sidebar: {
                 overview: "Overview",
                 vehicles: "My Vehicles",
+                stats: "Statistics",
                 signOut: "Sign Out"
             },
             dashboard: {
@@ -472,6 +473,37 @@ export const translations = {
                 notAssigned: "Not assigned",
                 delete: "Delete",
                 confirmDelete: "Delete this vehicle? This cannot be undone."
+            },
+            stats: {
+                title: "LED Statistics",
+                totalPlays: "Total Plays",
+                totalScreenTime: "Total Screen Time",
+                yourDevices: "Your Devices",
+                campaignsShown: "Campaigns Shown",
+                last30Days: "Last 30 Days",
+                clear: "Clear",
+                tabCampaigns: "Campaigns",
+                tabDevices: "Devices",
+                tabDaily: "Daily Breakdown",
+                tabMap: "Play Locations",
+                perCampaign: "Per-Campaign Stats",
+                perDevice: "Per-Device Stats",
+                dailyBreakdown: "Daily Breakdown",
+                playLocations: "Play Locations",
+                campaign: "Campaign",
+                device: "Device",
+                deviceId: "Device ID",
+                plays: "Plays",
+                screenTime: "Screen Time",
+                devices: "Devices",
+                campaigns: "Campaigns",
+                date: "Date",
+                noData: "No play data yet",
+                noDevices: "No LEDs assigned to your vehicles yet. Statistics will appear once an admin assigns an LED to your vehicle.",
+                allCampaigns: "All campaigns",
+                allDevices: "All devices",
+                timeOfDay: "Time of day",
+                playsOnMap: "plays on map"
             }
         }
     },
@@ -907,6 +939,7 @@ export const translations = {
             sidebar: {
                 overview: "მიმოხილვა",
                 vehicles: "ჩემი მანქანები",
+                stats: "სტატისტიკა",
                 signOut: "გასვლა"
             },
             dashboard: {
@@ -948,6 +981,37 @@ export const translations = {
                 notAssigned: "არ არის მინიჭებული",
                 delete: "წაშლა",
                 confirmDelete: "წაშალოთ ეს მანქანა? ეს ვერ გაუქმდება."
+            },
+            stats: {
+                title: "LED სტატისტიკა",
+                totalPlays: "სულ ჩვენებები",
+                totalScreenTime: "ეკრანის დრო",
+                yourDevices: "თქვენი მოწყობილობები",
+                campaignsShown: "ნაჩვენები კამპანიები",
+                last30Days: "ბოლო 30 დღე",
+                clear: "გასუფთავება",
+                tabCampaigns: "კამპანიები",
+                tabDevices: "მოწყობილობები",
+                tabDaily: "დღიური",
+                tabMap: "ჩვენებების ლოკაციები",
+                perCampaign: "კამპანიების სტატისტიკა",
+                perDevice: "მოწყობილობების სტატისტიკა",
+                dailyBreakdown: "დღიური სტატისტიკა",
+                playLocations: "ჩვენებების ლოკაციები",
+                campaign: "კამპანია",
+                device: "მოწყობილობა",
+                deviceId: "მოწყობილობის ID",
+                plays: "ჩვენებები",
+                screenTime: "ეკრანის დრო",
+                devices: "მოწყობილობები",
+                campaigns: "კამპანიები",
+                date: "თარიღი",
+                noData: "ჩვენებების მონაცემები ჯერ არ არის",
+                noDevices: "თქვენს მანქანებს ჯერ არ აქვთ მინიჭებული LED. სტატისტიკა გამოჩნდება მას შემდეგ, რაც ადმინისტრატორი მინიჭებს LED-ს თქვენს მანქანას.",
+                allCampaigns: "ყველა კამპანია",
+                allDevices: "ყველა მოწყობილობა",
+                timeOfDay: "დღის დრო",
+                playsOnMap: "ჩვენება რუკაზე"
             }
         }
     }
