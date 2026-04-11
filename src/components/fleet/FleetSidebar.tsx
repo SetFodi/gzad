@@ -2,30 +2,23 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Users, Megaphone, Monitor, MapPin, Map, ScrollText, LogOut, Menu, X, FolderOpen, BarChart3, DollarSign, Car } from 'lucide-react'
+import { LayoutDashboard, Car, LogOut, Menu, X, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useTranslations } from '@/lib/i18n'
 
-const navItems = [
-  { href: '/admin', label: 'Overview', icon: LayoutDashboard },
-  { href: '/admin/clients', label: 'Clients', icon: Users },
-  { href: '/admin/fleet-users', label: 'Fleet Users', icon: Car },
-  { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
-  { href: '/admin/devices', label: 'Devices', icon: Monitor },
-  { href: '/admin/groups', label: 'Groups', icon: FolderOpen },
-  { href: '/admin/stats', label: 'Stats', icon: BarChart3 },
-  { href: '/admin/pricing', label: 'Pricing', icon: DollarSign },
-  { href: '/admin/logs', label: 'Logs', icon: ScrollText },
-  { href: '/admin/fleet', label: 'Fleet Map', icon: Map },
-  { href: '/admin/map', label: 'GPS Trails', icon: MapPin },
-]
-
-export default function AdminSidebar() {
+export default function FleetSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { lang, setLang, t } = useTranslations()
+
+  const navItems = [
+    { href: '/fleet', label: t.fleet.sidebar.overview, icon: LayoutDashboard },
+    { href: '/fleet/vehicles', label: t.fleet.sidebar.vehicles, icon: Car },
+  ]
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -42,20 +35,18 @@ export default function AdminSidebar() {
       </button>
 
       <aside className={`portal-sidebar ${mobileOpen ? 'open' : ''}`}>
-        {/* Logo */}
         <div className="sidebar-logo">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="8" width="18" height="10" rx="2" fill="var(--foreground)" />
-            <rect x="5" y="10" width="14" height="6" rx="1" fill="var(--primary)" />
+            <rect x="3" y="8" width="18" height="10" rx="2" fill="#0A0A0A" />
+            <rect x="5" y="10" width="14" height="6" rx="1" fill="#CCF381" />
           </svg>
-          <span className="sidebar-logo-text">Gzad Admin</span>
+          <span className="sidebar-logo-text">Gzad Fleet</span>
         </div>
 
-        {/* Nav Links */}
         <div className="sidebar-nav">
           {navItems.map((item) => {
             const isActive = pathname === item.href ||
-              (item.href !== '/admin' && pathname.startsWith(item.href))
+              (item.href !== '/fleet' && pathname.startsWith(item.href))
             return (
               <Link
                 key={item.href}
@@ -70,19 +61,18 @@ export default function AdminSidebar() {
           })}
         </div>
 
-        {/* Footer */}
-        <div style={{ borderTop: '1px solid var(--border)', padding: '8px 12px', flexShrink: 0 }}>
-          <Link
-            href="/portal/dashboard"
-            onClick={() => setMobileOpen(false)}
+        <div style={{ borderTop: '1px solid #141414', padding: '8px 12px', flexShrink: 0 }}>
+          <button
+            onClick={() => setLang(lang === 'en' ? 'ge' : 'en')}
             className="nav-item"
+            style={{ width: '100%', border: 'none', cursor: 'pointer', background: 'none', textAlign: 'left' }}
           >
-            <LayoutDashboard size={20} />
-            <span>Client View</span>
-          </Link>
+            <Globe size={20} />
+            <span>{lang === 'en' ? 'ქართული' : 'English'}</span>
+          </button>
           <button onClick={handleLogout} className="sidebar-logout">
             <LogOut size={20} />
-            <span>Sign Out</span>
+            <span>{t.fleet.sidebar.signOut}</span>
           </button>
         </div>
       </aside>

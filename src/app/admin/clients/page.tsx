@@ -29,6 +29,7 @@ export default function AdminClientsPage() {
       .from('clients')
       .select('*')
       .eq('is_admin', false)
+      .neq('role', 'fleet')
       .order('created_at', { ascending: false })
 
     if (data) {

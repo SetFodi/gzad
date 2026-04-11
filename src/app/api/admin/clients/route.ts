@@ -77,6 +77,7 @@ export async function GET() {
     .from('clients')
     .select('*')
     .eq('is_admin', false)
+    .neq('role', 'fleet')
     .order('created_at', { ascending: false })
 
   return NextResponse.json(clients || [])

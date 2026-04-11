@@ -8,6 +8,15 @@ export default async function PortalPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('role')
+      .eq('auth_user_id', user.id)
+      .single()
+
+    if (client?.role === 'fleet') {
+      redirect('/fleet')
+    }
     redirect('/portal/dashboard')
   } else {
     redirect('/portal/login')

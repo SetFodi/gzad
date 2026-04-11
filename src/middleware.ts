@@ -34,6 +34,27 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Protect /fleet routes — must be logged in AND be fleet user
+  if (request.nextUrl.pathname.startsWith('/fleet')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/portal/login'
+      return NextResponse.redirect(url)
+    }
+
+    const { data: client } = await supabase
+      .from('clients')
+      .select('role')
+      .eq('auth_user_id', user.id)
+      .single()
+
+    if (!client || (client.role !== 'fleet' && client.role !== 'admin')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/portal/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Protect /admin routes — must be logged in AND be admin
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {
@@ -56,16 +77,41 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect logged-in users away from login page
-  if (request.nextUrl.pathname === '/portal/login' && user) {
+  // Redirect logged-in users away from login page based on role
+  if ((request.nextUrl.pathname === '/portal/login' || request.nextUrl.pathname === '/portal/fleet-signup') && user) {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('role')
+      .eq('auth_user_id', user.id)
+      .single()
+
     const url = request.nextUrl.clone()
-    url.pathname = '/portal/dashboard'
+    if (client?.role === 'fleet') {
+      url.pathname = '/fleet'
+    } else {
+      url.pathname = '/portal/dashboard'
+    }
     return NextResponse.redirect(url)
+  }
+
+  // Redirect fleet users away from /portal/dashboard to /fleet
+  if (request.nextUrl.pathname.startsWith('/portal/dashboard') && user) {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('role')
+      .eq('auth_user_id', user.id)
+      .single()
+
+    if (client?.role === 'fleet') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/fleet'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/portal/:path*', '/admin/:path*'],
+  matcher: ['/portal/:path*', '/admin/:path*', '/fleet/:path*'],
 }

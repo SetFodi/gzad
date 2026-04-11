@@ -20,12 +20,26 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       setError(p.invalidCredentials)
       setLoading(false)
       return
+    }
+
+    // Check user role to redirect appropriately
+    if (authData.user) {
+      const { data: client } = await supabase
+        .from('clients')
+        .select('role')
+        .eq('auth_user_id', authData.user.id)
+        .single()
+
+      if (client?.role === 'fleet') {
+        router.push('/fleet')
+        return
+      }
     }
 
     router.push('/portal/dashboard')
@@ -87,6 +101,12 @@ export default function LoginPage() {
 
         <p className="portal-login-footer">
           {p.contactForAccess} <a href="mailto:gzadvertisment@gmail.com">gzadvertisment@gmail.com</a> {p.contactForAccessSuffix}
+        </p>
+        <p className="portal-login-footer" style={{ marginTop: 8 }}>
+          {lang === 'en' ? 'Are you a driver?' : 'მძღოლი ხართ?'}{' '}
+          <a href="/portal/fleet-signup" style={{ color: '#CCF381' }}>
+            {lang === 'en' ? 'Sign up for Fleet' : 'დარეგისტრირდით ფლოტში'}
+          </a>
         </p>
       </div>
     </div>

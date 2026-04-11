@@ -414,6 +414,65 @@ export const translations = {
                 startDate: "Start Date",
                 endDate: "End Date"
             }
+        },
+        fleet: {
+            signup: {
+                title: "Fleet Driver Signup",
+                subtitle: "Register to get an LED display on your vehicle",
+                fullName: "Full Name",
+                email: "Email",
+                phone: "Phone Number",
+                password: "Password",
+                signUp: "Create Account",
+                signingUp: "Creating account...",
+                alreadyHaveAccount: "Already have an account?",
+                signIn: "Sign in"
+            },
+            sidebar: {
+                overview: "Overview",
+                vehicles: "My Vehicles",
+                signOut: "Sign Out"
+            },
+            dashboard: {
+                title: "Fleet Dashboard",
+                totalVehicles: "Total Vehicles",
+                assignedLEDs: "Assigned LEDs",
+                totalPlays: "Total Ad Plays",
+                totalScreenTime: "Screen Time",
+                yourVehicles: "Your Vehicles",
+                noVehicles: "No vehicles added yet. Add your first vehicle to get started.",
+                addVehicle: "Add Vehicle",
+                ledAssigned: "LED Assigned",
+                noLED: "No LED",
+                licensePlate: "License Plate",
+                color: "Color",
+                deviceId: "Device ID",
+                last30Days: "Last 30 Days",
+                plays: "plays",
+                lastPlay: "Last play",
+                awaitingAssignment: "An LED display will be assigned to this vehicle by an administrator."
+            },
+            vehicles: {
+                title: "My Vehicles",
+                addVehicle: "Add Vehicle",
+                make: "Make",
+                makePlaceholder: "e.g. Toyota",
+                model: "Model",
+                modelPlaceholder: "e.g. Prius",
+                year: "Year",
+                color: "Color",
+                colorPlaceholder: "e.g. White",
+                licensePlate: "License Plate",
+                plateHint: "Georgian format: XX 000 XX (e.g. AB 123 CD)",
+                adding: "Adding...",
+                noVehicles: "No vehicles added yet.",
+                vehicle: "Vehicle",
+                led: "LED",
+                added: "Added",
+                notAssigned: "Not assigned",
+                delete: "Delete",
+                confirmDelete: "Delete this vehicle? This cannot be undone."
+            }
         }
     },
     ge: {
@@ -830,6 +889,65 @@ export const translations = {
                 campaign: "კამპანია",
                 startDate: "დაწყების თარიღი",
                 endDate: "დასრულების თარიღი"
+            }
+        },
+        fleet: {
+            signup: {
+                title: "ფლოტის მძღოლის რეგისტრაცია",
+                subtitle: "დარეგისტრირდით LED ეკრანის მისაღებად თქვენს მანქანაზე",
+                fullName: "სრული სახელი",
+                email: "ელ-ფოსტა",
+                phone: "ტელეფონის ნომერი",
+                password: "პაროლი",
+                signUp: "ანგარიშის შექმნა",
+                signingUp: "იქმნება ანგარიში...",
+                alreadyHaveAccount: "უკვე გაქვთ ანგარიში?",
+                signIn: "შესვლა"
+            },
+            sidebar: {
+                overview: "მიმოხილვა",
+                vehicles: "ჩემი მანქანები",
+                signOut: "გასვლა"
+            },
+            dashboard: {
+                title: "ფლოტის პანელი",
+                totalVehicles: "მანქანები",
+                assignedLEDs: "მინიჭებული LED-ები",
+                totalPlays: "სულ ჩვენებები",
+                totalScreenTime: "ეკრანის დრო",
+                yourVehicles: "თქვენი მანქანები",
+                noVehicles: "მანქანები ჯერ არ არის დამატებული. დაამატეთ პირველი მანქანა.",
+                addVehicle: "მანქანის დამატება",
+                ledAssigned: "LED მინიჭებული",
+                noLED: "LED არ არის",
+                licensePlate: "სანომრე ნიშანი",
+                color: "ფერი",
+                deviceId: "მოწყობილობის ID",
+                last30Days: "ბოლო 30 დღე",
+                plays: "ჩვენება",
+                lastPlay: "ბოლო ჩვენება",
+                awaitingAssignment: "LED ეკრანი ამ მანქანას მიენიჭება ადმინისტრატორის მიერ."
+            },
+            vehicles: {
+                title: "ჩემი მანქანები",
+                addVehicle: "მანქანის დამატება",
+                make: "მარკა",
+                makePlaceholder: "მაგ. Toyota",
+                model: "მოდელი",
+                modelPlaceholder: "მაგ. Prius",
+                year: "წელი",
+                color: "ფერი",
+                colorPlaceholder: "მაგ. თეთრი",
+                licensePlate: "სანომრე ნიშანი",
+                plateHint: "ქართული ფორმატი: XX 000 XX (მაგ. AB 123 CD)",
+                adding: "ემატება...",
+                noVehicles: "მანქანები ჯერ არ არის დამატებული.",
+                vehicle: "მანქანა",
+                led: "LED",
+                added: "დამატებული",
+                notAssigned: "არ არის მინიჭებული",
+                delete: "წაშლა",
+                confirmDelete: "წაშალოთ ეს მანქანა? ეს ვერ გაუქმდება."
             }
         }
     }
