@@ -417,8 +417,8 @@ export const translations = {
         },
         fleet: {
             signup: {
-                title: "Fleet Driver Signup",
-                subtitle: "Register to get an LED display on your vehicle",
+                title: "Create Account",
+                subtitle: "Choose your account type to get started",
                 fullName: "Full Name",
                 email: "Email",
                 phone: "Phone Number",
@@ -893,8 +893,8 @@ export const translations = {
         },
         fleet: {
             signup: {
-                title: "ფლოტის მძღოლის რეგისტრაცია",
-                subtitle: "დარეგისტრირდით LED ეკრანის მისაღებად თქვენს მანქანაზე",
+                title: "ანგარიშის შექმნა",
+                subtitle: "აირჩიეთ ანგარიშის ტიპი დასაწყებად",
                 fullName: "სრული სახელი",
                 email: "ელ-ფოსტა",
                 phone: "ტელეფონის ნომერი",

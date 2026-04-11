@@ -2,10 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
-  const { email, password, contact_name, phone } = await request.json()
+  const { email, password, contact_name, phone, role, company_name } = await request.json()
 
-  if (!email || !password || !contact_name) {
+  if (!email || !password || !contact_name || !role) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  if (role !== 'client' && role !== 'fleet') {
+    return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+  }
+
+  if (role === 'client' && !company_name) {
+    return NextResponse.json({ error: 'Company name is required for advertisers' }, { status: 400 })
   }
 
   if (password.length < 6) {
@@ -28,15 +36,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: authError.message }, { status: 400 })
   }
 
-  // Create client record with fleet role
+  // Create client record
   const { error: clientError } = await adminSupabase.from('clients').insert({
     auth_user_id: authUser.user.id,
     email,
-    company_name: contact_name, // Fleet users use their name as company_name
+    company_name: role === 'client' ? company_name : contact_name,
     contact_name,
     phone: phone || null,
     is_admin: false,
-    role: 'fleet',
+    role,
   })
 
   if (clientError) {
