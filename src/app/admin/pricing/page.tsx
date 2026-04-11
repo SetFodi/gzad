@@ -1,13 +1,23 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
-import { DollarSign, MapPin, Clock, Users, Receipt, Save, Plus, Minus } from 'lucide-react'
+import { DollarSign, MapPin, Clock, Users, Receipt, Save, Plus, Minus, Map } from 'lucide-react'
+import { TBILISI_DISTRICTS } from '@/lib/districts'
+
+const DistrictMapEditor = dynamic(() => import('@/components/admin/DistrictMapEditor'), { ssr: false })
 
 const DISTRICTS = [
   'Mtatsminda', 'Vake', 'Saburtalo', 'Chughureti', 'Didube',
   'Nadzaladevi', 'Gldani', 'Isani', 'Samgori', 'Krtsanisi',
 ]
+
+interface EditableDistrict {
+  name: string
+  color: string
+  polygon: [number, number][]
+}
 
 const TIME_LABELS: Record<string, { label: string; color: string }> = {
   '0.75': { label: 'Off-Peak', color: '#64748B' },
@@ -47,7 +57,7 @@ export default function PricingPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'rates' | 'districts' | 'time' | 'balances' | 'history'>('rates')
+  const [activeTab, setActiveTab] = useState<'rates' | 'districts' | 'time' | 'balances' | 'history' | 'map'>('rates')
 
   // Pricing config
   const [baseRates, setBaseRates] = useState<Record<string, number>>({ '10': 2.0, '20': 3.4, '30': 4.6 })
@@ -59,6 +69,11 @@ export default function PricingPage() {
   const [clients, setClients] = useState<ClientRow[]>([])
   const [billingLogs, setBillingLogs] = useState<BillingLog[]>([])
   const [topUpAmounts, setTopUpAmounts] = useState<Record<string, string>>({})
+
+  // Map editor
+  const [editableDistricts, setEditableDistricts] = useState<EditableDistrict[]>([])
+  const [selectedMapDistrict, setSelectedMapDistrict] = useState<string | null>(null)
+  const [mapDirty, setMapDirty] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -82,6 +97,24 @@ export default function PricingPage() {
     setTimeMultipliers(cfg.time_multipliers || {})
     setClients(clientsRes.data || [])
     setBillingLogs((logsRes.data || []) as unknown as BillingLog[])
+
+    // Load district polygons: DB override or hardcoded defaults
+    const savedPolygons = cfg.district_polygons as unknown as Record<string, { color: string; polygon: [number, number][] }> | undefined
+    if (savedPolygons && Object.keys(savedPolygons).length > 0) {
+      setEditableDistricts(Object.entries(savedPolygons).map(([name, data]) => ({
+        name,
+        color: data.color,
+        polygon: data.polygon,
+      })))
+    } else {
+      setEditableDistricts(TBILISI_DISTRICTS.map(d => ({
+        name: d.name,
+        color: d.color,
+        polygon: [...d.polygon],
+      })))
+    }
+    setMapDirty(false)
+
     setLoading(false)
   }
 
@@ -123,6 +156,7 @@ export default function PricingPage() {
     { key: 'rates', label: 'Base Rates', icon: DollarSign },
     { key: 'districts', label: 'District Tiers', icon: MapPin },
     { key: 'time', label: 'Time Multipliers', icon: Clock },
+    { key: 'map', label: 'District Map', icon: Map },
     { key: 'balances', label: 'Client Balances', icon: Users },
     { key: 'history', label: 'Billing History', icon: Receipt },
   ] as const
@@ -447,6 +481,107 @@ export default function PricingPage() {
         )}
 
         {/* ── Client Balances ── */}
+        {/* ── District Map Editor ── */}
+        {activeTab === 'map' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ margin: 0 }}>District Boundaries</h2>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {mapDirty && <span style={{ fontSize: 12, color: '#F59E0B' }}>Unsaved changes</span>}
+                <button
+                  onClick={async () => {
+                    setSaving(true)
+                    const polygonData: Record<string, { color: string; polygon: [number, number][] }> = {}
+                    for (const d of editableDistricts) {
+                      polygonData[d.name] = { color: d.color, polygon: d.polygon }
+                    }
+                    await saveConfig('district_polygons', polygonData as unknown as Record<string, number>)
+                    setMapDirty(false)
+                    setSaving(false)
+                  }}
+                  disabled={saving || !mapDirty}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
+                    borderRadius: 8, border: 'none',
+                    background: mapDirty ? '#60A5FA' : 'var(--border)',
+                    color: mapDirty ? '#fff' : 'var(--muted-foreground)',
+                    cursor: mapDirty ? 'pointer' : 'default', fontSize: 14, fontWeight: 500,
+                    opacity: saving ? 0.6 : 1,
+                  }}
+                >
+                  <Save size={16} /> {saving ? 'Saving...' : 'Save Boundaries'}
+                </button>
+              </div>
+            </div>
+
+            {/* District selector */}
+            <div style={{
+              display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12,
+              padding: '10px 12px', background: 'var(--card)', borderRadius: 10,
+              border: '1px solid var(--border)',
+            }}>
+              <button
+                onClick={() => setSelectedMapDistrict(null)}
+                style={{
+                  padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                  border: '1px solid', cursor: 'pointer',
+                  borderColor: !selectedMapDistrict ? '#60A5FA' : 'var(--border)',
+                  background: !selectedMapDistrict ? 'rgba(96,165,250,0.1)' : 'transparent',
+                  color: !selectedMapDistrict ? '#60A5FA' : 'var(--muted-foreground)',
+                }}
+              >
+                All
+              </button>
+              {editableDistricts.map(d => (
+                <button
+                  key={d.name}
+                  onClick={() => setSelectedMapDistrict(d.name === selectedMapDistrict ? null : d.name)}
+                  style={{
+                    padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                    border: '1px solid', cursor: 'pointer',
+                    borderColor: selectedMapDistrict === d.name ? d.color : 'var(--border)',
+                    background: selectedMapDistrict === d.name ? `${d.color}18` : 'transparent',
+                    color: selectedMapDistrict === d.name ? d.color : 'var(--muted-foreground)',
+                  }}
+                >
+                  <span style={{
+                    display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                    background: d.color, marginRight: 6, verticalAlign: 'middle',
+                  }} />
+                  {d.name}
+                  <span style={{ marginLeft: 4, opacity: 0.6 }}>({d.polygon.length})</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Map */}
+            <div style={{
+              height: 520, borderRadius: '0.75rem', overflow: 'hidden',
+              border: '1px solid var(--border)', marginBottom: 12,
+            }}>
+              <DistrictMapEditor
+                districts={editableDistricts}
+                selectedDistrict={selectedMapDistrict}
+                onChange={(updated) => {
+                  setEditableDistricts(updated)
+                  setMapDirty(true)
+                }}
+              />
+            </div>
+
+            {/* Instructions */}
+            <div style={{
+              padding: 14, borderRadius: 10,
+              background: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.15)',
+              fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.7,
+            }}>
+              <strong style={{ color: 'var(--foreground)' }}>How to edit:</strong><br />
+              Select a district above to focus on it. Drag vertices to adjust boundaries.<br />
+              Click the faint dots between vertices to add a new point. Right-click a vertex to remove it.
+            </div>
+          </>
+        )}
+
         {activeTab === 'balances' && (
           <>
             <h2>Client Balances</h2>
