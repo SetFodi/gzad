@@ -187,7 +187,7 @@ export default function AdminStatsPage() {
   const [totalCampaigns, setTotalCampaigns] = useState(0)
   const [activeCampaigns, setActiveCampaigns] = useState(0)
   const [totalGroups, setTotalGroups] = useState(0)
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'devices' | 'groups' | 'daily'>('campaigns')
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'devices' | 'groups' | 'daily' | 'map'>('campaigns')
 
   // Date range selection
   const [selStart, setSelStart] = useState<number | null>(null)
@@ -560,45 +560,6 @@ export default function AdminStatsPage() {
         </div>
       </div>
 
-      {/* Play Location Map */}
-      <div className="portal-section" style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <MapPin size={20} color="#60A5FA" />
-          <h2 style={{ margin: 0 }}>Play Locations</h2>
-          <span style={{ fontSize: 12, color: 'var(--muted-foreground)', marginLeft: 4 }}>
-            {mapPoints.length.toLocaleString()} plays on map
-          </span>
-        </div>
-
-        {/* Filters row */}
-        <div style={{
-          display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end',
-          marginBottom: 12, padding: '12px 16px',
-          background: 'var(--card)', borderRadius: '0.75rem',
-          border: '1px solid var(--border)',
-        }}>
-          <FilterSelect label="Campaign" value={mapCampaign} options={campaignOptions} onChange={setMapCampaign} />
-          <FilterSelect label="Group" value={mapGroup} options={groupOptions} onChange={setMapGroup} />
-          <FilterSelect label="Device" value={mapDevice} options={deviceOptions} onChange={setMapDevice} />
-
-          {/* Time-of-day slider */}
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={{ fontSize: 11, color: 'var(--muted-foreground)', display: 'block', marginBottom: 4 }}>
-              Time of day: {formatHour(hourRange[0])} — {formatHour(hourRange[1])}
-            </label>
-            <RangeSlider min={0} max={23} value={hourRange} onChange={setHourRange} />
-          </div>
-        </div>
-
-        {/* Map */}
-        <div style={{
-          height: 420, borderRadius: '0.75rem', overflow: 'hidden',
-          border: '1px solid var(--border)',
-        }}>
-          <StatsMapView points={mapPoints} showDistricts />
-        </div>
-      </div>
-
       {/* Tab Navigation */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {([
@@ -606,6 +567,7 @@ export default function AdminStatsPage() {
           { key: 'devices', label: 'Devices', icon: Monitor },
           { key: 'groups', label: 'Groups', icon: FolderOpen },
           { key: 'daily', label: 'Daily Breakdown', icon: BarChart3 },
+          { key: 'map', label: 'Play Locations', icon: MapPin },
         ] as const).map(tab => (
           <button
             key={tab.key}
@@ -741,6 +703,43 @@ export default function AdminStatsPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'map' && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <h2 style={{ margin: 0 }}>Play Locations</h2>
+              <span style={{ fontSize: 12, color: 'var(--muted-foreground)', marginLeft: 4 }}>
+                {mapPoints.length.toLocaleString()} plays on map
+              </span>
+            </div>
+
+            {/* Filters row */}
+            <div style={{
+              display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end',
+              marginBottom: 12, padding: '12px 16px',
+              background: 'var(--card)', borderRadius: '0.75rem',
+              border: '1px solid var(--border)',
+            }}>
+              <FilterSelect label="Campaign" value={mapCampaign} options={campaignOptions} onChange={setMapCampaign} />
+              <FilterSelect label="Group" value={mapGroup} options={groupOptions} onChange={setMapGroup} />
+              <FilterSelect label="Device" value={mapDevice} options={deviceOptions} onChange={setMapDevice} />
+
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label style={{ fontSize: 11, color: 'var(--muted-foreground)', display: 'block', marginBottom: 4 }}>
+                  Time of day: {formatHour(hourRange[0])} — {formatHour(hourRange[1])}
+                </label>
+                <RangeSlider min={0} max={23} value={hourRange} onChange={setHourRange} />
+              </div>
+            </div>
+
+            <div style={{
+              height: 480, borderRadius: '0.75rem', overflow: 'hidden',
+              border: '1px solid var(--border)',
+            }}>
+              <StatsMapView points={mapPoints} showDistricts />
             </div>
           </>
         )}
