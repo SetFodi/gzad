@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -164,7 +164,64 @@ body {
     background-color: var(--background);
     color: var(--foreground);
     overflow-x: hidden;
+    font-feature-settings: "ss01", "cv11", "calt";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
+
+/* Editorial serif — used by Tailwind's font-serif utility on italic accents */
+.font-serif,
+.font-serif *,
+[class*="font-serif"] {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    letter-spacing: -0.015em;
+}
+
+/* Soft, luxurious selection */
+::selection {
+    background: rgba(22, 101, 52, 0.14);
+    color: #14532D;
+}
+.dark ::selection {
+    background: rgba(16, 185, 129, 0.22);
+    color: #D1FAE5;
+}
+
+/* Refined ornamental separator used in stats & section dividers */
+.ornament-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 9999px;
+    background: currentColor;
+    opacity: 0.5;
+    display: inline-block;
+}
+
+/* Shimmering underline used on nav links */
+@keyframes lux-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Slow float for decorative elements */
+@keyframes lux-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+}
+.lux-float { animation: lux-float 6s ease-in-out infinite; }
+
+/* Soft fade-in sheen for cards */
+@keyframes lux-sheen {
+    0% { transform: translateX(-120%) skewX(-20deg); }
+    100% { transform: translateX(220%) skewX(-20deg); }
+}
+
+/* Elegant gold/brass accent tone (used sparingly) */
+:root { --brass: #B7935A; }
+.dark { --brass: #D4B27A; }
 
 /* Georgian Font Override */
 .lang-ge,
