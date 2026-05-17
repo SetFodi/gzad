@@ -10,6 +10,7 @@ export const translations = {
             getStarted: "Get Started"
         },
         hero: {
+            eyebrow: "The Premium DOOH Network",
             titlePrefix: "Turn Every Taxi Into a",
             titleGradient: "Moving Billboard",
             description: "Georgia's mobile digital advertising network. Reach thousands of customers daily with GPS-targeted LED displays on Tbilisi's taxi fleet.",
@@ -25,7 +26,12 @@ export const translations = {
                 gpsDesc: "Show ads by location",
                 realtime: "Real-Time Updates",
                 realtimeDesc: "Change ads instantly"
-            }
+            },
+            marqueeAds: [
+                { eyebrow: "Open Until 02:00", brand: "Kafe Oaza", tagline: "Rustaveli 12 · Tbilisi" },
+                { eyebrow: "Wine Flights Nightly", brand: "Marani", tagline: "Vake · Reservations recommended" },
+                { eyebrow: "Your Brand Here", brand: "Gzad", tagline: "Reach 50K+ daily impressions" }
+            ]
         },
         problem: {
             titlePrefix: "The Problem with",
@@ -161,6 +167,7 @@ export const translations = {
             ]
         },
         pricing: {
+            eyebrow: "Bespoke Packages",
             titlePrefix: "Simple,",
             titleGradient: "Flexible Pricing",
             subtitle: "Choose the perfect package for your needs or customize your own.",
@@ -298,6 +305,7 @@ export const translations = {
             ]
         },
         cta: {
+            eyebrow: "Ready When You Are",
             titlePrefix: "Ready to",
             titleGradient: "Get Started?",
             description: "Join Georgia's mobile digital advertising network. Whether you want to advertise your business or earn extra income as a driver, we're here to help.",
@@ -520,6 +528,7 @@ export const translations = {
             getStarted: "დაწყება"
         },
         hero: {
+            eyebrow: "პრემიუმ DOOH ქსელი",
             titlePrefix: "აქციე თითოეული ტაქსი",
             titleGradient: "მოძრავ ბილბორდად",
             description: "საქართველოს მობილური ციფრული სარეკლამო ქსელი. მიწვდით ათასობით მომხმარებელს ყოველდღიურად GPS-ით ტარგეტირებული LED ეკრანებით თბილისის ტაქსებზე.",
@@ -535,7 +544,12 @@ export const translations = {
                 gpsDesc: "ლოკაციის მიხედვით",
                 realtime: "LIVე განახლება",
                 realtimeDesc: "შეცვალე რეკლამა მყისიერად"
-            }
+            },
+            marqueeAds: [
+                { eyebrow: "ღიაა 02:00-მდე", brand: "Kafe Oaza", tagline: "რუსთაველი 12 · თბილისი" },
+                { eyebrow: "ღვინის საღამოები", brand: "Marani", tagline: "ვაკე · დაჯავშნა აუცილებელია" },
+                { eyebrow: "შენი ბრენდი აქ", brand: "Gzad", tagline: "50K+ დღიური ნახვა" }
+            ]
         },
         problem: {
             titlePrefix: "პრობლემა",
@@ -671,6 +685,7 @@ export const translations = {
             ]
         },
         pricing: {
+            eyebrow: "ინდივიდუალური პაკეტები",
             titlePrefix: "მარტივი,",
             titleGradient: "მოქნილი ფასები",
             subtitle: "აირჩიეთ სტანდარტული პაკეტი ან შექმენით თქვენი საკუთარი.",
@@ -808,6 +823,7 @@ export const translations = {
             ]
         },
         cta: {
+            eyebrow: "მზად ვართ შენთვის",
             titlePrefix: "მზად ხარ",
             titleGradient: "დასაწყებად?",
             description: "შემოუერთდი საქართველოს ციფრულ სარეკლამო ქსელს. გინდა რეკლამა თუ დამატებითი შემოსავალი - ჩვენ დაგეხმარებით.",

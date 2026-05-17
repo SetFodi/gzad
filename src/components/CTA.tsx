@@ -45,14 +45,14 @@ export default function CTA() {
           >
             <Link
               href="mailto:hello@gzad.ge"
-              className="inline-flex items-center gap-2 px-6 py-3.5 bg-[#CCF381] text-black font-bold rounded-xl hover:shadow-[0_8px_32px_rgba(204,243,129,0.5)] transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110"
+              className="inline-flex items-center gap-2 px-6 py-3.5 bg-[#810B38] text-[#F1E2D1] font-bold rounded-xl hover:shadow-[0_8px_32px_rgba(129,11,56,0.5)] transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110"
             >
               <Mail size={18} />
               Contact Us
             </Link>
             <Link
               href="tel:+995555123456"
-              className="inline-flex items-center gap-2 px-6 py-3.5 bg-black text-[#CCF381] border border-[#CCF381] font-bold rounded-xl hover:bg-[#CCF381] hover:text-black hover:shadow-[0_0_20px_rgba(204,243,129,0.4)] transition-all duration-300 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-6 py-3.5 bg-[#541A1A] text-[#810B38] border border-[#810B38] font-bold rounded-xl hover:bg-[#810B38] hover:text-[#F1E2D1] hover:shadow-[0_0_20px_rgba(129,11,56,0.4)] transition-all duration-300 hover:-translate-y-0.5"
             >
               <Phone size={18} />
               Call Us
