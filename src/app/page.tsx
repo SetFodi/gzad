@@ -2,779 +2,746 @@
 
 import { useState, useEffect } from 'react';
 import { translations } from './translations';
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
-  const [activeTab, setActiveTab] = useState('advertisers');
+  const [activeTab, setActiveTab] = useState<'advertisers' | 'drivers'>('advertisers');
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [adIndex, setAdIndex] = useState(0);
   const [lang, setLang] = useState<'en' | 'ge'>('en');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
-    // Check local storage or system memory
     const savedTheme = localStorage.getItem('gzad-theme');
-    if (savedTheme) {
-      setTheme(savedTheme as 'light' | 'dark');
-    }
+    if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
   }, []);
 
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('gzad-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle('lang-ge', lang === 'ge');
+  }, [lang]);
 
   const t = translations[lang];
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    if (lang === 'ge') {
-      document.body.classList.add('lang-ge');
-    } else {
-      document.body.classList.remove('lang-ge');
-    }
-  }, [lang]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setAdIndex((i) => (i + 1) % t.hero.marqueeAds.length);
-    }, 5000);
-    return () => clearInterval(interval);
+    const id = setInterval(() => setAdIndex((i) => (i + 1) % t.hero.marqueeAds.length), 5200);
+    return () => clearInterval(id);
   }, [t.hero.marqueeAds.length]);
 
-  const toggleFaq = (index: number) => {
-    setActiveFaq(activeFaq === index ? null : index);
-  };
-
   const fadeIn = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 1.2 } }
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { duration: 1, ease: [0.22, 1, 0.36, 1] as const } },
+  };
+  const stagger = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.14 } },
   };
 
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
+  const SunIcon = (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  );
+  const MoonIcon = (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+
+  const navItems = [
+    { href: '#how-it-works', label: t.nav.howItWorks },
+    { href: '#advertisers', label: t.nav.advertisers },
+    { href: '#drivers', label: t.nav.drivers },
+    { href: '#faq', label: t.nav.faq },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#F1E2D1] dark:bg-[#541A1A] text-[#541A1A] dark:text-[#F1E2D1] selection:bg-[#810B38]/20 dark:selection:bg-[#810B38]/40 selection:text-[#810B38] dark:selection:text-[#F1E2D1] overflow-hidden font-sans font-light transition-colors duration-500">
-      
-<<<<<<< HEAD
-      {/* Navbar — refined boutique */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'bg-[#F1E2D1]/95 dark:bg-[#541A1A]/95 backdrop-blur-md border-b border-[#DCC3AA] dark:border-[#DCC3AA]/20 py-4' : 'bg-transparent py-7'}`}>
-=======
-      {/* Refined Ambient Light (Hardware Accelerated) */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[#166534] dark:bg-emerald-900 opacity-[0.03] dark:opacity-[0.05] blur-[100px] dark:blur-[150px] pointer-events-none rounded-full transform-gpu will-change-transform transition-all duration-700" />
-      
-      {/* PERFECTED FULL-WIDTH NAVBAR (LIGHT MODE) */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-700 ${scrolled ? 'bg-white/80 dark:bg-black/70 backdrop-blur-2xl border-b border-[#E5E0D8]/70 dark:border-white/10 py-4 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_rgba(28,26,25,0.04)]' : 'bg-transparent py-8'}`}>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-12 flex items-center justify-between">
+    <div className="min-h-screen bg-[#F1E2D1] dark:bg-[#160606] text-[#541A1A] dark:text-[#F1E2D1] overflow-x-hidden font-sans font-light transition-colors duration-500">
 
-          {/* Left Flex: Logo */}
-          <div className="flex-1 flex justify-start">
-<<<<<<< HEAD
-            <a href="#" className="flex items-center gap-2.5 group">
-              <span className="font-serif italic text-2xl tracking-tight text-[#541A1A] dark:text-[#F1E2D1]">Gzad</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#810B38] dark:bg-[#DCC3AA] group-hover:scale-150 transition-transform duration-300" />
-=======
-            <a href="#" className="flex items-center gap-3 group">
-              <span className="text-2xl font-bold tracking-[-0.04em] text-[#1C1A19] dark:text-[#FAFAFA]">G<span className="font-serif italic font-light text-[#166534] dark:text-emerald-400">z</span>ad</span>
-              <span className="relative w-1.5 h-1.5 rounded-full bg-[#166534] dark:bg-emerald-500 group-hover:scale-150 transition-transform duration-500 shadow-[0_0_10px_rgba(22,101,52,0.45)]">
-                <span className="absolute inset-0 rounded-full bg-[#166534] dark:bg-emerald-500 opacity-60 group-hover:animate-ping" />
-              </span>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-            </a>
-          </div>
+      {/* ─────────────────────── NAVBAR ─────────────────────── */}
+      <nav
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
+          scrolled
+            ? 'bg-[#F1E2D1]/85 dark:bg-[#160606]/85 backdrop-blur-xl border-b border-[#DCC3AA]/60 dark:border-[#D6A569]/15 py-3.5'
+            : 'bg-transparent py-6'
+        }`}
+      >
+        <div className="max-w-[1320px] mx-auto px-6 lg:px-10 grid grid-cols-[auto_1fr_auto] items-center gap-4 lg:gap-6">
 
-          {/* Center Flex: Links */}
-<<<<<<< HEAD
-          <ul className="hidden lg:flex flex-1 justify-center items-center gap-10 text-[12px] font-medium tracking-[0.15em] uppercase text-[#541A1A]/80 dark:text-[#DCC3AA]">
-            <li><a href="#how-it-works" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300">{t.nav.howItWorks}</a></li>
-            <li><a href="#advertisers" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300">{t.nav.advertisers}</a></li>
-            <li><a href="#drivers" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300">{t.nav.drivers}</a></li>
-            <li><a href="#pricing" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300">{t.nav.pricing}</a></li>
+          {/* Logo */}
+          <a href="#" className="flex items-center gap-2.5 group shrink-0">
+            <span className="font-serif italic text-[26px] tracking-tight text-[#541A1A] dark:text-[#F1E2D1] leading-none">Gzad</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#810B38] dark:bg-[#D6A569] transition-transform duration-300 group-hover:scale-150" />
+          </a>
+
+          {/* Center Links — in document flow so layout reflows in GE */}
+          <ul
+            className={`${
+              lang === 'ge' ? 'hidden xl:flex gap-6' : 'hidden lg:flex gap-7 xl:gap-9'
+            } justify-center items-center text-[11.5px] font-semibold tracking-[0.16em] xl:tracking-[0.18em] uppercase text-[#541A1A]/75 dark:text-[#DCC3AA]`}
+          >
+            {navItems.map((n) => (
+              <li key={n.href}>
+                <a href={n.href} className="nav-link whitespace-nowrap hover:text-[#810B38] dark:hover:text-[#D6A569]">
+                  {n.label}
+                </a>
+              </li>
+            ))}
           </ul>
 
-          {/* Right Flex: Actions */}
-          <div className="flex-1 flex justify-end items-center gap-6">
-            <div lang="en" className="flex items-center gap-3 text-[11px] font-semibold tracking-[0.2em] text-[#541A1A]/70 dark:text-[#DCC3AA]">
-              <button
-                lang="en"
-                onClick={() => setLang('en')}
-                className={`transition-all duration-300 pb-0.5 border-b ${lang === 'en' ? 'border-[#810B38] text-[#810B38] dark:border-[#DCC3AA] dark:text-[#DCC3AA]' : 'border-transparent hover:text-[#541A1A] dark:hover:text-[#F1E2D1]'}`}
-              >
-                EN
-              </button>
-              <span lang="en" className="text-[#DCC3AA]">·</span>
-              <button
-                lang="en"
-                onClick={() => setLang('ge')}
-                className={`transition-all duration-300 pb-0.5 border-b ${lang === 'ge' ? 'border-[#810B38] text-[#810B38] dark:border-[#DCC3AA] dark:text-[#DCC3AA]' : 'border-transparent hover:text-[#541A1A] dark:hover:text-[#F1E2D1]'}`}
-=======
-          <ul className="hidden lg:flex flex-1 justify-center items-center gap-10 text-[12.5px] font-medium tracking-[0.02em] text-[#6B6561] dark:text-zinc-400">
-            <li><a href="#how-it-works" className="relative inline-block hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 after:content-[''] after:absolute after:left-0 after:right-0 after:-bottom-1.5 after:mx-auto after:h-px after:w-0 after:bg-[#166534] dark:after:bg-emerald-400 after:transition-all after:duration-500 hover:after:w-full">{t.nav.howItWorks}</a></li>
-            <li><a href="#advertisers" className="relative inline-block hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 after:content-[''] after:absolute after:left-0 after:right-0 after:-bottom-1.5 after:mx-auto after:h-px after:w-0 after:bg-[#166534] dark:after:bg-emerald-400 after:transition-all after:duration-500 hover:after:w-full">{t.nav.advertisers}</a></li>
-            <li><a href="#drivers" className="relative inline-block hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 after:content-[''] after:absolute after:left-0 after:right-0 after:-bottom-1.5 after:mx-auto after:h-px after:w-0 after:bg-[#166534] dark:after:bg-emerald-400 after:transition-all after:duration-500 hover:after:w-full">{t.nav.drivers}</a></li>
-            <li><a href="#pricing" className="relative inline-block hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 after:content-[''] after:absolute after:left-0 after:right-0 after:-bottom-1.5 after:mx-auto after:h-px after:w-0 after:bg-[#166534] dark:after:bg-emerald-400 after:transition-all after:duration-500 hover:after:w-full">{t.nav.pricing}</a></li>
-          </ul>
+          {/* Right cluster */}
+          <div className={`flex items-center ${lang === 'ge' ? 'gap-3.5 lg:gap-4' : 'gap-5'} shrink-0 justify-self-end`}>
 
-          {/* Right Flex: Actions */}
-          <div className="flex-1 flex justify-end items-center gap-8">
-            <div className="flex items-center gap-3 text-[10.5px] font-bold tracking-[0.2em] text-[#8C857E] dark:text-zinc-500">
+            {/* Language */}
+            <div className="hidden sm:flex items-center gap-2.5 text-[11px] font-semibold tracking-[0.22em]" lang="en">
               <button
                 onClick={() => setLang('en')}
-                className={`transition-all duration-300 ${lang === 'en' ? 'text-[#166534] dark:text-emerald-400' : 'text-[#8C857E] dark:text-zinc-500 hover:text-[#1C1A19] dark:hover:text-white'}`}
-              >
-                EN
-              </button>
-              <span className="w-px h-3 bg-[#E5E0D8] dark:bg-white/15" />
+                className={`pb-0.5 border-b transition-colors duration-200 ${
+                  lang === 'en'
+                    ? 'border-[#810B38] text-[#810B38] dark:border-[#D6A569] dark:text-[#D6A569]'
+                    : 'border-transparent text-[#541A1A]/55 dark:text-[#DCC3AA]/70 hover:text-[#541A1A] dark:hover:text-[#F1E2D1]'
+                }`}
+              >EN</button>
+              <span className="text-[#DCC3AA] dark:text-[#D6A569]/40 select-none">·</span>
               <button
                 onClick={() => setLang('ge')}
-                className={`transition-all duration-300 ${lang === 'ge' ? 'text-[#166534] dark:text-emerald-400' : 'text-[#8C857E] dark:text-zinc-500 hover:text-[#1C1A19] dark:hover:text-white'}`}
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-              >
-                GE
-              </button>
+                className={`pb-0.5 border-b transition-colors duration-200 ${
+                  lang === 'ge'
+                    ? 'border-[#810B38] text-[#810B38] dark:border-[#D6A569] dark:text-[#D6A569]'
+                    : 'border-transparent text-[#541A1A]/55 dark:text-[#DCC3AA]/70 hover:text-[#541A1A] dark:hover:text-[#F1E2D1]'
+                }`}
+              >GE</button>
             </div>
 
-            {/* Theme Toggle */}
+            {/* Theme */}
             <button
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-<<<<<<< HEAD
-              className="w-9 h-9 border border-[#541A1A]/20 dark:border-[#DCC3AA]/30 flex items-center justify-center text-[#810B38] dark:text-[#DCC3AA] hover:bg-[#810B38] hover:text-[#F1E2D1] hover:border-[#810B38] dark:hover:bg-[#DCC3AA] dark:hover:text-[#541A1A] transition-colors duration-300"
-=======
-              className="relative w-10 h-10 rounded-full bg-white dark:bg-[#0A0A0A] border border-[#E5E0D8] dark:border-white/10 flex items-center justify-center text-[#8C857E] dark:text-zinc-400 hover:text-[#166534] dark:hover:text-emerald-400 hover:border-[#166534]/30 dark:hover:border-emerald-500/30 transition-all duration-500 overflow-hidden"
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-              aria-label="Toggle Theme"
+              className="w-9 h-9 border border-[#541A1A]/25 dark:border-[#D6A569]/30 flex items-center justify-center text-[#810B38] dark:text-[#D6A569] hover:bg-[#810B38] hover:text-[#F1E2D1] hover:border-[#810B38] dark:hover:bg-[#D6A569] dark:hover:text-[#160606] dark:hover:border-[#D6A569] transition-colors duration-300"
+              aria-label="Toggle theme"
             >
-              <span className="absolute inset-0 bg-gradient-to-br from-[#166534]/0 to-[#166534]/[0.06] dark:from-emerald-500/0 dark:to-emerald-500/[0.08] opacity-0 hover:opacity-100 transition-opacity duration-500" />
-              {theme === 'light' ? (
-<<<<<<< HEAD
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-=======
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="relative"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-              ) : (
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="relative"><circle cx="12" cy="12" r="4.5"></circle><line x1="12" y1="1.5" x2="12" y2="3.5"></line><line x1="12" y1="20.5" x2="12" y2="22.5"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1.5" y1="12" x2="3.5" y2="12"></line><line x1="20.5" y1="12" x2="22.5" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-              )}
+              {theme === 'light' ? MoonIcon : SunIcon}
             </button>
 
-            {/* Login Button */}
-<<<<<<< HEAD
-            <a href="/portal/login" className="hidden lg:inline-flex items-center justify-center text-[#541A1A]/75 dark:text-[#DCC3AA] text-[12px] font-medium tracking-[0.15em] uppercase hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300">
-=======
-            <a href="/portal/login" className="hidden lg:inline-flex items-center justify-center px-5 py-2.5 text-[#6B6561] dark:text-zinc-400 text-[12.5px] font-medium tracking-[0.04em] hover:text-[#166534] dark:hover:text-emerald-400 transition-all duration-300">
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
+            {/* Login */}
+            <a
+              href="/portal/login"
+              className="hidden md:inline-flex nav-link items-center text-[#541A1A]/75 dark:text-[#DCC3AA] text-[11.5px] font-semibold tracking-[0.18em] uppercase hover:text-[#810B38] dark:hover:text-[#D6A569] transition-colors duration-300"
+            >
               {lang === 'en' ? 'Log In' : 'შესვლა'}
             </a>
 
-            {/* Fleet Signup Button */}
-<<<<<<< HEAD
-            <a href="/portal/fleet-signup" className="hidden lg:inline-flex items-center justify-center px-6 py-2.5 bg-[#810B38] dark:bg-[#810B38] text-[#F1E2D1] text-[11px] font-semibold tracking-[0.25em] uppercase hover:bg-[#541A1A] dark:hover:bg-[#DCC3AA] dark:hover:text-[#541A1A] transition-colors duration-300">
-=======
-            <a href="/portal/fleet-signup" className="hidden lg:inline-flex items-center justify-center px-7 py-2.5 bg-white dark:bg-black/60 border border-[#E5E0D8] dark:border-white/10 text-[#166534] dark:text-emerald-400 text-[12.5px] font-semibold tracking-[0.04em] rounded-full hover:bg-[#166534] dark:hover:bg-emerald-400 hover:text-white dark:hover:text-[#050505] hover:border-[#166534] dark:hover:border-emerald-400 transition-all duration-500 shadow-[0_4px_14px_rgba(28,26,25,0.04)] hover:shadow-[0_12px_28px_rgba(22,101,52,0.24)] dark:hover:shadow-[0_12px_28px_rgba(16,185,129,0.28)]">
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
+            {/* Signup */}
+            <a
+              href="/portal/fleet-signup"
+              className="hidden md:inline-flex items-center justify-center px-5 py-2.5 bg-[#810B38] dark:bg-[#D6A569] text-[#F1E2D1] dark:text-[#160606] text-[10.5px] font-bold tracking-[0.24em] uppercase hover:bg-[#541A1A] dark:hover:bg-[#F1E2D1] transition-colors duration-300"
+            >
               {lang === 'en' ? 'Sign Up' : 'რეგისტრაცია'}
             </a>
           </div>
-
         </div>
       </nav>
 
-      {/* Hero Section */}
-<<<<<<< HEAD
-      <section className="relative paper-grain pt-24 pb-12 lg:pt-28 lg:pb-16 px-6 lg:px-12 max-w-[1200px] mx-auto z-10 flex flex-col items-center text-center">
-        <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="max-w-4xl mx-auto flex flex-col items-center relative z-10">
+      {/* ─────────────────────── HERO ─────────────────────── */}
+      <section className="relative paper-grain pt-24 lg:pt-28 pb-12 lg:pb-16 px-6 lg:px-12">
+        <div className="max-w-[1240px] mx-auto relative z-10">
 
-          <motion.h1 variants={fadeIn} className="text-5xl md:text-6xl lg:text-[80px] font-normal leading-[1.02] tracking-tight mb-8 text-[#541A1A] dark:text-[#F1E2D1] text-balance">
-            {t.hero.titlePrefix} <br className="hidden md:block"/>
-            <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA]">{t.hero.titleGradient}</span>
-          </motion.h1>
-
-          <motion.p variants={fadeIn} className="text-lg md:text-xl text-[#541A1A]/75 dark:text-[#DCC3AA] max-w-2xl font-light mb-12 leading-relaxed">
-            <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA]">— </span>{t.hero.description}
-          </motion.p>
-
-          <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-5 items-center">
-            <a href="#advertisers" className="px-10 py-4 bg-[#810B38] dark:bg-[#810B38] text-[#F1E2D1] font-semibold tracking-wide text-[13px] uppercase hover:bg-[#541A1A] dark:hover:bg-[#DCC3AA] dark:hover:text-[#541A1A] transition-colors duration-300">
-              {t.hero.startAdvertising}
-            </a>
-            <a href="#drivers" className="px-10 py-4 text-[#541A1A] dark:text-[#F1E2D1] font-semibold text-[13px] uppercase tracking-wide border border-[#541A1A]/30 dark:border-[#DCC3AA]/30 bg-transparent hover:bg-[#541A1A] hover:text-[#F1E2D1] dark:hover:bg-[#DCC3AA] dark:hover:text-[#541A1A] transition-colors duration-300 flex items-center gap-3 group">
-              {t.hero.becomeDriver}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="transform group-hover:translate-x-1 transition-transform duration-300">
-=======
-      <section className="relative pt-24 pb-12 lg:pt-28 lg:pb-16 px-6 lg:px-12 max-w-[1200px] mx-auto z-10 flex flex-col items-center text-center">
-        <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="max-w-4xl mx-auto flex flex-col items-center">
-          
-          <motion.div variants={fadeIn} className="mb-7">
-            <span className="inline-flex items-center gap-2.5 pl-2 pr-5 py-1.5 rounded-full border border-[#166534]/20 dark:border-emerald-500/20 bg-[#166534]/[0.04] dark:bg-emerald-500/[0.08] backdrop-blur-md text-[10.5px] font-bold tracking-[0.22em] text-[#166534] dark:text-emerald-400">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[#166534] dark:bg-emerald-400 opacity-60 animate-ping" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#166534] dark:bg-emerald-400" />
-              </span>
-              THE PREMIUM DOOH NETWORK
-            </span>
-          </motion.div>
-
-          <motion.h1 variants={fadeIn} className="text-[44px] md:text-6xl lg:text-[78px] font-medium leading-[1.02] tracking-[-0.035em] mb-7 text-[#1C1A19] dark:text-[#FAFAFA] text-balance">
-            {t.hero.titlePrefix} <br className="hidden md:block"/>
-            <span className="font-serif italic font-light text-[#166534] dark:text-emerald-400 pr-2">{t.hero.titleGradient}</span>
-          </motion.h1>
-
-          <motion.p variants={fadeIn} className="text-[17px] md:text-[19px] text-[#6B6561] dark:text-zinc-400 max-w-2xl font-light mb-10 leading-[1.65]">
-            {t.hero.description}
-          </motion.p>
-
-          <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-4 items-center">
-            <a href="#advertisers" className="group relative px-10 py-[15px] bg-[#166534] dark:bg-emerald-500 text-white rounded-full font-semibold tracking-[0.04em] text-[13.5px] hover:bg-[#14532D] dark:hover:bg-emerald-400 hover:-translate-y-[2px] transition-all duration-500 inline-flex items-center gap-2 shadow-[0_10px_30px_rgba(22,101,52,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_18px_44px_rgba(22,101,52,0.42)]">
-              <span>{t.hero.startAdvertising}</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transform group-hover:translate-x-0.5 transition-transform duration-500"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-            </a>
-            <a href="#drivers" className="px-10 py-[15px] text-[#1C1A19] dark:text-[#FAFAFA] font-medium text-[13.5px] tracking-[0.02em] border border-[#E5E0D8] dark:border-white/10 bg-white/80 dark:bg-black/60 rounded-full hover:border-[#166534]/40 dark:hover:border-emerald-500/50 hover:bg-[#166534]/[0.03] dark:hover:bg-emerald-500/[0.06] transition-all duration-500 inline-flex items-center gap-2 group backdrop-blur-sm shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_4px_14px_rgba(28,26,25,0.03)] hover:-translate-y-[2px]">
-              <span className="group-hover:text-[#166534] dark:group-hover:text-emerald-400 transition-colors duration-500">{t.hero.becomeDriver}</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="transform group-hover:translate-x-1 group-hover:text-[#166534] dark:group-hover:text-emerald-400 transition-all duration-500">
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </a>
-          </motion.div>
-        </motion.div>
-
-        {/* Vintage Marquee LED — Boutique signage style with rotating ad creative */}
-        <motion.div
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: 0.4 }}
-          className="w-full max-w-[680px] mx-auto mt-16 relative z-10"
-        >
-          {/* Top-mount brackets — minimal brass tabs */}
-          <div className="absolute -top-3 left-12 w-10 h-3 bg-gradient-to-b from-[#DCC3AA] to-[#810B38] rounded-t-sm" />
-          <div className="absolute -top-3 right-12 w-10 h-3 bg-gradient-to-b from-[#DCC3AA] to-[#810B38] rounded-t-sm" />
-
-          <div className="marquee-frame">
-            <div className="marquee-screen">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={adIndex}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.6 }}
-                  className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10"
-                >
-                  <span className="text-[9px] md:text-[10px] tracking-[0.4em] text-[#810B38] uppercase font-semibold">
-                    {t.hero.marqueeAds[adIndex].eyebrow}
-                  </span>
-                  <span className="mt-2 font-serif italic text-3xl md:text-5xl lg:text-6xl text-[#541A1A] leading-none">
-                    {t.hero.marqueeAds[adIndex].brand}
-                  </span>
-                  <span className="mt-3 text-[11px] md:text-sm text-[#810B38] tracking-wide font-light">
-                    {t.hero.marqueeAds[adIndex].tagline}
-                  </span>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-            <div className="flex items-center justify-between mt-3 px-2 text-[9px] text-[#DCC3AA]/80 tracking-[0.3em]">
-              <span>GZAD MATRIX&trade;</span>
-              <span className="flex items-center gap-1.5">
-                {t.hero.marqueeAds.map((_, i) => (
-                  <span key={i} className={`h-1 w-1 rounded-full transition-colors duration-500 ${i === adIndex ? 'bg-[#DCC3AA]' : 'bg-[#DCC3AA]/30'}`} />
-                ))}
-              </span>
-              <span>{String(adIndex + 1).padStart(2, '0')} / {String(t.hero.marqueeAds.length).padStart(2, '0')}</span>
-            </div>
-          </div>
-
-          {/* Soft cast shadow under marquee (warm, not pure black) */}
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[80%] h-8 bg-[#541A1A]/20 blur-2xl rounded-full pointer-events-none" />
-        </motion.div>
-      </section>
-
-<<<<<<< HEAD
-      {/* Stats — magazine pull-quote treatment */}
-      <section className="paper-grain py-28 border-y border-[#DCC3AA] dark:border-[#DCC3AA]/20 bg-[#F1E2D1]/40 dark:bg-[#541A1A] relative z-10">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 relative z-10">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-16 text-center divide-y md:divide-y-0 md:divide-x divide-[#DCC3AA] dark:divide-[#DCC3AA]/20">
-            <motion.div variants={fadeIn} className="pt-8 md:pt-0 flex flex-col items-center">
-              <span className="font-serif italic text-6xl md:text-7xl text-[#810B38] dark:text-[#DCC3AA] mb-4 leading-none">50K+</span>
-              <span className="text-[11px] font-semibold tracking-[0.3em] uppercase text-[#541A1A]/70 dark:text-[#DCC3AA]/80">{t.hero.stats.impressions}</span>
-            </motion.div>
-            <motion.div variants={fadeIn} className="pt-8 md:pt-0 flex flex-col items-center">
-              <span className="font-serif italic text-6xl md:text-7xl text-[#810B38] dark:text-[#DCC3AA] mb-4 leading-none">10x</span>
-              <span className="text-[11px] font-semibold tracking-[0.3em] uppercase text-[#541A1A]/70 dark:text-[#DCC3AA]/80">{t.hero.stats.cheaper}</span>
-            </motion.div>
-            <motion.div variants={fadeIn} className="pt-8 md:pt-0 flex flex-col items-center">
-              <span className="font-serif italic text-6xl md:text-7xl text-[#810B38] dark:text-[#DCC3AA] mb-4 leading-none">24/7</span>
-              <span className="text-[11px] font-semibold tracking-[0.3em] uppercase text-[#541A1A]/70 dark:text-[#DCC3AA]/80">{t.hero.stats.coverage}</span>
-=======
-      {/* Exquisite Stats Section (Light Version) */}
-      <section className="py-24 border-y border-[#E5E0D8] dark:border-white/10 bg-gradient-to-r from-transparent via-white dark:via-zinc-900 to-transparent relative z-10">
-        {/* Decorative top ornament */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3">
-          <span className="h-px w-10 bg-gradient-to-r from-transparent to-[#E5E0D8] dark:to-white/20" />
-          <span className="w-1 h-1 rounded-full bg-[#166534]/50 dark:bg-emerald-500/60" />
-          <span className="h-px w-10 bg-gradient-to-l from-transparent to-[#E5E0D8] dark:to-white/20" />
-        </div>
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 relative">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-16 text-center divide-y md:divide-y-0 md:divide-x divide-[#E5E0D8] dark:divide-white/10">
-            <motion.div variants={fadeIn} className="pt-8 md:pt-0 flex flex-col items-center">
-              <span className="font-serif text-6xl md:text-7xl font-light tracking-[-0.04em] text-[#1C1A19] dark:text-[#FAFAFA] mb-5 tabular-nums">50K<span className="text-[#166534]/70 dark:text-emerald-400/80 italic">+</span></span>
-              <span className="text-[10.5px] font-bold tracking-[0.28em] uppercase text-[#166534] dark:text-emerald-400">{t.hero.stats.impressions}</span>
-            </motion.div>
-            <motion.div variants={fadeIn} className="pt-8 md:pt-0 flex flex-col items-center">
-              <span className="font-serif text-6xl md:text-7xl font-light tracking-[-0.04em] text-[#1C1A19] dark:text-[#FAFAFA] mb-5 tabular-nums">10<span className="italic text-[#166534]/70 dark:text-emerald-400/80">x</span></span>
-              <span className="text-[10.5px] font-bold tracking-[0.28em] uppercase text-[#166534] dark:text-emerald-400">{t.hero.stats.cheaper}</span>
-            </motion.div>
-            <motion.div variants={fadeIn} className="pt-8 md:pt-0 flex flex-col items-center">
-              <span className="font-serif text-6xl md:text-7xl font-light tracking-[-0.04em] text-[#1C1A19] dark:text-[#FAFAFA] mb-5 tabular-nums">24<span className="text-[#166534]/40 dark:text-emerald-400/50">/</span>7</span>
-              <span className="text-[10.5px] font-bold tracking-[0.28em] uppercase text-[#166534] dark:text-emerald-400">{t.hero.stats.coverage}</span>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Problem — boutique editorial tiles */}
-      <section className="py-32 lg:py-44 px-6 lg:px-12 max-w-[1200px] mx-auto z-10 relative">
-        <motion.div className="mb-24 text-center max-w-3xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeIn}>
-<<<<<<< HEAD
-          <h2 className="text-4xl md:text-5xl font-normal tracking-tight mb-6 leading-tight text-[#541A1A] dark:text-[#F1E2D1]">
-            {t.problem.titlePrefix} <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA]">{t.problem.titleGradient}</span>
-          </h2>
-          <p className="text-lg text-[#541A1A]/70 dark:text-[#DCC3AA] font-light max-w-xl mx-auto">{t.problem.subtitle}</p>
-=======
-          <div className="inline-flex items-center gap-3 mb-6 text-[10.5px] font-bold tracking-[0.28em] uppercase text-[#8C857E] dark:text-zinc-500">
-            <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-            <span>01 — The Reality</span>
-            <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-          </div>
-          <h2 className="text-4xl md:text-[52px] font-medium tracking-[-0.03em] mb-6 leading-[1.08] text-[#1C1A19] dark:text-[#FAFAFA]">
-            {t.problem.titlePrefix} <span className="font-serif italic font-light text-[#8C857E] dark:text-zinc-500">{t.problem.titleGradient}</span>
-          </h2>
-          <p className="text-[17px] text-[#6B6561] dark:text-zinc-400 font-light max-w-xl mx-auto leading-[1.6]">{t.problem.subtitle}</p>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-        </motion.div>
-
-        <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-          {t.problem.cards.map((card, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ delay: i * 0.1, duration: 1 }}
-<<<<<<< HEAD
-              className="boutique-card p-10 lg:p-14 group"
+          {/* Centered headline + CTAs */}
+          <motion.div initial="hidden" animate="visible" variants={stagger} className="text-center max-w-5xl mx-auto">
+            <motion.h1
+              variants={fadeIn}
+              className="text-[40px] sm:text-[52px] lg:text-[64px] xl:text-[72px] font-normal leading-[0.98] tracking-[-0.025em] text-[#541A1A] dark:text-[#F1E2D1] text-balance mb-6"
             >
-              <div className="flex items-start justify-between mb-6">
-                <span className="font-serif italic text-3xl text-[#810B38] dark:text-[#DCC3AA] leading-none">
-                  {['I', 'II', 'III', 'IV'][i]}
-                </span>
-                <span className="text-[#810B38] dark:text-[#DCC3AA] opacity-60 group-hover:opacity-100 transition-opacity duration-500">
-=======
-              className="relative p-[1px] rounded-3xl bg-white dark:bg-black/60 border border-[#E5E0D8] dark:border-white/10 overflow-hidden group hover:border-[#166534]/30 dark:hover:border-emerald-500/30 hover:-translate-y-1.5 transition-all duration-700 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_10px_30px_rgba(28,26,25,0.03)] hover:shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_24px_48px_rgba(22,101,52,0.08)]"
+              {t.hero.titlePrefix}{' '}
+              <span className="font-serif italic font-light text-[#810B38] dark:text-[#D6A569]">
+                {t.hero.titleGradient}
+              </span>
+              <span className="inline-block w-2 h-2 rounded-full bg-[#810B38] dark:bg-[#D6A569] align-baseline ml-1.5 -translate-y-2" />
+            </motion.h1>
+
+            <motion.p
+              variants={fadeIn}
+              className="text-[15.5px] md:text-[17px] text-[#541A1A]/72 dark:text-[#DCC3AA]/90 font-light max-w-2xl mx-auto mb-7 leading-[1.6]"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-[#166534]/0 via-transparent to-[#166534]/[0.04] dark:from-emerald-500/0 dark:to-emerald-500/[0.05] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-              <div className="relative h-full bg-white dark:bg-black/60 rounded-[23px] p-10 lg:p-14">
-                <div className="w-14 h-14 rounded-2xl bg-[#FDFBF7] dark:bg-[#050505] border border-[#E5E0D8] dark:border-white/10 flex items-center justify-center text-[#166534] dark:text-emerald-400 mb-8 relative z-10 group-hover:-translate-y-1 group-hover:border-[#166534]/30 dark:group-hover:border-emerald-500/30 transition-all duration-500 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_4px_12px_rgba(28,26,25,0.04)]">
-                  <div className="absolute inset-0 bg-[#166534]/10 dark:bg-emerald-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-                  {[
-                    <svg key="0" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
-                    <svg key="1" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>,
-                    <svg key="2" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
-                    <svg key="3" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                  ][i]}
-<<<<<<< HEAD
-                </span>
-=======
-                </div>
-                <h3 className="text-[21px] font-medium tracking-[-0.015em] mb-4 relative z-10 text-[#1C1A19] dark:text-[#FAFAFA]">{card.title}</h3>
-                <p className="text-[#6B6561] dark:text-zinc-400 font-light leading-[1.65] relative z-10 text-[15px]">{card.desc}</p>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-              </div>
-              <div className="h-px bg-[#DCC3AA] dark:bg-[#DCC3AA]/30 w-12 mb-6" />
-              <h3 className="text-2xl font-normal tracking-tight mb-4 text-[#541A1A] dark:text-[#F1E2D1]">{card.title}</h3>
-              <p className="text-[#541A1A]/75 dark:text-[#DCC3AA] font-light leading-relaxed">{card.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Solution Section */}
-      <section id="how-it-works" className="py-24 lg:py-32 px-6 lg:px-12 max-w-[1200px] mx-auto z-10 relative">
-        <div className="grid lg:grid-cols-2 gap-20 items-center">
-          
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer} className="order-2 lg:order-1 relative">
-            {/* Phone mockup — brass-frame boutique treatment */}
-            <motion.div variants={fadeIn} className="w-full max-w-[320px] mx-auto lg:mx-0 aspect-[9/19] rounded-[40px] p-[3px] relative" style={{ background: 'linear-gradient(180deg, #DCC3AA 0%, #810B38 100%)', boxShadow: '0 40px 70px -20px rgba(84, 26, 26, 0.25)' }}>
-              <div className="w-full h-full rounded-[38px] bg-[#F1E2D1] dark:bg-[#541A1A] paper-grain overflow-hidden relative flex flex-col">
-                <div className="absolute top-0 w-full h-7 flex justify-center z-50">
-                  <div className="w-24 h-6 bg-[#541A1A] dark:bg-[#810B38] rounded-b-3xl" />
-                </div>
-
-                <div className="flex-1 pt-14 p-6 flex flex-col relative z-10">
-
-                  <span className="text-[10px] tracking-[0.3em] text-[#810B38] dark:text-[#DCC3AA] uppercase font-semibold mb-2">{t.solution.dashboard.subtitle}</span>
-                  <h3 className="font-serif italic text-2xl text-[#541A1A] dark:text-[#F1E2D1] mb-1 leading-none">{t.solution.dashboard.title}</h3>
-                  <div className="h-px w-10 bg-[#810B38] dark:bg-[#DCC3AA] mt-3 mb-6" />
-
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div className="boutique-card p-4">
-                      <div className="font-serif italic text-2xl text-[#810B38] dark:text-[#DCC3AA] mb-1 leading-none">12.4K</div>
-                      <div className="text-[9px] text-[#541A1A]/70 dark:text-[#DCC3AA]/80 uppercase tracking-[0.25em] font-semibold">{t.solution.dashboard.impressions}</div>
-                    </div>
-                    <div className="boutique-card p-4">
-                      <div className="font-serif italic text-2xl text-[#810B38] dark:text-[#DCC3AA] mb-1 leading-none">8</div>
-                      <div className="text-[9px] text-[#541A1A]/70 dark:text-[#DCC3AA]/80 uppercase tracking-[0.25em] font-semibold">{t.solution.dashboard.activeTaxis}</div>
-                    </div>
-                    <div className="boutique-card p-4">
-                      <div className="font-serif italic text-2xl text-[#810B38] dark:text-[#DCC3AA] mb-1 leading-none">₾142</div>
-                      <div className="text-[9px] text-[#541A1A]/70 dark:text-[#DCC3AA]/80 uppercase tracking-[0.25em] font-semibold">{t.solution.dashboard.spent}</div>
-                    </div>
-                    <div className="boutique-card p-4 !bg-[#810B38] dark:!bg-[#810B38]" style={{ borderColor: '#541A1A' }}>
-                      <div className="font-serif italic text-2xl text-[#F1E2D1] mb-1 leading-none">4.2x</div>
-                      <div className="text-[9px] text-[#F1E2D1]/80 uppercase tracking-[0.25em] font-semibold">{t.solution.dashboard.vsBillboard}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 boutique-card relative overflow-hidden flex flex-col items-center justify-center">
-                    <span className="absolute top-3 left-4 text-[#541A1A]/70 dark:text-[#DCC3AA]/80 text-[9px] tracking-[0.3em] font-semibold uppercase">Live Map</span>
-                    <div className="w-3 h-3 bg-[#810B38] rounded-full ring-2 ring-[#DCC3AA] ring-offset-2 ring-offset-[#F1E2D1] dark:ring-offset-[#541A1A]" />
-                    <span className="absolute bottom-3 right-4 text-[#541A1A]/40 dark:text-[#DCC3AA]/50 text-[9px] tracking-widest">Tbilisi</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer} className="order-1 lg:order-2">
-<<<<<<< HEAD
-            <motion.h2 variants={fadeIn} className="text-4xl md:text-5xl font-normal tracking-tight mb-6 leading-tight text-[#541A1A] dark:text-[#F1E2D1]">
-              {t.solution.titlePrefix} <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA] block pb-2">{t.solution.titleGradient}</span> <span className="text-[#541A1A]/70 dark:text-[#DCC3AA]">{t.solution.titleSuffix}</span>
-            </motion.h2>
-            <motion.p variants={fadeIn} className="text-lg text-[#541A1A]/75 dark:text-[#DCC3AA] font-light mb-16 leading-relaxed max-w-lg">
-              <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA]">— </span>{t.solution.description}
+              <span className="font-serif italic text-[#810B38] dark:text-[#D6A569]">— </span>
+              {t.hero.description}
             </motion.p>
 
-            <div className="flex flex-col">
-              {t.solution.features.map((feature, i) => (
-                <motion.div key={i} variants={fadeIn} className="flex gap-8 items-start group py-6 border-t border-[#DCC3AA] dark:border-[#DCC3AA]/20 first:border-t-0">
-                  <div className="w-11 h-11 rounded-full border border-[#810B38] dark:border-[#DCC3AA]/50 flex items-center justify-center text-[#810B38] dark:text-[#DCC3AA] shrink-0 transition-all duration-300 group-hover:bg-[#810B38] group-hover:text-[#F1E2D1] dark:group-hover:bg-[#DCC3AA] dark:group-hover:text-[#541A1A]">
-=======
-            <motion.div variants={fadeIn} className="inline-flex items-center gap-3 mb-6 text-[10.5px] font-bold tracking-[0.28em] uppercase text-[#166534] dark:text-emerald-400">
-              <span className="h-px w-6 bg-[#166534]/40 dark:bg-emerald-400/40" />
-              <span>02 — The Platform</span>
+            <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-3.5 items-center justify-center">
+              <a
+                href="mailto:gzadvertisment@gmail.com"
+                className="group inline-flex items-center justify-center gap-3 px-8 py-[13px] bg-[#810B38] dark:bg-[#D6A569] text-[#F1E2D1] dark:text-[#160606] font-bold tracking-[0.22em] uppercase text-[11.5px] hover:bg-[#541A1A] dark:hover:bg-[#F1E2D1] transition-colors duration-300"
+              >
+                {t.hero.startAdvertising}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform duration-300 group-hover:translate-x-1">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </a>
+              <a
+                href="#drivers"
+                className="inline-flex items-center justify-center px-8 py-[13px] border border-[#541A1A]/40 dark:border-[#D6A569]/40 text-[#541A1A] dark:text-[#F1E2D1] font-bold tracking-[0.22em] uppercase text-[11.5px] hover:bg-[#541A1A] hover:text-[#F1E2D1] hover:border-[#541A1A] dark:hover:bg-[#D6A569] dark:hover:text-[#160606] dark:hover:border-[#D6A569] transition-colors duration-300"
+              >
+                {t.hero.becomeDriver}
+              </a>
             </motion.div>
-            <motion.h2 variants={fadeIn} className="text-4xl md:text-[52px] font-medium tracking-[-0.03em] mb-6 leading-[1.08] text-[#1C1A19] dark:text-[#FAFAFA]">
-              {t.solution.titlePrefix} <span className="font-serif italic font-light text-[#166534] dark:text-emerald-400 block pb-1">{t.solution.titleGradient}</span> <span className="text-[#8C857E] dark:text-zinc-500">{t.solution.titleSuffix}</span>
+          </motion.div>
+
+          {/* ─── Realistic Taxi-Top LED Marquee — pure hardware ─── */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.1, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-[720px] mx-auto mt-24 lg:mt-28 relative"
+          >
+            <div className="marquee-frame">
+              {/* Center mounting clamp (U-bracket) */}
+              <div className="marquee-clamp" />
+
+              {/* Frame screws — 4 corners */}
+              <div className="absolute top-2 left-3 led-screw" />
+              <div className="absolute top-2 right-3 led-screw" />
+              <div className="absolute bottom-2 left-3 led-screw" />
+              <div className="absolute bottom-2 right-3 led-screw" />
+
+              {/* Power indicator LED */}
+              <span className="led-power" />
+
+              {/* Screen */}
+              <div className="marquee-screen">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={adIndex}
+                    initial={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: -6, filter: 'blur(2px)' }}
+                    transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0 flex flex-col items-center justify-center px-6 z-[6]"
+                  >
+                    <span className="led-text-sub text-[9px] md:text-[10.5px] tracking-[0.42em] uppercase font-semibold">
+                      {t.hero.marqueeAds[adIndex].eyebrow}
+                    </span>
+                    <span className="led-text-bright mt-1 font-serif italic text-[34px] md:text-[54px] lg:text-[64px] leading-none">
+                      {t.hero.marqueeAds[adIndex].brand}
+                    </span>
+                    {t.hero.marqueeAds[adIndex].tagline && (
+                      <span className="led-text mt-2 text-[10.5px] md:text-[13px] tracking-[0.14em] font-light">
+                        {t.hero.marqueeAds[adIndex].tagline}
+                      </span>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Module seams (real P4 panels are tiled 16×16 modules) + acrylic glass overlay */}
+                <div className="marquee-modules" />
+                <div className="marquee-glass" />
+              </div>
+            </div>
+
+            {/* Cast shadow */}
+            <div className="led-cast-shadow" />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─────────────────────── ON THE RECORD — founders' note ─────────────────────── */}
+      <section className="paper-grain py-24 lg:py-32 border-y border-[#DCC3AA] dark:border-[#D6A569]/12 bg-[#F1E2D1]/50 dark:bg-[#1F0808]/70 relative">
+        <div className="max-w-[920px] mx-auto px-6 lg:px-12 text-center">
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-80px' }} variants={stagger}>
+            <motion.span variants={fadeIn} className="eyebrow-rule mb-10 inline-flex">
+              {lang === 'en' ? 'On the Record' : 'ჩვენგან'}
+            </motion.span>
+
+            <motion.blockquote
+              variants={fadeIn}
+              className="font-serif italic text-[#541A1A] dark:text-[#F1E2D1] leading-[1.12] tracking-[-0.018em] mb-14"
+            >
+              <span className="block text-[26px] md:text-[36px] lg:text-[44px] opacity-80">
+                {lang === 'en' ? 'Billboards stand still.' : 'ბილბორდები ერთ ადგილას დგანან.'}
+              </span>
+              <span className="block text-[44px] md:text-[64px] lg:text-[84px] text-[#810B38] dark:text-[#D6A569] leading-[0.95] tracking-[-0.025em] py-1 lg:py-2">
+                {lang === 'en' ? "We don’t." : 'ჩვენ — არა.'}
+              </span>
+              <span className="block text-[26px] md:text-[36px] lg:text-[44px] opacity-80">
+                {lang === 'en' ? 'We put your advertising in motion.' : 'ჩვენ რეკლამას ვამოძრავებთ.'}
+              </span>
+            </motion.blockquote>
+
+            {/* Honest status strip — replaces fake metrics */}
+            <motion.div
+              variants={fadeIn}
+              className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[10.5px] tracking-[0.28em] uppercase font-semibold text-[#541A1A]/55 dark:text-[#DCC3AA]/65"
+            >
+              <span className="flex items-center gap-2">
+                <span className="relative inline-block w-1.5 h-1.5">
+                  <span className="absolute inset-0 rounded-full bg-[#810B38] dark:bg-[#D6A569]" />
+                  <span className="absolute inset-0 rounded-full bg-[#810B38] dark:bg-[#D6A569] animate-ping opacity-50" />
+                </span>
+                {lang === 'en' ? 'Pilot Phase' : 'საპილოტე ფაზა'}
+              </span>
+              <span className="hidden sm:inline opacity-30">·</span>
+              <span>{lang === 'en' ? 'Hardware Ready' : 'ტექნიკა მზადაა'}</span>
+              <span className="hidden sm:inline opacity-30">·</span>
+              <span>{lang === 'en' ? 'Accepting Early Partners' : 'პარტნიორებს ვიღებთ'}</span>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─────────────────────── PROBLEM — editorial hairline list ─────────────────────── */}
+      <section className="py-28 lg:py-36 px-6 lg:px-12 max-w-[1080px] mx-auto relative">
+        <motion.div
+          className="mb-16 lg:mb-20 text-center max-w-3xl mx-auto"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={fadeIn}
+        >
+          <span className="eyebrow-rule mb-7">{lang === 'en' ? 'The Status Quo' : 'არსებული მდგომარეობა'}</span>
+          <h2 className="text-4xl md:text-[52px] font-normal tracking-[-0.022em] mb-6 leading-[1.05] text-[#541A1A] dark:text-[#F1E2D1] text-balance">
+            {t.problem.titlePrefix}{' '}
+            <span className="font-serif italic text-[#810B38] dark:text-[#D6A569]">{t.problem.titleGradient}</span>
+          </h2>
+          <p className="text-[17px] text-[#541A1A]/72 dark:text-[#DCC3AA]/90 font-light max-w-xl mx-auto leading-relaxed">
+            {t.problem.subtitle}
+          </p>
+        </motion.div>
+
+        <ul className="border-y border-[#DCC3AA] dark:border-[#D6A569]/15 divide-y divide-[#DCC3AA] dark:divide-[#D6A569]/15">
+          {t.problem.cards.map((card, i) => {
+            const icons = [
+              <svg key="0" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
+              <svg key="1" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>,
+              <svg key="2" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
+              <svg key="3" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>,
+            ];
+            return (
+              <motion.li
+                key={i}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ delay: i * 0.07, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                className="grid grid-cols-[auto_1fr_auto] gap-6 lg:gap-12 items-start py-9 lg:py-11 group"
+              >
+                {/* Roman numeral */}
+                <span className="font-serif italic text-[40px] lg:text-[52px] text-[#810B38]/55 dark:text-[#D6A569]/60 leading-none w-12 lg:w-16 pt-1">
+                  {['I', 'II', 'III', 'IV'][i]}
+                </span>
+
+                {/* Title + body */}
+                <div className="min-w-0">
+                  <h3 className="text-[22px] lg:text-[28px] font-normal tracking-[-0.015em] leading-[1.18] mb-3 text-[#541A1A] dark:text-[#F1E2D1] group-hover:text-[#810B38] dark:group-hover:text-[#D6A569] transition-colors duration-500">
+                    {card.title}
+                  </h3>
+                  <p className="text-[15px] lg:text-[16px] text-[#541A1A]/72 dark:text-[#DCC3AA]/85 font-light leading-[1.7] max-w-2xl">
+                    {card.desc}
+                  </p>
+                </div>
+
+                {/* Icon — small, in the gutter */}
+                <span className="text-[#810B38]/45 dark:text-[#D6A569]/55 pt-1.5 hidden md:block opacity-70 group-hover:opacity-100 transition-opacity duration-500">
+                  {icons[i]}
+                </span>
+              </motion.li>
+            );
+          })}
+        </ul>
+      </section>
+
+      {/* ─────────────────────── SOLUTION / HOW IT WORKS ─────────────────────── */}
+      <section id="how-it-works" className="py-24 lg:py-32 px-6 lg:px-12 max-w-[1200px] mx-auto relative">
+        <div className="grid lg:grid-cols-[1fr_1.05fr] gap-16 lg:gap-24 items-center">
+
+          {/* iPhone 16 Pro mockup — titanium frame + Dynamic Island */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={stagger}
+            className="order-2 lg:order-1 relative flex justify-center lg:justify-start"
+          >
+            <motion.div variants={fadeIn} className="relative w-full max-w-[290px] aspect-[9/19.5]">
+
+              {/* Side buttons — titanium edges */}
+              <div className="absolute -left-[3px] top-[16%] w-[3px] h-[3.5%] rounded-l-[1px] z-0" style={{ background: 'linear-gradient(-90deg, #1c1c1e 0%, #6b6b70 50%, #1c1c1e 100%)' }} />
+              <div className="absolute -left-[3px] top-[24%] w-[3px] h-[8%] rounded-l-[1px] z-0" style={{ background: 'linear-gradient(-90deg, #1c1c1e 0%, #6b6b70 50%, #1c1c1e 100%)' }} />
+              <div className="absolute -left-[3px] top-[34%] w-[3px] h-[8%] rounded-l-[1px] z-0" style={{ background: 'linear-gradient(-90deg, #1c1c1e 0%, #6b6b70 50%, #1c1c1e 100%)' }} />
+              <div className="absolute -right-[3px] top-[22%] w-[3px] h-[11%] rounded-r-[1px] z-0" style={{ background: 'linear-gradient(90deg, #1c1c1e 0%, #6b6b70 50%, #1c1c1e 100%)' }} />
+
+              {/* Titanium side rail */}
+              <div
+                className="absolute inset-0 rounded-[46px] p-[2.5px] z-10"
+                style={{
+                  background:
+                    'linear-gradient(150deg, #8a8a8e 0%, #3a3a3c 18%, #1c1c1e 38%, #2a2a2c 55%, #1c1c1e 72%, #4a4a4c 92%, #1c1c1e 100%)',
+                  boxShadow:
+                    '0 60px 110px -32px rgba(0,0,0,0.45), 0 18px 36px -14px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.06)',
+                }}
+              >
+                {/* Inner black bezel */}
+                <div className="w-full h-full rounded-[44px] bg-black p-[5px]">
+
+                  {/* Screen */}
+                  <div className="w-full h-full rounded-[40px] bg-[#F1E2D1] dark:bg-[#1F0808] paper-grain overflow-hidden relative">
+
+                    {/* Dynamic Island */}
+                    <div className="absolute top-[8px] left-1/2 -translate-x-1/2 z-50 w-[92px] h-[26px] bg-black rounded-full flex items-center justify-end px-2.5">
+                      <span className="w-[6px] h-[6px] rounded-full bg-[#1a1a1c] mr-[1px]" style={{ boxShadow: 'inset 0 0 0 0.5px #3a3a3c' }} />
+                      <span className="w-[5px] h-[5px] rounded-full" style={{ background: 'radial-gradient(circle at 35% 35%, #4a6e8e 0%, #1a2a3a 80%)' }} />
+                    </div>
+
+                    {/* iOS Status Bar */}
+                    <div className="absolute top-[14px] left-0 right-0 z-40 flex items-center justify-between px-[22px] text-[10.5px] font-semibold text-[#541A1A] dark:text-[#F1E2D1] tracking-tight tabular-nums">
+                      <span>9:41</span>
+                      <span className="flex items-center gap-[5px]">
+                        {/* Signal bars */}
+                        <svg width="15" height="9" viewBox="0 0 15 9" fill="currentColor" aria-hidden>
+                          <rect x="0" y="6" width="2.5" height="3" rx="0.5" />
+                          <rect x="3.5" y="4" width="2.5" height="5" rx="0.5" />
+                          <rect x="7" y="2" width="2.5" height="7" rx="0.5" />
+                          <rect x="10.5" y="0" width="2.5" height="9" rx="0.5" />
+                        </svg>
+                        {/* WiFi */}
+                        <svg width="12" height="9" viewBox="0 0 14 10" fill="currentColor" aria-hidden>
+                          <path d="M7 1.5C4.5 1.5 2.5 2.4 1 3.7l1 1c1.2-1 3-1.7 5-1.7s3.8.7 5 1.7l1-1c-1.5-1.3-3.5-2.2-6-2.2zM7 5c-1.3 0-2.5.5-3.3 1.3l1 1C5.3 6.7 6.1 6.4 7 6.4s1.7.3 2.3.9l1-1C9.5 5.5 8.3 5 7 5zm0 3.2c-.5 0-.9.2-1.2.6L7 10l1.2-1.2c-.3-.4-.7-.6-1.2-.6z" />
+                        </svg>
+                        {/* Battery */}
+                        <span className="flex items-center">
+                          <span className="relative w-[22px] h-[10px] border border-current rounded-[3px] flex items-center px-[1.5px] opacity-95">
+                            <span className="block w-[15px] h-[5px] bg-current rounded-[1px]" />
+                          </span>
+                          <span className="w-[1.5px] h-[4px] bg-current rounded-r-[1px] ml-[0.5px] opacity-95" />
+                        </span>
+                      </span>
+                    </div>
+
+                    {/* App nav bar */}
+                    <div className="absolute top-[44px] left-0 right-0 z-30 flex items-center justify-between px-4">
+                      <button aria-label="Back" className="text-[#810B38] dark:text-[#D6A569] flex items-center gap-0.5 text-[12px] font-medium">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                      </button>
+                      <span className="text-[10.5px] font-bold uppercase tracking-[0.24em] text-[#541A1A] dark:text-[#F1E2D1]">Gzad</span>
+                      <button aria-label="Menu" className="text-[#810B38] dark:text-[#D6A569]">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+                      </button>
+                    </div>
+
+                    {/* App body */}
+                    <div className="absolute inset-0 pt-[72px] px-3.5 pb-3.5 flex flex-col">
+
+                      {/* Large title block */}
+                      <div className="mb-3 px-1">
+                        <span className="text-[8.5px] tracking-[0.3em] text-[#810B38] dark:text-[#D6A569] uppercase font-bold">
+                          {t.solution.dashboard.subtitle}
+                        </span>
+                        <h3 className="font-serif italic text-[22px] text-[#541A1A] dark:text-[#F1E2D1] leading-[1.05] mt-0.5">
+                          {t.solution.dashboard.title}
+                        </h3>
+                      </div>
+
+                      {/* Stat cards 2×2 */}
+                      <div className="grid grid-cols-2 gap-1.5 mb-2">
+                        {[
+                          { v: '12.4K', l: t.solution.dashboard.impressions, trend: '↑ 8%' },
+                          { v: '8', l: t.solution.dashboard.activeTaxis, trend: 'live' },
+                          { v: '₾142', l: t.solution.dashboard.spent, trend: 'today' },
+                        ].map((s, i) => (
+                          <div
+                            key={i}
+                            className="bg-[#F1E2D1] dark:bg-[#2A0A0A]/70 border border-[#DCC3AA] dark:border-[#D6A569]/18 rounded-[10px] p-2.5"
+                            style={{ boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.4), 0 1px 2px rgba(84,26,26,0.04)' }}
+                          >
+                            <div className="flex items-baseline justify-between mb-0.5">
+                              <div className="font-serif italic text-[19px] text-[#810B38] dark:text-[#D6A569] leading-none">{s.v}</div>
+                              <span className="text-[7.5px] font-bold tracking-[0.12em] uppercase text-[#810B38]/55 dark:text-[#D6A569]/55">{s.trend}</span>
+                            </div>
+                            <div className="text-[7.5px] text-[#541A1A]/72 dark:text-[#DCC3AA]/80 uppercase tracking-[0.16em] font-bold leading-tight">
+                              {s.l}
+                            </div>
+                          </div>
+                        ))}
+                        {/* Highlighted card */}
+                        <div className="p-2.5 bg-[#810B38] dark:bg-[#D6A569] rounded-[10px] relative overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(129,11,56,0.25)' }}>
+                          <div className="flex items-baseline justify-between mb-0.5">
+                            <div className="font-serif italic text-[19px] text-[#F1E2D1] dark:text-[#160606] leading-none">4.2×</div>
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-[#F1E2D1]/85 dark:text-[#160606]/85"><polyline points="17 11 12 6 7 11" /><polyline points="17 18 12 13 7 18" /></svg>
+                          </div>
+                          <div className="text-[7.5px] text-[#F1E2D1]/85 dark:text-[#160606]/80 uppercase tracking-[0.16em] font-bold leading-tight">
+                            {t.solution.dashboard.vsBillboard}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Live Map of Tbilisi */}
+                      <div
+                        className="flex-1 relative rounded-[10px] overflow-hidden border border-[#DCC3AA] dark:border-[#D6A569]/18 min-h-[130px]"
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #F1E2D1 0%, #E8D5BC 50%, #DCC3AA 100%)',
+                        }}
+                      >
+                        {/* Map streets + river */}
+                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 130" preserveAspectRatio="none" aria-hidden>
+                          {/* River Mtkvari */}
+                          <path d="M -10 65 Q 40 35 90 55 T 220 75" stroke="rgba(110, 60, 80, 0.18)" strokeWidth="5" fill="none" strokeLinecap="round" />
+                          {/* Avenues */}
+                          <path d="M 0 25 L 200 30" stroke="rgba(84, 26, 26, 0.22)" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                          <path d="M 0 100 L 200 95" stroke="rgba(84, 26, 26, 0.22)" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                          {/* Cross streets */}
+                          <path d="M 30 0 L 70 130" stroke="rgba(84, 26, 26, 0.14)" strokeWidth="0.8" fill="none" />
+                          <path d="M 100 0 L 110 130" stroke="rgba(84, 26, 26, 0.14)" strokeWidth="0.8" fill="none" />
+                          <path d="M 150 0 L 175 130" stroke="rgba(84, 26, 26, 0.14)" strokeWidth="0.8" fill="none" />
+                          <path d="M 60 0 L 50 130" stroke="rgba(84, 26, 26, 0.1)" strokeWidth="0.6" fill="none" />
+                          {/* Building blocks */}
+                          <rect x="38" y="50" width="14" height="9" fill="rgba(84, 26, 26, 0.07)" rx="1" />
+                          <rect x="55" y="78" width="10" height="11" fill="rgba(84, 26, 26, 0.07)" rx="1" />
+                          <rect x="115" y="68" width="12" height="14" fill="rgba(84, 26, 26, 0.07)" rx="1" />
+                          <rect x="150" y="42" width="16" height="10" fill="rgba(84, 26, 26, 0.07)" rx="1" />
+                          <rect x="160" y="80" width="14" height="9" fill="rgba(84, 26, 26, 0.07)" rx="1" />
+                          <rect x="80" y="20" width="9" height="6" fill="rgba(84, 26, 26, 0.07)" rx="1" />
+                        </svg>
+
+                        {/* Live label */}
+                        <div className="absolute top-2 left-2.5 z-20 text-[8px] tracking-[0.28em] font-bold uppercase text-[#541A1A]/75 dark:text-[#3A0A0A] flex items-center gap-1.5">
+                          <span className="relative inline-block w-1 h-1">
+                            <span className="absolute inset-0 rounded-full bg-[#810B38]" />
+                            <span className="absolute inset-0 rounded-full bg-[#810B38] animate-ping opacity-60" />
+                          </span>
+                          Live · Tbilisi
+                        </div>
+                        <span className="absolute top-2 right-2.5 z-20 text-[7.5px] font-bold tracking-tight text-[#541A1A]/55 dark:text-[#3A0A0A]/70 font-serif italic">N ↑</span>
+
+                        {/* Taxi markers */}
+                        {[
+                          { top: '38%', left: '24%', label: 'TX-04' },
+                          { top: '60%', left: '64%', label: null },
+                          { top: '72%', left: '34%', label: null },
+                          { top: '40%', left: '80%', label: null },
+                        ].map((d, idx) => (
+                          <div key={idx} className="absolute z-30" style={{ top: d.top, left: d.left, transform: 'translate(-50%, -50%)' }}>
+                            <span
+                              className="block w-[7px] h-[7px] rounded-full bg-[#810B38]"
+                              style={{
+                                boxShadow: '0 0 0 2px rgba(241,226,209,0.95), 0 2px 4px rgba(0,0,0,0.25)',
+                                animation: `pulse 2.4s ${idx * 0.4}s ease-in-out infinite`,
+                              }}
+                            />
+                            {d.label && (
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[7.5px] font-bold tracking-[0.18em] text-[#541A1A] bg-[#F1E2D1] px-1.5 py-[2px] rounded shadow-[0_2px_5px_rgba(0,0,0,0.15)] whitespace-nowrap border border-[#DCC3AA]/80">
+                                {d.label}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Bottom scale bar */}
+                        <div className="absolute bottom-1.5 left-2.5 z-20 flex items-center gap-1 text-[7px] font-bold text-[#541A1A]/55 dark:text-[#3A0A0A]/70">
+                          <span className="w-6 h-[2px] bg-[#541A1A]/45" />
+                          <span>500m</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Home indicator */}
+                    <div className="absolute bottom-[6px] left-1/2 -translate-x-1/2 w-[88px] h-[3.5px] rounded-full bg-[#541A1A]/55 dark:bg-[#F1E2D1]/45 z-50" />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={stagger}
+            className="order-1 lg:order-2"
+          >
+            <motion.span variants={fadeIn} className="eyebrow-rule mb-7 inline-flex">
+              {lang === 'en' ? 'Built for Operators' : 'ოპერატორებისთვის'}
+            </motion.span>
+            <motion.h2
+              variants={fadeIn}
+              className="text-4xl md:text-[52px] font-normal tracking-[-0.022em] mb-7 leading-[1.05] text-[#541A1A] dark:text-[#F1E2D1] text-balance"
+            >
+              {t.solution.titlePrefix}{' '}
+              <span className="font-serif italic text-[#810B38] dark:text-[#D6A569]">{t.solution.titleGradient}</span>{' '}
+              <span className="text-[#541A1A]/65 dark:text-[#DCC3AA]/85">{t.solution.titleSuffix}</span>
             </motion.h2>
-            <motion.p variants={fadeIn} className="text-[17px] text-[#6B6561] dark:text-zinc-400 font-light mb-16 leading-[1.65] max-w-lg">
+            <motion.p
+              variants={fadeIn}
+              className="text-[17px] text-[#541A1A]/72 dark:text-[#DCC3AA]/90 font-light mb-12 leading-[1.65] max-w-lg"
+            >
+              <span className="font-serif italic text-[#810B38] dark:text-[#D6A569]">— </span>
               {t.solution.description}
             </motion.p>
 
-            <div className="flex flex-col gap-10">
-              {t.solution.features.map((feature, i) => (
-                <motion.div key={i} variants={fadeIn} className="flex gap-6 items-start group">
-                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-black/60 border border-[#E5E0D8] dark:border-white/10 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_4px_10px_rgba(28,26,25,0.03)] flex items-center justify-center text-[#8C857E] dark:text-zinc-500 shrink-0 group-hover:text-[#166534] dark:group-hover:text-emerald-400 group-hover:border-[#166534]/30 dark:group-hover:border-emerald-500/30 group-hover:bg-[#166534]/[0.03] dark:group-hover:bg-emerald-500/[0.06] transition-all duration-500 group-hover:-translate-y-1">
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-                    {[
-                      <svg key="0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>,
-                      <svg key="1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>,
-                      <svg key="2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>,
-                      <svg key="3" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
-                    ][i]}
-                  </div>
-<<<<<<< HEAD
-                  <div className="flex-1">
-                    <h4 className="text-xl font-normal tracking-tight mb-2 text-[#541A1A] dark:text-[#F1E2D1]">{feature.title}</h4>
-                    <p className="text-[#541A1A]/70 dark:text-[#DCC3AA] text-[15px] font-light leading-relaxed">{feature.desc}</p>
-=======
-                  <div>
-                    <h4 className="text-[19px] font-medium tracking-[-0.015em] mb-2 text-[#1C1A19] dark:text-[#FAFAFA] group-hover:text-[#166534] dark:group-hover:text-emerald-400 transition-colors duration-500">{feature.title}</h4>
-                    <p className="text-[#6B6561] dark:text-zinc-400 text-[15px] font-light leading-[1.65]">{feature.desc}</p>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-                  </div>
-                </motion.div>
-              ))}
+            <div className="flex flex-col">
+              {t.solution.features.map((feature, i) => {
+                const icons = [
+                  <svg key="0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>,
+                  <svg key="1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>,
+                  <svg key="2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>,
+                  <svg key="3" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>,
+                ];
+                return (
+                  <motion.div
+                    key={i}
+                    variants={fadeIn}
+                    className="flex gap-7 items-start group py-6 border-t border-[#DCC3AA] dark:border-[#D6A569]/15 first:border-t-0"
+                  >
+                    <div className="w-11 h-11 rounded-full border border-[#810B38] dark:border-[#D6A569]/55 flex items-center justify-center text-[#810B38] dark:text-[#D6A569] shrink-0 transition-all duration-300 group-hover:bg-[#810B38] group-hover:text-[#F1E2D1] dark:group-hover:bg-[#D6A569] dark:group-hover:text-[#160606]">
+                      {icons[i]}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-[19px] font-normal tracking-tight mb-2 text-[#541A1A] dark:text-[#F1E2D1]">
+                        {feature.title}
+                      </h4>
+                      <p className="text-[#541A1A]/70 dark:text-[#DCC3AA]/85 text-[14.5px] font-light leading-[1.65]">
+                        {feature.desc}
+                      </p>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Two Sided — refined hairline tabs + SVG icons */}
-      <section id="advertisers" className="py-32 px-6 lg:px-12 max-w-[1200px] mx-auto z-10 relative">
-<<<<<<< HEAD
-        <div className="text-center mb-16 max-w-2xl mx-auto relative z-10">
-          <h2 className="text-4xl md:text-5xl font-normal tracking-tight mb-6 leading-tight text-[#541A1A] dark:text-[#F1E2D1]">
-            {t.twoSided.titlePrefix} <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA]">{t.twoSided.titleGradient}</span>
+      {/* ─────────────────────── TWO-SIDED ─────────────────────── */}
+      <section id="advertisers" className="py-28 lg:py-32 px-6 lg:px-12 max-w-[1200px] mx-auto relative">
+        <div className="text-center mb-14 max-w-2xl mx-auto flex flex-col items-center">
+          <span className="eyebrow-rule mb-7">{lang === 'en' ? 'Both Sides Win' : 'ორმხრივი მოგება'}</span>
+          <h2 className="text-4xl md:text-[52px] font-normal tracking-[-0.022em] mb-5 leading-[1.05] text-[#541A1A] dark:text-[#F1E2D1] text-balance">
+            {t.twoSided.titlePrefix}{' '}
+            <span className="font-serif italic text-[#810B38] dark:text-[#D6A569]">{t.twoSided.titleGradient}</span>
           </h2>
-          <p className="text-[#541A1A]/70 dark:text-[#DCC3AA] font-light text-lg">{t.twoSided.subtitle}</p>
+          <p className="text-[#541A1A]/70 dark:text-[#DCC3AA]/85 font-light text-[17px]">{t.twoSided.subtitle}</p>
         </div>
 
-        <div className="flex justify-center mb-16 relative z-10">
-          <div className="inline-flex border-b border-[#DCC3AA] dark:border-[#DCC3AA]/30">
-            <button
-              onClick={() => setActiveTab('advertisers')}
-              className={`px-8 py-4 -mb-px border-b-2 text-[12px] font-semibold uppercase tracking-[0.25em] transition-colors duration-300 ${activeTab === 'advertisers' ? 'border-[#810B38] text-[#810B38] dark:text-[#DCC3AA] dark:border-[#DCC3AA]' : 'border-transparent text-[#541A1A]/50 dark:text-[#DCC3AA]/50 hover:text-[#541A1A] dark:hover:text-[#F1E2D1]'}`}
-=======
-        <div className="text-center mb-20 max-w-2xl mx-auto relative z-10">
-          <div className="inline-flex items-center gap-3 mb-6 text-[10.5px] font-bold tracking-[0.28em] uppercase text-[#8C857E] dark:text-zinc-500">
-            <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-            <span>03 — Two Sides, One Network</span>
-            <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-          </div>
-          <h2 className="text-4xl md:text-[52px] font-medium tracking-[-0.03em] mb-6 leading-[1.08] text-[#1C1A19] dark:text-[#FAFAFA]">
-            {t.twoSided.titlePrefix} <span className="font-serif italic font-light text-[#166534] dark:text-emerald-400">{t.twoSided.titleGradient}</span>
-          </h2>
-          <p className="text-[#6B6561] dark:text-zinc-400 font-light text-[17px] leading-[1.6]">{t.twoSided.subtitle}</p>
-        </div>
-
-        <div className="flex justify-center mb-16 relative z-10">
-          <div className="inline-flex bg-white dark:bg-black/60 p-1 rounded-full border border-[#E5E0D8] dark:border-white/10 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_4px_14px_rgba(28,26,25,0.04)]">
-            <button
-              onClick={() => setActiveTab('advertisers')}
-              className={`px-9 py-3 rounded-full text-[12px] font-semibold tracking-[0.14em] uppercase transition-all duration-500
-                ${activeTab === 'advertisers' ? 'bg-[#1C1A19] dark:bg-[#FAFAFA] text-white dark:text-[#0A0A0A] shadow-[0_6px_18px_rgba(28,26,25,0.2),inset_0_1px_0_rgba(255,255,255,0.08)]' : 'text-[#8C857E] dark:text-zinc-500 hover:text-[#1C1A19] dark:hover:text-white'}`}
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-            >
-              {t.twoSided.advertisersTab}
-            </button>
-            <button
-              onClick={() => setActiveTab('drivers')}
-<<<<<<< HEAD
-              className={`px-8 py-4 -mb-px border-b-2 text-[12px] font-semibold uppercase tracking-[0.25em] transition-colors duration-300 ${activeTab === 'drivers' ? 'border-[#810B38] text-[#810B38] dark:text-[#DCC3AA] dark:border-[#DCC3AA]' : 'border-transparent text-[#541A1A]/50 dark:text-[#DCC3AA]/50 hover:text-[#541A1A] dark:hover:text-[#F1E2D1]'}`}
-=======
-              className={`px-9 py-3 rounded-full text-[12px] font-semibold tracking-[0.14em] uppercase transition-all duration-500
-                ${activeTab === 'drivers' ? 'bg-[#1C1A19] dark:bg-[#FAFAFA] text-white dark:text-[#0A0A0A] shadow-[0_6px_18px_rgba(28,26,25,0.2),inset_0_1px_0_rgba(255,255,255,0.08)]' : 'text-[#8C857E] dark:text-zinc-500 hover:text-[#1C1A19] dark:hover:text-white'}`}
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-            >
-              {t.twoSided.driversTab}
-            </button>
+        {/* Segmented tabs */}
+        <div className="flex justify-center mb-14">
+          <div className="inline-flex p-1 bg-[#DCC3AA]/40 dark:bg-[#1F0808] border border-[#DCC3AA] dark:border-[#D6A569]/15 rounded-full">
+            {(['advertisers', 'drivers'] as const).map((tab) => (
+              <button
+                key={tab}
+                id={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-7 py-2.5 text-[11px] font-bold uppercase tracking-[0.24em] rounded-full transition-all duration-300 ${
+                  activeTab === tab
+                    ? 'bg-[#810B38] dark:bg-[#D6A569] text-[#F1E2D1] dark:text-[#160606] shadow-[0_4px_18px_-6px_rgba(129,11,56,0.5)]'
+                    : 'text-[#541A1A]/65 dark:text-[#DCC3AA]/75 hover:text-[#541A1A] dark:hover:text-[#F1E2D1]'
+                }`}
+              >
+                {tab === 'advertisers' ? t.twoSided.advertisersTab : t.twoSided.driversTab}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="relative min-h-[400px] z-10">
+        <div className="relative min-h-[420px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-              className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6"
             >
-<<<<<<< HEAD
-              {(activeTab === 'advertisers' ? t.twoSided.advertisersBenefits : t.twoSided.driversBenefits).map((benefit, i) => {
-                const advertiserIcons = [
-                  <svg key="0" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
-                  <svg key="1" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
-                  <svg key="2" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-                  <svg key="3" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-                  <svg key="4" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>,
-                  <svg key="5" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+              {(activeTab === 'advertisers' ? t.twoSided.advertisersBenefits : t.twoSided.driversBenefits).map((b, i) => {
+                const aIcons = [
+                  <svg key="0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+                  <svg key="1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+                  <svg key="2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+                  <svg key="3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+                  <svg key="4" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>,
+                  <svg key="5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
                 ];
-                const driverIcons = [
-                  <svg key="0" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
-                  <svg key="1" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-                  <svg key="2" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>,
-                  <svg key="3" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>,
-                  <svg key="4" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-                  <svg key="5" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                const dIcons = [
+                  <svg key="0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+                  <svg key="1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+                  <svg key="2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>,
+                  <svg key="3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>,
+                  <svg key="4" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+                  <svg key="5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 ];
-                const icon = activeTab === 'advertisers' ? advertiserIcons[i] : driverIcons[i];
+                const icon = activeTab === 'advertisers' ? aIcons[i] : dIcons[i];
                 return (
-                  <div key={i} className="boutique-card p-10 group">
-                    <span className="inline-flex w-12 h-12 items-center justify-center rounded-full border border-[#810B38] dark:border-[#DCC3AA]/50 text-[#810B38] dark:text-[#DCC3AA] mb-8 transition-colors duration-300 group-hover:bg-[#810B38] group-hover:text-[#F1E2D1] dark:group-hover:bg-[#DCC3AA] dark:group-hover:text-[#541A1A]">
-                      {icon}
-                    </span>
-                    <h3 className="text-xl font-normal tracking-tight mb-3 text-[#541A1A] dark:text-[#F1E2D1] group-hover:font-serif group-hover:italic transition-all duration-300">{benefit.title}</h3>
-                    <div className="h-px w-8 bg-[#DCC3AA] dark:bg-[#DCC3AA]/30 mb-4" />
-                    <p className="text-[#541A1A]/70 dark:text-[#DCC3AA] text-[15px] font-light leading-relaxed">{benefit.desc}</p>
+                  <div key={i} className="boutique-card p-8 lg:p-9 group">
+                    <div className="flex items-start justify-between mb-7">
+                      <span className="inline-flex w-11 h-11 items-center justify-center rounded-full border border-[#810B38]/80 dark:border-[#D6A569]/55 text-[#810B38] dark:text-[#D6A569] transition-colors duration-300 group-hover:bg-[#810B38] group-hover:text-[#F1E2D1] dark:group-hover:bg-[#D6A569] dark:group-hover:text-[#160606]">
+                        {icon}
+                      </span>
+                      <span className="font-serif italic text-[15px] text-[#810B38]/50 dark:text-[#D6A569]/50 leading-none">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                    </div>
+                    <h3 className="text-[18px] font-normal tracking-tight mb-3 text-[#541A1A] dark:text-[#F1E2D1]">{b.title}</h3>
+                    <div className="h-px w-8 bg-[#DCC3AA] dark:bg-[#D6A569]/30 mb-3.5" />
+                    <p className="text-[#541A1A]/70 dark:text-[#DCC3AA]/82 text-[14.5px] font-light leading-[1.65]">{b.desc}</p>
                   </div>
                 );
               })}
-=======
-              {(activeTab === 'advertisers' ? t.twoSided.advertisersBenefits : t.twoSided.driversBenefits).map((benefit, i) => (
-                <div key={i} className="bg-white dark:bg-black/60 p-10 rounded-3xl border border-[#E5E0D8] dark:border-white/10 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_6px_20px_rgba(28,26,25,0.02)] hover:shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_20px_40px_rgba(22,101,52,0.08)] hover:border-[#166534]/25 dark:hover:border-emerald-500/25 hover:-translate-y-1.5 transition-all duration-500 group relative overflow-hidden">
-                  {/* Tiny serial number */}
-                  <div className="absolute top-6 right-6 text-[10px] font-mono tracking-widest text-[#C8C2B8] dark:text-white/15">{String(i + 1).padStart(2, '0')}</div>
-                  <div className="text-[28px] mb-7 opacity-80 group-hover:opacity-100 group-hover:-translate-y-1 transition-all duration-500 origin-left grayscale-[30%] group-hover:grayscale-0">
-                    {activeTab === 'advertisers' ? ['🎯', '💰', '📊', '⚡', '🚀', '🤝'][i] : ['💵', '🆓', '📱', '🔄', '🛡️', '⭐'][i]}
-                  </div>
-                  <h3 className="text-[18px] font-medium tracking-[-0.015em] mb-3 text-[#1C1A19] dark:text-[#FAFAFA] group-hover:text-[#166534] dark:group-hover:text-emerald-400 transition-colors duration-500">{benefit.title}</h3>
-                  <p className="text-[#6B6561] dark:text-zinc-400 text-[15px] font-light leading-[1.65]">{benefit.desc}</p>
-                </div>
-              ))}
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
             </motion.div>
           </AnimatePresence>
         </div>
+
+        {/* Hidden anchor for #drivers */}
+        <span id="drivers" className="block h-0 w-0 -translate-y-32" aria-hidden />
       </section>
 
-<<<<<<< HEAD
-      {/* Pricing — bespoke card on tan paper */}
-      <section id="pricing" className="paper-grain py-32 px-6 lg:px-12 relative border-y border-[#DCC3AA] dark:border-[#DCC3AA]/20 bg-[#DCC3AA] dark:bg-[#541A1A]">
-        <div className="max-w-[1200px] mx-auto relative z-10">
-          <div className="text-center mb-20 max-w-3xl mx-auto flex flex-col items-center">
-            <span className="eyebrow-rule mb-8" style={{ color: '#810B38' }}>{t.pricing.eyebrow}</span>
-            <h2 className="text-4xl md:text-5xl font-normal tracking-tight mb-6 leading-tight text-[#541A1A] dark:text-[#F1E2D1]">
-              {t.pricing.titlePrefix} <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA]">{t.pricing.titleGradient}</span>
-            </h2>
-            <p className="text-lg text-[#541A1A]/75 dark:text-[#DCC3AA] font-light max-w-xl">{t.pricing.subtitle}</p>
-          </div>
-
-          <div className="max-w-3xl mx-auto">
-            <div className="boutique-card p-10 md:p-16 text-center flex flex-col items-center">
-              <span className="font-serif italic text-3xl md:text-4xl text-[#810B38] dark:text-[#DCC3AA] mb-3 leading-none">
-                {t.pricing.contactOnlyTitle}
-              </span>
-              <div className="h-px w-12 bg-[#810B38] dark:bg-[#DCC3AA] mt-4 mb-8" />
-              <p className="text-[#541A1A]/75 dark:text-[#DCC3AA] text-[15px] font-light mb-10 leading-relaxed max-w-xl">
-=======
-      {/* Cream & Charcoal Pricing Cards */}
-      <section id="pricing" className="py-32 px-6 lg:px-12 relative border-y border-[#E5E0D8] dark:border-white/10 bg-[#F8F6F1] dark:bg-[#0A0A0A] overflow-hidden">
-        {/* Subtle radial wash */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-[#166534] dark:bg-emerald-500 opacity-[0.035] dark:opacity-[0.05] blur-[120px] pointer-events-none rounded-full" />
-        <div className="max-w-[1200px] mx-auto relative z-10">
-          <div className="text-center mb-20 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-3 mb-6 text-[10.5px] font-bold tracking-[0.28em] uppercase text-[#8C857E] dark:text-zinc-500">
-              <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-              <span>04 — Investment</span>
-              <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-            </div>
-            <h2 className="text-4xl md:text-[52px] font-medium tracking-[-0.03em] mb-6 leading-[1.08] text-[#1C1A19] dark:text-[#FAFAFA]">
-              {t.pricing.titlePrefix} <span className="font-serif italic font-light text-[#166534] dark:text-emerald-400">{t.pricing.titleGradient}</span>
-            </h2>
-            <p className="text-[17px] text-[#6B6561] dark:text-zinc-400 font-light leading-[1.6]">{t.pricing.subtitle}</p>
-          </div>
-
-          <div className="max-w-3xl mx-auto">
-            <div className="relative bg-white dark:bg-black/60 border border-[#E5E0D8] dark:border-white/10 rounded-[2rem] p-10 md:p-16 text-center shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_20px_60px_rgba(28,26,25,0.04)] overflow-hidden">
-              {/* Decorative corner marks */}
-              <span className="absolute top-5 left-5 w-5 h-5 border-l border-t border-[#166534]/20 dark:border-emerald-500/25 rounded-tl-lg" />
-              <span className="absolute top-5 right-5 w-5 h-5 border-r border-t border-[#166534]/20 dark:border-emerald-500/25 rounded-tr-lg" />
-              <span className="absolute bottom-5 left-5 w-5 h-5 border-l border-b border-[#166534]/20 dark:border-emerald-500/25 rounded-bl-lg" />
-              <span className="absolute bottom-5 right-5 w-5 h-5 border-r border-b border-[#166534]/20 dark:border-emerald-500/25 rounded-br-lg" />
-
-              {/* Top ornament */}
-              <div className="flex items-center justify-center gap-3 mb-8">
-                <span className="h-px w-10 bg-gradient-to-r from-transparent to-[#E5E0D8] dark:to-white/20" />
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-[#166534]/60 dark:text-emerald-400/60"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
-                <span className="h-px w-10 bg-gradient-to-l from-transparent to-[#E5E0D8] dark:to-white/20" />
-              </div>
-
-              <h3 className="font-serif text-3xl md:text-[44px] font-light italic tracking-[-0.02em] text-[#1C1A19] dark:text-[#FAFAFA] mb-6 leading-[1.1]">
-                {t.pricing.contactOnlyTitle}
-              </h3>
-              <p className="text-[#6B6561] dark:text-zinc-400 text-[16px] font-light mb-12 leading-[1.7] max-w-2xl mx-auto">
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-                {t.pricing.contactOnlyDesc}
-              </p>
-              <a
-                href="mailto:gzadvertisment@gmail.com"
-<<<<<<< HEAD
-                className="inline-flex items-center justify-center px-10 py-4 bg-[#810B38] dark:bg-[#810B38] text-[#F1E2D1] font-semibold tracking-[0.2em] uppercase text-[12px] hover:bg-[#541A1A] dark:hover:bg-[#DCC3AA] dark:hover:text-[#541A1A] transition-colors"
-=======
-                className="inline-flex items-center gap-3 justify-center px-11 py-[15px] rounded-full bg-[#1C1A19] dark:bg-emerald-500 text-white font-semibold tracking-[0.04em] text-[13px] hover:bg-[#166534] dark:hover:bg-emerald-400 transition-all duration-500 shadow-[0_10px_30px_rgba(28,26,25,0.2),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_18px_44px_rgba(22,101,52,0.35)] hover:-translate-y-0.5"
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-              >
-                <span>{t.pricing.contactOnlyBtn}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-              </a>
-<<<<<<< HEAD
-              <p className="mt-6 text-[12px] text-[#541A1A]/60 dark:text-[#DCC3AA]/60 tracking-wide font-light">
-=======
-              <p className="mt-7 text-[12px] tracking-[0.2em] uppercase text-[#8C857E] dark:text-zinc-500 font-medium">
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-                gzadvertisment@gmail.com
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ — hairline-divided list */}
-      <section id="faq" className="py-32 px-6 lg:px-12 max-w-[900px] mx-auto z-10 relative">
-<<<<<<< HEAD
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-normal tracking-tight mb-6 text-[#541A1A] dark:text-[#F1E2D1]">
-            {t.faq.titlePrefix} <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA]">{t.faq.titleGradient}</span>
+      {/* ─────────────────────── FAQ ─────────────────────── */}
+      <section id="faq" className="py-28 lg:py-32 px-6 lg:px-12 max-w-[920px] mx-auto relative">
+        <div className="text-center mb-14">
+          <span className="eyebrow-rule mb-7 inline-flex">{lang === 'en' ? 'Common Questions' : 'ხშირი კითხვები'}</span>
+          <h2 className="text-4xl md:text-[52px] font-normal tracking-[-0.022em] leading-[1.05] text-[#541A1A] dark:text-[#F1E2D1] text-balance">
+            {t.faq.titlePrefix}{' '}
+            <span className="font-serif italic text-[#810B38] dark:text-[#D6A569]">{t.faq.titleGradient}</span>
           </h2>
         </div>
-        <ul className="divide-y divide-[#DCC3AA] dark:divide-[#DCC3AA]/20 border-y border-[#DCC3AA] dark:border-[#DCC3AA]/20">
-          {t.faq.items.map((faq, index) => (
-            <li key={index}>
+        <ul className="divide-y divide-[#DCC3AA] dark:divide-[#D6A569]/15 border-y border-[#DCC3AA] dark:border-[#D6A569]/15">
+          {t.faq.items.map((faq, i) => (
+            <li key={i}>
               <button
-                className="w-full text-left py-6 lg:py-8 flex justify-between items-center focus:outline-none group"
-                onClick={() => toggleFaq(index)}
+                className="w-full text-left py-7 lg:py-8 flex justify-between items-center focus:outline-none group"
+                onClick={() => setActiveFaq(activeFaq === i ? null : i)}
               >
-                <h3 className="text-lg lg:text-xl font-normal pr-8 text-[#541A1A] dark:text-[#F1E2D1] group-hover:text-[#810B38] dark:group-hover:text-[#DCC3AA] transition-colors duration-300">{faq.question}</h3>
-                <span className={`text-2xl font-light text-[#810B38] dark:text-[#DCC3AA] transform transition-transform duration-500 shrink-0 ${activeFaq === index ? 'rotate-45' : ''}`}>+</span>
-=======
-        <div className="text-center mb-20">
-          <div className="inline-flex items-center gap-3 mb-6 text-[10.5px] font-bold tracking-[0.28em] uppercase text-[#8C857E] dark:text-zinc-500">
-            <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-            <span>05 — Questions</span>
-            <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-          </div>
-          <h2 className="text-4xl md:text-[52px] font-medium tracking-[-0.03em] mb-6 leading-[1.08] text-[#1C1A19] dark:text-[#FAFAFA]">
-            {t.faq.titlePrefix} <span className="font-serif italic font-light text-[#8C857E] dark:text-zinc-500">{t.faq.titleGradient}</span>
-          </h2>
-        </div>
-        <div className="space-y-3">
-          {t.faq.items.map((faq, index) => (
-            <div key={index} className={`bg-white dark:bg-black/60 border rounded-2xl overflow-hidden transition-all duration-500 ${activeFaq === index ? 'border-[#166534]/25 dark:border-emerald-500/30 shadow-[0_10px_40px_rgba(22,101,52,0.06)]' : 'border-[#E5E0D8] dark:border-white/10 hover:border-[#166534]/20 dark:hover:border-emerald-500/20'}`}>
-              <button
-                className="w-full text-left px-8 py-6 flex justify-between items-center focus:outline-none group gap-6"
-                onClick={() => toggleFaq(index)}
-              >
-                <h3 className={`text-[17px] font-medium tracking-[-0.01em] transition-colors duration-300 ${activeFaq === index ? 'text-[#166534] dark:text-emerald-400' : 'text-[#1C1A19] dark:text-[#FAFAFA] group-hover:text-[#166534] dark:group-hover:text-emerald-400'}`}>{faq.question}</h3>
-                <span className={`shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-500 ${activeFaq === index ? 'border-[#166534] dark:border-emerald-400 bg-[#166534] dark:bg-emerald-500 text-white rotate-180' : 'border-[#E5E0D8] dark:border-white/15 text-[#8C857E] dark:text-zinc-500'}`}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-500 ${activeFaq === index ? 'rotate-180' : ''}`}>
-                    {activeFaq === index ? <path d="M5 12h14" /> : <><path d="M5 12h14" /><path d="M12 5v14" /></>}
-                  </svg>
-                </span>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
+                <h3 className="text-[17px] lg:text-[19px] font-normal pr-8 text-[#541A1A] dark:text-[#F1E2D1] group-hover:text-[#810B38] dark:group-hover:text-[#D6A569] transition-colors duration-300">
+                  <span className="inline-block w-8 font-serif italic text-[#810B38]/60 dark:text-[#D6A569]/60 text-[15px]">{String(i + 1).padStart(2, '0')}</span>
+                  {faq.question}
+                </h3>
+                <span
+                  className={`text-2xl font-light text-[#810B38] dark:text-[#D6A569] transform transition-transform duration-500 shrink-0 ${
+                    activeFaq === i ? 'rotate-45' : ''
+                  }`}
+                >+</span>
               </button>
               <AnimatePresence>
-                {activeFaq === index && (
+                {activeFaq === i && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
+                    animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.4 }}
                     className="overflow-hidden"
                   >
-<<<<<<< HEAD
-                    <div className="pb-8 pr-12 text-[15px] text-[#541A1A]/75 dark:text-[#DCC3AA] font-light leading-relaxed max-w-3xl">
-                      <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA]">— </span>{faq.answer}
-=======
-                    <div className="px-8 pb-8 text-[#6B6561] dark:text-zinc-400 font-light leading-[1.7] text-[15px]">
-                      <div className="h-px w-full bg-gradient-to-r from-transparent via-[#E5E0D8] dark:via-white/10 to-transparent mb-6" />
-                      <p>{faq.answer}</p>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
+                    <div className="pb-8 pl-8 pr-12 text-[15px] text-[#541A1A]/75 dark:text-[#DCC3AA]/85 font-light leading-[1.7] max-w-3xl">
+                      <span className="font-serif italic text-[#810B38] dark:text-[#D6A569]">— </span>
+                      {faq.answer}
                     </div>
                   </motion.div>
                 )}
@@ -784,254 +751,208 @@ export default function Home() {
         </ul>
       </section>
 
-<<<<<<< HEAD
-      {/* CTA — espresso block with ornament */}
-      <section id="get-started" className="pt-24 pb-32 px-6 relative flex items-center justify-center text-center">
-        <div className="max-w-4xl w-full mx-auto relative z-10 bg-[#541A1A] p-12 lg:p-20 rounded-2xl overflow-hidden">
-          {/* Top hairline cream rule + ornament */}
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <span className="h-px w-12 bg-[#DCC3AA]/50" />
-            <span className="text-[#DCC3AA] text-lg leading-none">❦</span>
-            <span className="h-px w-12 bg-[#DCC3AA]/50" />
-          </div>
+      {/* ─────────────────────── CTA — full-bleed dark band ─────────────────────── */}
+      <section className="relative bg-[#541A1A] dark:bg-[#0F0303] overflow-hidden">
+        {/* Decorative diagonal mesh + corner brackets */}
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-[0.05] pointer-events-none"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(45deg, #D6A569 0, #D6A569 1px, transparent 1px, transparent 22px), repeating-linear-gradient(-45deg, #D6A569 0, #D6A569 1px, transparent 1px, transparent 22px)",
+          }}
+        />
+        <div aria-hidden className="absolute top-6 left-6 lg:top-8 lg:left-8 w-12 h-12 border-t border-l border-[#D6A569]/35 pointer-events-none" />
+        <div aria-hidden className="absolute top-6 right-6 lg:top-8 lg:right-8 w-12 h-12 border-t border-r border-[#D6A569]/35 pointer-events-none" />
+        <div aria-hidden className="absolute bottom-6 left-6 lg:bottom-8 lg:left-8 w-12 h-12 border-b border-l border-[#D6A569]/35 pointer-events-none" />
+        <div aria-hidden className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 w-12 h-12 border-b border-r border-[#D6A569]/35 pointer-events-none" />
 
-          <span className="inline-flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#DCC3AA] mb-10">
-            <span className="h-px w-8 bg-[#DCC3AA]/40" />
-            {t.cta.eyebrow}
-            <span className="h-px w-8 bg-[#DCC3AA]/40" />
-          </span>
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-12 py-20 lg:py-28 relative z-10">
+          <div className="grid lg:grid-cols-[1.25fr_1fr] gap-12 lg:gap-20 items-center">
 
-          <h2 className="text-4xl md:text-6xl font-normal tracking-tight mb-8 leading-[1.05] text-[#F1E2D1]">
-            {t.cta.titlePrefix} <br className="hidden md:block"/><span className="font-serif italic text-[#DCC3AA]">{t.cta.titleGradient}</span>
-          </h2>
-          <p className="text-lg font-light text-[#DCC3AA]/80 mb-12 leading-relaxed max-w-xl mx-auto">
-            <span className="font-serif italic">— </span>{t.cta.description}
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-5">
-            <a href="mailto:gzadvertisment@gmail.com" className="px-10 py-4 bg-[#810B38] text-[#F1E2D1] font-semibold uppercase tracking-[0.2em] text-[12px] hover:bg-[#DCC3AA] hover:text-[#541A1A] transition-colors duration-300">
-              {t.cta.contact}
-            </a>
-            <a href="tel:+995591410914" className="px-10 py-4 bg-transparent text-[#DCC3AA] font-semibold uppercase tracking-[0.2em] text-[12px] border border-[#DCC3AA]/40 hover:bg-[#DCC3AA] hover:text-[#541A1A] hover:border-[#DCC3AA] transition-colors duration-300">
-=======
-      {/* Striking CTA (Espresso Base) */}
-      <section id="get-started" className="pt-32 pb-48 px-6 relative overflow-hidden flex items-center justify-center text-center">
-        <div className="max-w-4xl mx-auto relative z-10 bg-gradient-to-br from-[#1C1A19] via-[#1C1A19] to-[#0F0E0D] p-12 lg:p-24 rounded-[3rem] shadow-[0_1px_0_rgba(255,255,255,0.05)_inset,0_40px_100px_rgba(28,26,25,0.2)] overflow-hidden border border-white/[0.06]">
-          {/* Top hairline ornament */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[70%] h-[1px] bg-gradient-to-r from-transparent via-[#166534]/60 to-transparent" />
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-3 opacity-60">
-            <span className="h-px w-8 bg-gradient-to-r from-transparent to-[#166534]/50" />
-            <span className="w-1 h-1 rounded-full bg-[#166534]" />
-            <span className="h-px w-8 bg-gradient-to-l from-transparent to-[#166534]/50" />
-          </div>
+            {/* LEFT: Headline + CTAs */}
+            <div className="text-center lg:text-left">
+              <span className="inline-flex items-center gap-3 text-[10.5px] font-bold uppercase tracking-[0.36em] text-[#D6A569] mb-7">
+                <span className="h-px w-8 bg-[#D6A569]/50" />
+                {t.cta.eyebrow}
+              </span>
+              <h2 className="text-[40px] md:text-[52px] lg:text-[60px] font-normal tracking-[-0.02em] mb-7 leading-[1.05] text-[#F1E2D1] text-balance">
+                {t.cta.titlePrefix}{' '}
+                <span className="font-serif italic text-[#D6A569]">{t.cta.titleGradient}</span>
+              </h2>
+              <p className="text-[16px] md:text-[17px] font-light text-[#DCC3AA]/85 mb-10 leading-[1.65] max-w-xl mx-auto lg:mx-0">
+                <span className="font-serif italic">— </span>{t.cta.description}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <a
+                  href="mailto:gzadvertisment@gmail.com"
+                  className="group inline-flex items-center justify-center gap-3 px-9 py-[14px] bg-[#D6A569] text-[#160606] font-bold uppercase tracking-[0.22em] text-[11.5px] hover:bg-[#F1E2D1] transition-colors duration-300"
+                >
+                  {t.cta.contact}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform duration-300 group-hover:translate-x-1"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                </a>
+                <a
+                  href="tel:+995591410914"
+                  className="inline-flex items-center justify-center px-9 py-[14px] bg-transparent text-[#D6A569] font-bold uppercase tracking-[0.22em] text-[11.5px] border border-[#D6A569]/45 hover:bg-[#D6A569] hover:text-[#160606] hover:border-[#D6A569] transition-colors duration-300"
+                >
+                  {t.cta.call}
+                </a>
+              </div>
+            </div>
 
-          {/* Soft green wash */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#166534] dark:bg-emerald-500 opacity-[0.06] blur-[110px] pointer-events-none rounded-full transform-gpu will-change-transform" />
+            {/* RIGHT: Contact card / details */}
+            <div className="relative">
+              {/* Top divider on mobile, vertical line on desktop */}
+              <div aria-hidden className="hidden lg:block absolute -left-10 top-0 bottom-0 w-px bg-[#D6A569]/15" />
 
-          {/* Subtle cream noise layer */}
-          <div className="absolute inset-0 opacity-[0.015] pointer-events-none mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)', backgroundSize: '3px 3px' }} />
-
-          <h2 className="text-5xl md:text-[76px] font-medium tracking-[-0.035em] mb-8 leading-[1.02] text-white relative z-10">
-            {t.cta.titlePrefix} <br className="hidden md:block"/><span className="font-serif italic font-light text-[#166534] dark:text-emerald-400">{t.cta.titleGradient}</span>
-          </h2>
-          <p className="text-[19px] font-light text-[#E5E0D8]/75 mb-14 leading-[1.65] max-w-xl mx-auto relative z-10">
-            {t.cta.description}
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 relative z-10">
-            <a href="mailto:gzadvertisment@gmail.com" className="group px-10 py-[18px] bg-[#166534] dark:bg-emerald-500 text-white font-semibold rounded-full hover:bg-[#14532D] dark:hover:bg-emerald-400 transition-all duration-500 shadow-[0_10px_30px_rgba(22,101,52,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_18px_44px_rgba(22,101,52,0.55)] hover:-translate-y-0.5 inline-flex items-center justify-center gap-2.5 text-[13px] tracking-[0.04em]">
-              <span>{t.cta.contact}</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-0.5 transition-transform duration-500"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-            </a>
-            <a href="tel:+995591410914" className="px-10 py-[18px] bg-transparent text-white font-medium rounded-full border border-white/15 hover:border-[#166534] dark:hover:border-emerald-500/60 hover:bg-white/[0.03] transition-all duration-500 inline-flex items-center justify-center gap-2.5 text-[13px] tracking-[0.04em]">
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
-              {t.cta.call}
-            </a>
+              <ul className="space-y-7 lg:space-y-8">
+                {[
+                  {
+                    label: lang === 'en' ? 'Write' : 'მოგვწერეთ',
+                    value: 'gzadvertisment@gmail.com',
+                    href: 'mailto:gzadvertisment@gmail.com',
+                    icon: (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="M3 7l9 6 9-6" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    label: lang === 'en' ? 'Call' : 'დაგვირეკეთ',
+                    value: '+995 591 410 914',
+                    href: 'tel:+995591410914',
+                    icon: (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    label: lang === 'en' ? 'Visit' : 'მისამართი',
+                    value: lang === 'en' ? 'Tbilisi, Georgia' : 'თბილისი, საქართველო',
+                    href: null,
+                    icon: (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    label: lang === 'en' ? 'Hours' : 'სამუშაო საათები',
+                    value: lang === 'en' ? 'Mon–Sat · 10:00 – 19:00' : 'ორშ–შაბ · 10:00 – 19:00',
+                    href: null,
+                    icon: (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 6v6l4 2" />
+                      </svg>
+                    ),
+                  },
+                ].map((row, i) => (
+                  <li key={i} className="flex items-start gap-4 group">
+                    <span className="w-9 h-9 rounded-full border border-[#D6A569]/35 flex items-center justify-center text-[#D6A569] shrink-0 group-hover:bg-[#D6A569] group-hover:text-[#160606] transition-colors duration-300">
+                      {row.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-[9.5px] font-bold uppercase tracking-[0.32em] text-[#D6A569]/65 mb-1.5">
+                        {row.label}
+                      </div>
+                      {row.href ? (
+                        <a href={row.href} className="text-[15px] text-[#F1E2D1] hover:text-[#D6A569] transition-colors duration-300 break-all">
+                          {row.value}
+                        </a>
+                      ) : (
+                        <span className="text-[15px] text-[#F1E2D1] font-serif italic">{row.value}</span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
-<<<<<<< HEAD
-      {/* FOOTER — boutique tan + paper grain */}
-      <footer id="contact" className="paper-grain py-24 px-6 lg:px-12 bg-[#DCC3AA] dark:bg-[#541A1A] border-t border-[#DCC3AA] dark:border-[#DCC3AA]/20 relative">
-        <div className="max-w-[1400px] mx-auto relative z-10">
+      {/* ─────────────────────── FOOTER ─────────────────────── */}
+      <footer id="contact" className="paper-grain py-20 lg:py-24 px-6 lg:px-12 bg-[#DCC3AA]/60 dark:bg-[#1F0808] border-t border-[#DCC3AA] dark:border-[#D6A569]/12 relative">
+        <div className="max-w-[1320px] mx-auto relative z-10">
 
-          {/* Centered ornamental rule */}
-          <div className="flex justify-center mb-16">
-            <span className="eyebrow-rule" style={{ color: '#810B38' }}>Gzad · Tbilisi</span>
+          <div className="flex justify-center mb-14">
+            <span className="eyebrow-rule">Gzad · Tbilisi</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-16 lg:gap-12 mb-20 justify-items-start lg:justify-items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-10 mb-16">
 
-            {/* Brand Column */}
-            <div className="lg:col-span-2 w-full flex flex-col items-start lg:justify-self-start">
-              <a href="#" className="flex items-center gap-3 mb-6 group inline-flex">
-                <span className="font-serif italic text-3xl tracking-tight text-[#541A1A] dark:text-[#F1E2D1]">Gzad</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#810B38] dark:bg-[#DCC3AA]" />
+            {/* Brand */}
+            <div className="lg:col-span-2">
+              <a href="#" className="inline-flex items-center gap-2.5 mb-5 group">
+                <span className="font-serif italic text-[30px] tracking-tight text-[#541A1A] dark:text-[#F1E2D1] leading-none">Gzad</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#810B38] dark:bg-[#D6A569]" />
               </a>
-              <p className="text-[#541A1A]/75 dark:text-[#DCC3AA] font-light text-[14px] leading-relaxed max-w-sm mb-10 text-left">
-                <span className="font-serif italic text-[#810B38] dark:text-[#DCC3AA]">— </span>{t.footer.tagline}
+              <p className="text-[#541A1A]/72 dark:text-[#DCC3AA]/82 font-light text-[14.5px] leading-[1.7] max-w-sm mb-8">
+                <span className="font-serif italic text-[#810B38] dark:text-[#D6A569]">— </span>{t.footer.tagline}
               </p>
-              <div className="flex gap-5 text-[#541A1A] dark:text-[#DCC3AA]">
-                <a href="#" aria-label="Facebook" className="hover:text-[#810B38] transition-colors duration-300">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
-                </a>
-                <a href="#" aria-label="Instagram" className="hover:text-[#810B38] transition-colors duration-300">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
-                </a>
-                <a href="#" aria-label="LinkedIn" className="hover:text-[#810B38] transition-colors duration-300">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
-                </a>
+              <div className="flex gap-4 text-[#541A1A] dark:text-[#DCC3AA]">
+                {[
+                  { l: 'Facebook', d: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /> },
+                  { l: 'Instagram', d: <><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></> },
+                  { l: 'LinkedIn', d: <><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></> },
+                ].map((s, i) => (
+                  <a key={i} href="#" aria-label={s.l} className="w-9 h-9 border border-[#541A1A]/20 dark:border-[#D6A569]/25 flex items-center justify-center hover:bg-[#810B38] hover:text-[#F1E2D1] hover:border-[#810B38] dark:hover:bg-[#D6A569] dark:hover:text-[#160606] dark:hover:border-[#D6A569] transition-colors duration-300">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">{s.d}</svg>
+                  </a>
+                ))}
               </div>
             </div>
 
-            {/* Navigation Links Columns */}
-            <div className="w-full flex flex-col items-start lg:items-center">
-              <div className="text-left w-full max-w-[180px]">
-                <h4 className="text-[#541A1A] dark:text-[#F1E2D1] font-semibold tracking-[0.3em] text-[10px] uppercase">{t.footer.platform}</h4>
-                <div className="h-px w-8 bg-[#810B38] my-5" />
-                <ul className="space-y-4 text-[#541A1A]/75 dark:text-[#DCC3AA] text-[14px] font-light">
-                  <li><a href="#how-it-works" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block">{t.nav.howItWorks}</a></li>
-                  <li><a href="#advertisers" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block">{t.nav.advertisers}</a></li>
-                  <li><a href="#drivers" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block">{t.nav.drivers}</a></li>
-                  <li><a href="#pricing" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block">{t.nav.pricing}</a></li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="w-full flex flex-col items-start lg:items-center">
-              <div className="text-left w-full max-w-[180px]">
-                <h4 className="text-[#541A1A] dark:text-[#F1E2D1] font-semibold tracking-[0.3em] text-[10px] uppercase">{t.footer.company}</h4>
-                <div className="h-px w-8 bg-[#810B38] my-5" />
-                <ul className="space-y-4 text-[#541A1A]/75 dark:text-[#DCC3AA] text-[14px] font-light">
-                  <li><a href="#" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block">{t.footer.about}</a></li>
-                  <li><a href="#faq" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block">{t.nav.faq}</a></li>
-                  <li><a href="#" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block">{t.footer.press}</a></li>
-                  <li><a href="#" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block">{t.footer.careers}</a></li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Contact Column */}
-            <div className="w-full flex flex-col items-start lg:justify-self-end">
-              <div className="text-left w-full">
-                <h4 className="text-[#541A1A] dark:text-[#F1E2D1] font-semibold tracking-[0.3em] text-[10px] uppercase">{t.footer.contact}</h4>
-                <div className="h-px w-8 bg-[#810B38] my-5" />
-                <ul className="space-y-4 text-[#541A1A]/75 dark:text-[#DCC3AA] text-[14px] font-light">
-                  <li>
-                    <a href="mailto:gzadvertisment@gmail.com" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block">
-                      gzadvertisment@gmail.com
-                    </a>
-                  </li>
-                  <li>
-                    <a href="tel:+995591410914" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300 inline-block pt-1">
-                      +995 591 410 914
-                    </a>
-                  </li>
-                  <li className="pt-4 text-[#541A1A]/60 dark:text-[#DCC3AA]/70 text-[13px] font-serif italic">
-                    {lang === 'ge' ? 'თბილისი, საქართველო' : 'Tbilisi, Georgia'}
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="pt-8 border-t border-[#810B38]/20 dark:border-[#DCC3AA]/20 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-[#541A1A]/70 dark:text-[#DCC3AA] text-[12px] font-light tracking-[0.15em]">{t.footer.rights} &copy; {new Date().getFullYear()}</p>
-            <div className="flex gap-8 text-[12px] text-[#541A1A]/70 dark:text-[#DCC3AA] font-light tracking-[0.15em]">
-              <a href="#" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300">Privacy Policy</a>
-              <a href="#" className="hover:text-[#810B38] dark:hover:text-[#F1E2D1] transition-colors duration-300">Terms of Service</a>
-            </div>
-=======
-      {/* CREAMY FOOTER */}
-      <footer id="contact" className="relative py-24 px-6 lg:px-12 bg-[#F8F6F1] dark:bg-[#0A0A0A] border-t border-[#E5E0D8] dark:border-white/10">
-        {/* Top hairline ornament */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 bg-[#F8F6F1] dark:bg-[#0A0A0A] px-4">
-          <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-          <span className="w-1 h-1 rounded-full bg-[#166534]/50 dark:bg-emerald-500/60" />
-          <span className="h-px w-8 bg-[#E5E0D8] dark:bg-white/15" />
-        </div>
-
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-16 lg:gap-12 mb-20 justify-items-start lg:justify-items-center">
-
-          {/* Brand Column */}
-          <div className="lg:col-span-2 w-full flex flex-col items-start lg:justify-self-start">
-            <a href="#" className="flex items-center gap-3 mb-6 group inline-flex">
-              <span className="text-3xl font-bold tracking-[-0.04em] text-[#1C1A19] dark:text-[#FAFAFA]">G<span className="font-serif italic font-light text-[#166534] dark:text-emerald-400">z</span>ad</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#166534] dark:bg-emerald-500 shadow-[0_0_10px_rgba(22,101,52,0.45)]" />
-            </a>
-            <p className="text-[#6B6561] dark:text-zinc-400 font-light text-[14px] leading-[1.7] max-w-sm mb-10 text-left">
-              {t.footer.tagline}
-            </p>
-            <div className="flex gap-4 text-[#8C857E] dark:text-zinc-500">
-              <a href="#" className="w-10 h-10 rounded-full border border-[#E5E0D8] dark:border-white/10 flex items-center justify-center hover:text-[#166534] dark:hover:text-emerald-400 hover:border-[#166534]/30 dark:hover:border-emerald-500/30 hover:-translate-y-0.5 transition-all duration-500">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full border border-[#E5E0D8] dark:border-white/10 flex items-center justify-center hover:text-[#166534] dark:hover:text-emerald-400 hover:border-[#166534]/30 dark:hover:border-emerald-500/30 hover:-translate-y-0.5 transition-all duration-500">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full border border-[#E5E0D8] dark:border-white/10 flex items-center justify-center hover:text-[#166534] dark:hover:text-emerald-400 hover:border-[#166534]/30 dark:hover:border-emerald-500/30 hover:-translate-y-0.5 transition-all duration-500">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
-              </a>
-            </div>
-          </div>
-
-          {/* Navigation Links Columns */}
-          <div className="w-full flex flex-col items-start lg:items-center">
-            <div className="text-left w-full max-w-[150px]">
-              <h4 className="text-[#1C1A19] dark:text-[#FAFAFA] font-bold tracking-[0.24em] mb-8 text-[10.5px] uppercase">{t.footer.platform}</h4>
-              <ul className="space-y-4 text-[#6B6561] dark:text-zinc-400 text-[14px] font-light">
-                <li><a href="#how-it-works" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block">{t.nav.howItWorks}</a></li>
-                <li><a href="#advertisers" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block">{t.nav.advertisers}</a></li>
-                <li><a href="#drivers" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block">{t.nav.drivers}</a></li>
-                <li><a href="#pricing" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block">{t.nav.pricing}</a></li>
+            {/* Platform */}
+            <div>
+              <h4 className="text-[#541A1A] dark:text-[#F1E2D1] font-bold tracking-[0.32em] text-[10px] uppercase">{t.footer.platform}</h4>
+              <div className="h-px w-8 bg-[#810B38] dark:bg-[#D6A569] my-5" />
+              <ul className="space-y-3.5 text-[#541A1A]/72 dark:text-[#DCC3AA]/85 text-[14px] font-light">
+                <li><a href="#how-it-works" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">{t.nav.howItWorks}</a></li>
+                <li><a href="#advertisers" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">{t.nav.advertisers}</a></li>
+                <li><a href="#drivers" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">{t.nav.drivers}</a></li>
+                <li><a href="#faq" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">{t.nav.faq}</a></li>
               </ul>
             </div>
-          </div>
 
-          <div className="w-full flex flex-col items-start lg:items-center">
-            <div className="text-left w-full max-w-[150px]">
-              <h4 className="text-[#1C1A19] dark:text-[#FAFAFA] font-bold tracking-[0.24em] mb-8 text-[10.5px] uppercase">{t.footer.company}</h4>
-              <ul className="space-y-4 text-[#6B6561] dark:text-zinc-400 text-[14px] font-light">
-                <li><a href="#" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block">{t.footer.about}</a></li>
-                <li><a href="#faq" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block">{t.nav.faq}</a></li>
-                <li><a href="#" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block">{t.footer.press}</a></li>
-                <li><a href="#" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block">{t.footer.careers}</a></li>
+            {/* Company */}
+            <div>
+              <h4 className="text-[#541A1A] dark:text-[#F1E2D1] font-bold tracking-[0.32em] text-[10px] uppercase">{t.footer.company}</h4>
+              <div className="h-px w-8 bg-[#810B38] dark:bg-[#D6A569] my-5" />
+              <ul className="space-y-3.5 text-[#541A1A]/72 dark:text-[#DCC3AA]/85 text-[14px] font-light">
+                <li><a href="#" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">{t.footer.about}</a></li>
+                <li><a href="#faq" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">{t.nav.faq}</a></li>
+                <li><a href="#" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">{t.footer.press}</a></li>
+                <li><a href="#" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">{t.footer.careers}</a></li>
               </ul>
             </div>
-          </div>
 
-          {/* Contact Column */}
-          <div className="w-full flex flex-col items-start lg:justify-self-end">
-            <div className="text-left w-full">
-              <h4 className="text-[#1C1A19] dark:text-[#FAFAFA] font-bold tracking-[0.24em] mb-8 text-[10.5px] uppercase">{t.footer.contact}</h4>
-              <ul className="space-y-4 text-[#6B6561] dark:text-zinc-400 text-[14px] font-light">
-                <li>
-                  <a href="mailto:gzadvertisment@gmail.com" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block">
-                    gzadvertisment@gmail.com
-                  </a>
-                </li>
-                <li>
-                  <a href="tel:+995591410914" className="hover:text-[#166534] dark:hover:text-emerald-400 transition-colors duration-300 inline-block pt-1 tabular-nums">
-                    +995 591 410 914
-                  </a>
-                </li>
-                <li className="pt-4 text-[#8C857E] dark:text-zinc-500 text-[13px]">
+            {/* Contact */}
+            <div>
+              <h4 className="text-[#541A1A] dark:text-[#F1E2D1] font-bold tracking-[0.32em] text-[10px] uppercase">{t.footer.contact}</h4>
+              <div className="h-px w-8 bg-[#810B38] dark:bg-[#D6A569] my-5" />
+              <ul className="space-y-3.5 text-[#541A1A]/72 dark:text-[#DCC3AA]/85 text-[14px] font-light">
+                <li><a href="mailto:gzadvertisment@gmail.com" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">gzadvertisment@gmail.com</a></li>
+                <li><a href="tel:+995591410914" className="nav-link inline-block hover:text-[#810B38] dark:hover:text-[#D6A569]">+995 591 410 914</a></li>
+                <li className="pt-3 text-[#541A1A]/60 dark:text-[#DCC3AA]/65 font-serif italic">
                   {lang === 'ge' ? 'თბილისი, საქართველო' : 'Tbilisi, Georgia'}
                 </li>
               </ul>
             </div>
           </div>
 
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="max-w-[1400px] mx-auto pt-8 border-t border-[#E5E0D8] dark:border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-[#8C857E] dark:text-zinc-500 text-[12.5px] font-light tracking-[0.04em] tabular-nums">{t.footer.rights} &copy; {new Date().getFullYear()}</p>
-          <div className="flex gap-8 text-[12px] text-[#6B6561] dark:text-zinc-400 font-medium tracking-[0.02em]">
-            <a href="#" className="hover:text-[#1C1A19] dark:hover:text-white transition-colors duration-300">Privacy Policy</a>
-            <a href="#" className="hover:text-[#1C1A19] dark:hover:text-white transition-colors duration-300">Terms of Service</a>
->>>>>>> 822c3ca95e2076054ee18f703db84b8603bd3688
+          <div className="pt-8 border-t border-[#810B38]/15 dark:border-[#D6A569]/15 flex flex-col md:flex-row justify-between items-center gap-5">
+            <p className="text-[#541A1A]/65 dark:text-[#DCC3AA]/70 text-[12px] font-light tracking-[0.18em]">
+              {t.footer.rights}
+            </p>
+            <div className="flex gap-8 text-[12px] text-[#541A1A]/65 dark:text-[#DCC3AA]/70 font-light tracking-[0.18em]">
+              <a href="#" className="hover:text-[#810B38] dark:hover:text-[#D6A569] transition-colors duration-300">Privacy</a>
+              <a href="#" className="hover:text-[#810B38] dark:hover:text-[#D6A569] transition-colors duration-300">Terms</a>
+            </div>
           </div>
         </div>
       </footer>

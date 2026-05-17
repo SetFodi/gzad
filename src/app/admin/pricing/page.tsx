@@ -20,10 +20,10 @@ interface EditableDistrict {
 }
 
 const TIME_LABELS: Record<string, { label: string; color: string }> = {
-  '0.75': { label: 'Off-Peak', color: '#64748B' },
-  '1.00': { label: 'Standard', color: '#60A5FA' },
-  '1.15': { label: 'Nightlife', color: '#A78BFA' },
-  '1.30': { label: 'Rush Hour', color: '#F59E0B' },
+  '0.75': { label: 'Off-Peak', color: 'var(--portal-muted)' },
+  '1.00': { label: 'Standard', color: 'var(--portal-info)' },
+  '1.15': { label: 'Nightlife', color: 'var(--portal-brass)' },
+  '1.30': { label: 'Rush Hour', color: 'var(--portal-warning)' },
 }
 
 function formatGEL(n: number): string {
@@ -168,8 +168,8 @@ export default function PricingPage() {
       {/* Summary cards */}
       <div className="stats-grid" style={{ marginBottom: '2rem' }}>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(96,165,250,0.1)' }}>
-            <DollarSign size={24} color="#60A5FA" />
+          <div className="stat-card-icon" style={{ background: 'rgba(76, 106, 136, 0.14)' }}>
+            <DollarSign size={24} color="var(--portal-info)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatGEL(clients.reduce((s, c) => s + c.balance, 0))}</span>
@@ -177,8 +177,8 @@ export default function PricingPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(22,101,52,0.1)' }}>
-            <Users size={24} color="#166534" />
+          <div className="stat-card-icon" style={{ background: 'rgba(47, 125, 89, 0.12)' }}>
+            <Users size={24} color="var(--portal-success)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{clients.filter(c => c.balance > 0).length} / {clients.length}</span>
@@ -186,8 +186,8 @@ export default function PricingPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(167,139,250,0.1)' }}>
-            <Receipt size={24} color="#A78BFA" />
+          <div className="stat-card-icon" style={{ background: 'rgba(185, 133, 71, 0.13)' }}>
+            <Receipt size={24} color="var(--portal-brass)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatGEL(billingLogs.reduce((s, l) => s + l.total_cost, 0))}</span>
@@ -204,9 +204,9 @@ export default function PricingPage() {
             onClick={() => setActiveTab(tab.key)}
             style={{
               padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid',
-              borderColor: activeTab === tab.key ? '#60A5FA' : 'var(--border)',
-              background: activeTab === tab.key ? 'rgba(96,165,250,0.1)' : 'transparent',
-              color: activeTab === tab.key ? '#60A5FA' : 'var(--muted-foreground)',
+              borderColor: activeTab === tab.key ? 'var(--portal-info)' : 'var(--border)',
+              background: activeTab === tab.key ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
+              color: activeTab === tab.key ? 'var(--portal-info)' : 'var(--muted-foreground)',
               cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
               display: 'flex', alignItems: 'center', gap: '0.5rem',
             }}
@@ -261,7 +261,7 @@ export default function PricingPage() {
                 disabled={saving}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
-                  borderRadius: 8, border: 'none', background: '#60A5FA', color: '#fff',
+                  borderRadius: 8, border: 'none', background: 'var(--portal-info)', color: '#fff',
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
@@ -272,7 +272,7 @@ export default function PricingPage() {
             {/* Example calculation */}
             <div style={{
               marginTop: 24, padding: 16, borderRadius: 12,
-              background: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.15)',
+              background: 'rgba(76, 106, 136, 0.14)', border: '1px solid rgba(76, 106, 136, 0.14)',
             }}>
               <h3 style={{ margin: '0 0 8px', fontSize: 14 }}>Example Calculation</h3>
               <p style={{ margin: 0, fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.8 }}>
@@ -364,7 +364,7 @@ export default function PricingPage() {
                 disabled={saving}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
-                  borderRadius: 8, border: 'none', background: '#60A5FA', color: '#fff',
+                  borderRadius: 8, border: 'none', background: 'var(--portal-info)', color: '#fff',
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
@@ -386,7 +386,7 @@ export default function PricingPage() {
             }}>
               {Array.from({ length: 24 }, (_, h) => {
                 const mult = timeMultipliers[h.toString()] ?? 1.0
-                const info = TIME_LABELS[mult.toFixed(2)] || { label: 'Custom', color: '#525252' }
+                const info = TIME_LABELS[mult.toFixed(2)] || { label: 'Custom', color: 'var(--portal-muted)' }
                 return (
                   <div
                     key={h}
@@ -432,7 +432,7 @@ export default function PricingPage() {
                     { range: '20:00 – 01:00', hours: [20, 21, 22, 23, 0] },
                   ].map(slot => {
                     const mult = timeMultipliers[slot.hours[0].toString()] ?? 1.0
-                    const info = TIME_LABELS[mult.toFixed(2)] || { label: 'Custom', color: '#525252' }
+                    const info = TIME_LABELS[mult.toFixed(2)] || { label: 'Custom', color: 'var(--portal-muted)' }
                     return (
                       <tr key={slot.range}>
                         <td style={{ fontWeight: 600 }}>{slot.range}</td>
@@ -470,7 +470,7 @@ export default function PricingPage() {
                 disabled={saving}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
-                  borderRadius: 8, border: 'none', background: '#60A5FA', color: '#fff',
+                  borderRadius: 8, border: 'none', background: 'var(--portal-info)', color: '#fff',
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
@@ -487,7 +487,7 @@ export default function PricingPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <h2 style={{ margin: 0 }}>District Boundaries</h2>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {mapDirty && <span style={{ fontSize: 12, color: '#F59E0B' }}>Unsaved changes</span>}
+                {mapDirty && <span style={{ fontSize: 12, color: 'var(--portal-warning)' }}>Unsaved changes</span>}
                 <button
                   onClick={async () => {
                     setSaving(true)
@@ -503,7 +503,7 @@ export default function PricingPage() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
                     borderRadius: 8, border: 'none',
-                    background: mapDirty ? '#60A5FA' : 'var(--border)',
+                    background: mapDirty ? 'var(--portal-info)' : 'var(--border)',
                     color: mapDirty ? '#fff' : 'var(--muted-foreground)',
                     cursor: mapDirty ? 'pointer' : 'default', fontSize: 14, fontWeight: 500,
                     opacity: saving ? 0.6 : 1,
@@ -525,9 +525,9 @@ export default function PricingPage() {
                 style={{
                   padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500,
                   border: '1px solid', cursor: 'pointer',
-                  borderColor: !selectedMapDistrict ? '#60A5FA' : 'var(--border)',
-                  background: !selectedMapDistrict ? 'rgba(96,165,250,0.1)' : 'transparent',
-                  color: !selectedMapDistrict ? '#60A5FA' : 'var(--muted-foreground)',
+                  borderColor: !selectedMapDistrict ? 'var(--portal-info)' : 'var(--border)',
+                  background: !selectedMapDistrict ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
+                  color: !selectedMapDistrict ? 'var(--portal-info)' : 'var(--muted-foreground)',
                 }}
               >
                 All
@@ -572,7 +572,7 @@ export default function PricingPage() {
             {/* Instructions */}
             <div style={{
               padding: 14, borderRadius: 10,
-              background: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.15)',
+              background: 'rgba(76, 106, 136, 0.14)', border: '1px solid rgba(76, 106, 136, 0.14)',
               fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.7,
             }}>
               <strong style={{ color: 'var(--foreground)' }}>How to edit:</strong><br />
@@ -603,7 +603,7 @@ export default function PricingPage() {
                       <td style={{ fontWeight: 600 }}>{c.company_name}</td>
                       <td style={{
                         textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600,
-                        color: c.balance <= 0 ? '#EF4444' : '#22c55e',
+                        color: c.balance <= 0 ? 'var(--portal-danger)' : 'var(--portal-success)',
                       }}>
                         {formatGEL(c.balance)}
                       </td>
@@ -628,7 +628,7 @@ export default function PricingPage() {
                             title="Add balance"
                             style={{
                               display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px',
-                              borderRadius: 6, border: 'none', background: '#166534', color: '#fff',
+                              borderRadius: 6, border: 'none', background: 'var(--portal-success)', color: '#fff',
                               cursor: 'pointer', fontSize: 12, fontWeight: 500,
                             }}
                           >

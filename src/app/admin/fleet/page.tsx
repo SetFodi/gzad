@@ -66,8 +66,8 @@ export default function FleetPage() {
 
       <div className="stats-grid" style={{ marginBottom: 20 }}>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(96,165,250,0.1)' }}>
-            <Monitor size={24} color="#60A5FA" />
+          <div className="stat-card-icon" style={{ background: 'rgba(76, 106, 136, 0.14)' }}>
+            <Monitor size={24} color="var(--portal-info)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{allDevices.length}</span>
@@ -75,8 +75,8 @@ export default function FleetPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(204,243,129,0.1)' }}>
-            <Wifi size={24} color="#CCF381" />
+          <div className="stat-card-icon" style={{ background: 'rgba(47, 125, 89, 0.14)' }}>
+            <Wifi size={24} color="var(--portal-success)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{onlineCount}</span>
@@ -84,8 +84,8 @@ export default function FleetPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(82,82,82,0.15)' }}>
-            <WifiOff size={24} color="#525252" />
+          <div className="stat-card-icon" style={{ background: 'rgba(84, 26, 26, 0.08)' }}>
+            <WifiOff size={24} color="var(--portal-muted)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{offlineCount}</span>
@@ -98,12 +98,12 @@ export default function FleetPage() {
         {/* Device list */}
         <div style={{
           width: 220, flexShrink: 0,
-          background: '#0A0A0A', border: '1px solid #1A1A1A',
+          background: 'var(--portal-surface)', border: '1px solid var(--portal-border)',
           borderRadius: 12, overflow: 'hidden',
           maxHeight: 500, overflowY: 'auto',
         }}>
           {allDevices.length === 0 && (
-            <div style={{ padding: 16, color: '#525252', fontSize: 13 }}>No devices</div>
+            <div style={{ padding: 16, color: 'var(--portal-muted)', fontSize: 13 }}>No devices</div>
           )}
           {allDevices.map(d => {
             const hasFix = d.last_lat !== null && d.last_lng !== null
@@ -113,25 +113,25 @@ export default function FleetPage() {
                 onClick={() => hasFix ? setFocusedId(d.cardId) : undefined}
                 style={{
                   width: '100%', textAlign: 'left', padding: '10px 14px',
-                  background: focusedId === d.cardId ? 'rgba(204,243,129,0.08)' : 'transparent',
-                  border: 'none', borderBottom: '1px solid #141414',
+                  background: focusedId === d.cardId ? 'rgba(47, 125, 89, 0.14)' : 'transparent',
+                  border: 'none', borderBottom: '1px solid var(--portal-border)',
                   cursor: hasFix ? 'pointer' : 'default',
                   display: 'flex', alignItems: 'center', gap: 10,
                 }}
               >
                 <div style={{
                   width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: d.online ? '#CCF381' : '#525252',
-                  boxShadow: d.online ? '0 0 6px rgba(204,243,129,0.6)' : 'none',
+                  background: d.online ? 'var(--portal-success)' : 'var(--portal-muted)',
+                  boxShadow: d.online ? '0 0 6px rgba(47, 125, 89, 0.14)' : 'none',
                 }} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{
-                    fontSize: 13, color: '#F1F5F9', fontWeight: 500,
+                    fontSize: 13, color: 'var(--portal-text)', fontWeight: 500,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {d.name || d.cardId}
                   </div>
-                  <div style={{ fontSize: 11, color: '#525252' }}>
+                  <div style={{ fontSize: 11, color: 'var(--portal-muted)' }}>
                     {d.lastSeen ? new Date(d.lastSeen).toLocaleTimeString() : 'Never seen'}
                     {!hasFix && ' · no GPS'}
                   </div>
@@ -143,15 +143,15 @@ export default function FleetPage() {
 
         {/* Map */}
         <div style={{
-          flex: 1, background: '#0A0A0A', border: '1px solid #1A1A1A',
+          flex: 1, background: 'var(--portal-surface)', border: '1px solid var(--portal-border)',
           borderRadius: 12, overflow: 'hidden', height: 500, position: 'relative',
         }}>
           {loading && mappedDevices.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#525252' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--portal-muted)' }}>
               Loading...
             </div>
           ) : mappedDevices.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#525252', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--portal-muted)', gap: 8 }}>
               <p>No GPS positions available.</p>
               <p style={{ fontSize: 13 }}>Devices will appear once they report a location.</p>
             </div>
@@ -161,7 +161,7 @@ export default function FleetPage() {
         </div>
       </div>
 
-      <div style={{ marginTop: 12, color: '#525252', fontSize: 13 }}>
+      <div style={{ marginTop: 12, color: 'var(--portal-muted)', fontSize: 13 }}>
         {mappedDevices.length} of {allDevices.length} device(s) have GPS · auto-refreshes every 30s
       </div>
     </div>

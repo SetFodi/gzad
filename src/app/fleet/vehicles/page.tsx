@@ -164,7 +164,7 @@ export default function FleetVehiclesPage() {
                   style={{ fontFamily: 'monospace', letterSpacing: 2, fontSize: 16 }}
                   required
                 />
-                <span style={{ fontSize: 11, color: '#71717a', marginTop: 4 }}>{f.plateHint}</span>
+                <span style={{ fontSize: 11, color: 'var(--portal-muted)', marginTop: 4 }}>{f.plateHint}</span>
               </div>
               <button type="submit" disabled={creating} className="portal-btn-primary full-width">
                 {creating ? f.adding : f.addVehicle}
@@ -202,9 +202,9 @@ export default function FleetVehiclesPage() {
                   <td>{v.color}</td>
                   <td>
                     {v.device_id ? (
-                      <span style={{ color: '#CCF381', fontSize: 12 }}>{v.device_id}</span>
+                      <span style={{ color: 'var(--portal-success)', fontSize: 12 }}>{v.device_id}</span>
                     ) : (
-                      <span style={{ color: '#71717a', fontSize: 12 }}>{f.notAssigned}</span>
+                      <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>{f.notAssigned}</span>
                     )}
                   </td>
                   <td>{new Date(v.created_at).toLocaleDateString()}</td>
@@ -212,7 +212,7 @@ export default function FleetVehiclesPage() {
                     <button
                       onClick={() => handleDelete(v.id)}
                       style={{
-                        background: 'none', border: 'none', color: '#EF4444',
+                        background: 'none', border: 'none', color: 'var(--portal-danger)',
                         cursor: 'pointer', padding: 4, display: 'flex',
                       }}
                       title={f.delete}

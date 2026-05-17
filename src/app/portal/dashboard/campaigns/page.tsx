@@ -68,11 +68,11 @@ export default function CampaignsPage() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case 'active': return '#CCF381'
-      case 'pending_review': return '#FBBF24'
-      case 'paused': return '#94A3B8'
-      case 'completed': return '#60A5FA'
-      default: return '#64748B'
+      case 'active': return 'var(--portal-success)'
+      case 'pending_review': return 'var(--portal-warning)'
+      case 'paused': return 'var(--portal-muted)'
+      case 'completed': return 'var(--portal-info)'
+      default: return 'var(--portal-muted)'
     }
   }
 

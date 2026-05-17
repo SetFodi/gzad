@@ -110,11 +110,11 @@ export default function DashboardPage() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case 'active': return '#CCF381'
-      case 'pending_review': return '#FBBF24'
-      case 'paused': return '#94A3B8'
-      case 'completed': return '#60A5FA'
-      default: return '#64748B'
+      case 'active': return 'var(--portal-success)'
+      case 'pending_review': return 'var(--portal-warning)'
+      case 'paused': return 'var(--portal-muted)'
+      case 'completed': return 'var(--portal-info)'
+      default: return 'var(--portal-muted)'
     }
   }
 
@@ -144,8 +144,8 @@ export default function DashboardPage() {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(204,243,129,0.1)' }}>
-            <Megaphone size={24} color="#CCF381" />
+          <div className="stat-card-icon" style={{ color: 'var(--portal-primary)' }}>
+            <Megaphone size={24} />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{activeCampaigns}</span>
@@ -153,8 +153,8 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(96,165,250,0.1)' }}>
-            <Play size={24} color="#60A5FA" />
+          <div className="stat-card-icon" style={{ color: 'var(--portal-info)' }}>
+            <Play size={24} />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalPlays.toLocaleString()}</span>
@@ -162,8 +162,8 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(251,191,36,0.1)' }}>
-            <Clock size={24} color="#FBBF24" />
+          <div className="stat-card-icon" style={{ color: 'var(--portal-warning)' }}>
+            <Clock size={24} />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatScreenTime(totalScreenTime)}</span>

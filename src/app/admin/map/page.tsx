@@ -86,9 +86,9 @@ export default function MapPage() {
             className="portal-btn-secondary"
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              background: showDistricts ? 'rgba(204,243,129,0.1)' : undefined,
-              color: showDistricts ? '#CCF381' : undefined,
-              borderColor: showDistricts ? 'rgba(204,243,129,0.3)' : undefined,
+              background: showDistricts ? 'rgba(47, 125, 89, 0.14)' : undefined,
+              color: showDistricts ? 'var(--portal-success)' : undefined,
+              borderColor: showDistricts ? 'rgba(47, 125, 89, 0.14)' : undefined,
             }}
           >
             <Layers size={16} /> {showDistricts ? 'Hide Districts' : 'Show Districts'}
@@ -104,38 +104,38 @@ export default function MapPage() {
         display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end',
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 12, color: '#737373' }}>Date</label>
+          <label style={{ fontSize: 12, color: 'var(--portal-muted)' }}>Date</label>
           <input
             type="date"
             value={date}
             max={todayInTbilisi()}
             onChange={e => setDate(e.target.value)}
             style={{
-              background: '#0A0A0A', border: '1px solid #1A1A1A', color: '#e5e5e5',
+              background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', color: 'var(--portal-text)',
               padding: '8px 12px', borderRadius: 8, fontSize: 13,
             }}
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 12, color: '#737373' }}>From</label>
+          <label style={{ fontSize: 12, color: 'var(--portal-muted)' }}>From</label>
           <input
             type="time"
             value={startTime}
             onChange={e => setStartTime(e.target.value)}
             style={{
-              background: '#0A0A0A', border: '1px solid #1A1A1A', color: '#e5e5e5',
+              background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', color: 'var(--portal-text)',
               padding: '8px 12px', borderRadius: 8, fontSize: 13,
             }}
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 12, color: '#737373' }}>To</label>
+          <label style={{ fontSize: 12, color: 'var(--portal-muted)' }}>To</label>
           <input
             type="time"
             value={endTime}
             onChange={e => setEndTime(e.target.value)}
             style={{
-              background: '#0A0A0A', border: '1px solid #1A1A1A', color: '#e5e5e5',
+              background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', color: 'var(--portal-text)',
               padding: '8px 12px', borderRadius: 8, fontSize: 13,
             }}
           />
@@ -150,19 +150,19 @@ export default function MapPage() {
       </div>
 
       <div style={{
-        background: '#0A0A0A',
-        border: '1px solid #1A1A1A',
+        background: 'var(--portal-surface)',
+        border: '1px solid var(--portal-border)',
         borderRadius: 12,
         overflow: 'hidden',
         height: 500,
         position: 'relative',
       }}>
         {loading && points.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#525252' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--portal-muted)' }}>
             Loading GPS data...
           </div>
         ) : devicePositions.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#525252', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--portal-muted)', flexDirection: 'column', gap: 8 }}>
             <p>No GPS data for {isToday ? 'today' : date} between {startTime} and {endTime}.</p>
             <p style={{ fontSize: 13 }}>GPS is recorded at the start of each ad play.</p>
           </div>
@@ -171,7 +171,7 @@ export default function MapPage() {
         )}
       </div>
 
-      <div style={{ marginTop: 16, color: '#525252', fontSize: 13 }}>
+      <div style={{ marginTop: 16, color: 'var(--portal-muted)', fontSize: 13 }}>
         Showing {devicePositions.length} device(s), {points.length} GPS points for {date} {startTime}–{endTime}
       </div>
     </div>

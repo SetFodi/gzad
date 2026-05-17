@@ -46,24 +46,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="dark portal-login-page">
+    <div className="portal-login-page">
       <div className="portal-login-container">
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <div className="portal-lang-row">
           <button
             onClick={() => setLang(lang === 'en' ? 'ge' : 'en')}
-            style={{
-              background: 'rgba(204,243,129,0.08)', border: '1px solid rgba(204,243,129,0.2)',
-              borderRadius: 6, padding: '4px 10px', fontSize: 12, color: '#CCF381',
-              cursor: 'pointer', fontWeight: 500,
-            }}
+            className="portal-lang-toggle"
           >
             {lang === 'en' ? 'ქართ' : 'ENG'}
           </button>
         </div>
         <div className="portal-login-logo">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="8" width="18" height="10" rx="2" fill="#0A0A0A" />
-            <rect x="5" y="10" width="14" height="6" rx="1" fill="#CCF381" />
+            <rect x="3" y="8" width="18" height="10" rx="2" fill="var(--portal-text)" />
+            <rect x="5" y="10" width="14" height="6" rx="1" fill="var(--portal-primary)" />
           </svg>
           <span>Gzad</span>
         </div>
@@ -104,7 +100,7 @@ export default function LoginPage() {
         </p>
         <p className="portal-login-footer" style={{ marginTop: 8 }}>
           {lang === 'en' ? 'Are you a driver?' : 'მძღოლი ხართ?'}{' '}
-          <a href="/portal/fleet-signup" style={{ color: '#CCF381' }}>
+          <a href="/portal/fleet-signup">
             {lang === 'en' ? 'Sign up for Fleet' : 'დარეგისტრირდით ფლოტში'}
           </a>
         </p>

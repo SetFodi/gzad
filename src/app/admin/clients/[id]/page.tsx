@@ -98,13 +98,13 @@ export default function AdminClientDetailPage() {
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
-            <span className="stat-card-value" style={{ color: '#CCF381' }}>{totalRevenue} GEL</span>
+            <span className="stat-card-value" style={{ color: 'var(--portal-success)' }}>{totalRevenue} GEL</span>
             <span className="stat-card-label">Total Paid</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
-            <span className="stat-card-value" style={{ color: '#FBBF24' }}>{totalPending} GEL</span>
+            <span className="stat-card-value" style={{ color: 'var(--portal-warning)' }}>{totalPending} GEL</span>
             <span className="stat-card-label">Pending</span>
           </div>
         </div>
@@ -131,8 +131,8 @@ export default function AdminClientDetailPage() {
                     </td>
                     <td>
                       <span className="status-badge" style={{
-                        color: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : '#64748B',
-                        borderColor: c.status === 'active' ? '#CCF381' : c.status === 'pending_review' ? '#FBBF24' : '#64748B',
+                        color: c.status === 'active' ? 'var(--portal-success)' : c.status === 'pending_review' ? 'var(--portal-warning)' : 'var(--portal-muted)',
+                        borderColor: c.status === 'active' ? 'var(--portal-success)' : c.status === 'pending_review' ? 'var(--portal-warning)' : 'var(--portal-muted)',
                       }}>
                         {c.status.replace('_', ' ')}
                       </span>
@@ -166,8 +166,8 @@ export default function AdminClientDetailPage() {
                     <td>{inv.amount} GEL</td>
                     <td>
                       <span className="status-badge" style={{
-                        color: inv.status === 'paid' ? '#CCF381' : inv.status === 'pending' ? '#FBBF24' : '#EF4444',
-                        borderColor: inv.status === 'paid' ? '#CCF381' : inv.status === 'pending' ? '#FBBF24' : '#EF4444',
+                        color: inv.status === 'paid' ? 'var(--portal-success)' : inv.status === 'pending' ? 'var(--portal-warning)' : 'var(--portal-danger)',
+                        borderColor: inv.status === 'paid' ? 'var(--portal-success)' : inv.status === 'pending' ? 'var(--portal-warning)' : 'var(--portal-danger)',
                       }}>
                         {inv.status}
                       </span>

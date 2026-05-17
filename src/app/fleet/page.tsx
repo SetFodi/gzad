@@ -85,7 +85,7 @@ export default function FleetDashboardPage() {
       </div>
 
       {/* Vehicles with stats */}
-      <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#e4e4e7' }}>{f.yourVehicles}</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: 'var(--portal-text)' }}>{f.yourVehicles}</h2>
 
       {vehicles.length === 0 ? (
         <div className="portal-empty">
@@ -107,8 +107,8 @@ export default function FleetDashboardPage() {
                     <span>{v.year} {v.make} {v.model}</span>
                   </h3>
                   <span className="status-badge" style={{
-                    color: v.device_id ? '#CCF381' : '#71717a',
-                    borderColor: v.device_id ? '#CCF381' : '#27272a',
+                    color: v.device_id ? 'var(--portal-success)' : 'var(--portal-muted)',
+                    borderColor: v.device_id ? 'var(--portal-success)' : 'var(--portal-border)',
                   }}>
                     <Monitor size={14} />
                     {v.device_id ? f.ledAssigned : f.noLED}
@@ -127,7 +127,7 @@ export default function FleetDashboardPage() {
                   {v.device_id && (
                     <div>
                       <span className="detail-label">{f.deviceId}</span>
-                      <span style={{ fontSize: 12, color: '#71717a' }}>{v.device_id}</span>
+                      <span style={{ fontSize: 12, color: 'var(--portal-muted)' }}>{v.device_id}</span>
                     </div>
                   )}
                 </div>
@@ -135,31 +135,31 @@ export default function FleetDashboardPage() {
                 {deviceStat && (
                   <div style={{
                     marginTop: 12, padding: '12px 14px', borderRadius: 8,
-                    background: 'rgba(204,243,129,0.04)', border: '1px solid rgba(204,243,129,0.1)',
+                    background: 'var(--portal-primary-soft)', border: '1px solid var(--portal-border)',
                   }}>
-                    <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontWeight: 500 }}>
+                      <div style={{ fontSize: 12, color: 'var(--portal-muted)', marginBottom: 8, fontWeight: 700 }}>
                       {f.last30Days}
                     </div>
                     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
-                        <Play size={14} style={{ color: '#CCF381' }} />
-                        <span style={{ color: '#e4e4e7' }}>{deviceStat.total_plays} {f.plays}</span>
+                        <Play size={14} style={{ color: 'var(--portal-primary)' }} />
+                        <span style={{ color: 'var(--portal-text)' }}>{deviceStat.total_plays} {f.plays}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
-                        <Clock size={14} style={{ color: '#60A5FA' }} />
-                        <span style={{ color: '#e4e4e7' }}>
+                        <Clock size={14} style={{ color: 'var(--portal-info)' }} />
+                        <span style={{ color: 'var(--portal-text)' }}>
                           {deviceStat.total_duration_seconds >= 3600
                             ? `${Math.floor(deviceStat.total_duration_seconds / 3600)}h ${Math.floor((deviceStat.total_duration_seconds % 3600) / 60)}m`
                             : `${Math.floor(deviceStat.total_duration_seconds / 60)}m`}
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
-                        <MapPin size={14} style={{ color: '#FBBF24' }} />
-                        <span style={{ color: '#e4e4e7' }}>{deviceStat.km_covered} km</span>
+                        <MapPin size={14} style={{ color: 'var(--portal-warning)' }} />
+                        <span style={{ color: 'var(--portal-text)' }}>{deviceStat.km_covered} km</span>
                       </div>
                     </div>
                     {deviceStat.last_play && (
-                      <div style={{ fontSize: 11, color: '#71717a', marginTop: 6 }}>
+                      <div style={{ fontSize: 11, color: 'var(--portal-muted)', marginTop: 6 }}>
                         {f.lastPlay}: {new Date(deviceStat.last_play).toLocaleString()}
                       </div>
                     )}
@@ -169,8 +169,8 @@ export default function FleetDashboardPage() {
                 {!v.device_id && (
                   <div style={{
                     marginTop: 12, padding: '12px 14px', borderRadius: 8,
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid #1a1a1a',
-                    color: '#71717a', fontSize: 13,
+                    background: 'rgba(255, 249, 240, 0.62)', border: '1px solid var(--portal-border)',
+                    color: 'var(--portal-muted)', fontSize: 13,
                   }}>
                     {f.awaitingAssignment}
                   </div>

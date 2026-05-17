@@ -90,23 +90,23 @@ function RangeSlider({ min, max, value, onChange }: {
     <div style={{ position: 'relative', height: 36, userSelect: 'none' }}>
       <div ref={trackRef} style={{
         position: 'absolute', top: 14, left: 0, right: 0, height: 8,
-        background: '#27272a', borderRadius: 4,
+        background: 'var(--portal-border)', borderRadius: 4,
       }}>
         <div style={{
           position: 'absolute', top: 0, left: `${lowPct}%`, width: `${highPct - lowPct}%`,
-          height: '100%', background: '#60A5FA', borderRadius: 4,
+          height: '100%', background: 'var(--portal-info)', borderRadius: 4,
         }} />
       </div>
       <div onMouseDown={onMouseDown('low')} style={{
         position: 'absolute', top: 8, left: `${lowPct}%`, transform: 'translateX(-50%)',
         width: 20, height: 20, borderRadius: '50%', background: '#fff',
-        border: '2px solid #60A5FA', cursor: 'grab', zIndex: 2,
+        border: '2px solid var(--portal-info)', cursor: 'grab', zIndex: 2,
         boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
       }} />
       <div onMouseDown={onMouseDown('high')} style={{
         position: 'absolute', top: 8, left: `${highPct}%`, transform: 'translateX(-50%)',
         width: 20, height: 20, borderRadius: '50%', background: '#fff',
-        border: '2px solid #60A5FA', cursor: 'grab', zIndex: 2,
+        border: '2px solid var(--portal-info)', cursor: 'grab', zIndex: 2,
         boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
       }} />
     </div>
@@ -122,15 +122,15 @@ function FilterSelect({ label, value, options, onChange }: {
 }) {
   return (
     <div style={{ position: 'relative', minWidth: 150 }}>
-      <label style={{ fontSize: 11, color: '#71717a', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label style={{ fontSize: 11, color: 'var(--portal-muted)', display: 'block', marginBottom: 4 }}>{label}</label>
       <div style={{ position: 'relative' }}>
         <select
           value={value}
           onChange={e => onChange(e.target.value)}
           style={{
             width: '100%', padding: '6px 28px 6px 10px', fontSize: 13,
-            background: '#0A0A0A', color: '#e4e4e7',
-            border: '1px solid #27272a', borderRadius: 8,
+            background: 'var(--portal-surface)', color: 'var(--portal-text)',
+            border: '1px solid var(--portal-border)', borderRadius: 8,
             appearance: 'none', cursor: 'pointer', outline: 'none',
           }}
         >
@@ -138,7 +138,7 @@ function FilterSelect({ label, value, options, onChange }: {
         </select>
         <ChevronDown size={14} style={{
           position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-          pointerEvents: 'none', color: '#71717a',
+          pointerEvents: 'none', color: 'var(--portal-muted)',
         }} />
       </div>
     </div>
@@ -360,8 +360,8 @@ export default function FleetStatsPage() {
       {/* Overview Cards */}
       <div className="stats-grid" style={{ marginBottom: '2rem' }}>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(96,165,250,0.1)' }}>
-            <Play size={24} color="#60A5FA" />
+          <div className="stat-card-icon" style={{ background: 'rgba(76, 106, 136, 0.14)' }}>
+            <Play size={24} color="var(--portal-info)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalPlays.toLocaleString()}</span>
@@ -369,8 +369,8 @@ export default function FleetStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(204,243,129,0.1)' }}>
-            <Clock size={24} color="#CCF381" />
+          <div className="stat-card-icon" style={{ background: 'rgba(47, 125, 89, 0.14)' }}>
+            <Clock size={24} color="var(--portal-success)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatDuration(totalDuration)}</span>
@@ -378,8 +378,8 @@ export default function FleetStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(251,191,36,0.1)' }}>
-            <Monitor size={24} color="#FBBF24" />
+          <div className="stat-card-icon" style={{ background: 'rgba(167, 98, 23, 0.14)' }}>
+            <Monitor size={24} color="var(--portal-warning)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{myDeviceIds.length}</span>
@@ -387,8 +387,8 @@ export default function FleetStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(167,139,250,0.1)' }}>
-            <Megaphone size={24} color="#A78BFA" />
+          <div className="stat-card-icon" style={{ background: 'rgba(185, 133, 71, 0.13)' }}>
+            <Megaphone size={24} color="var(--portal-brass)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{campaignNames.length}</span>
@@ -403,11 +403,11 @@ export default function FleetStatsPage() {
           <h2 style={{ margin: 0 }}>{ft.last30Days}</h2>
           {hasSelection && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: '#60A5FA', fontWeight: 500 }}>{selLabel}</span>
+              <span style={{ fontSize: 13, color: 'var(--portal-info)', fontWeight: 500 }}>{selLabel}</span>
               <button onClick={clearSelection} style={{
                 display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-                borderRadius: 6, fontSize: 12, border: '1px solid rgba(96,165,250,0.3)',
-                background: 'rgba(96,165,250,0.08)', color: '#60A5FA', cursor: 'pointer',
+                borderRadius: 6, fontSize: 12, border: '1px solid rgba(76, 106, 136, 0.14)',
+                background: 'rgba(76, 106, 136, 0.14)', color: 'var(--portal-info)', cursor: 'pointer',
               }}>
                 <X size={12} /> {ft.clear}
               </button>
@@ -417,8 +417,8 @@ export default function FleetStatsPage() {
         <div
           style={{
             display: 'flex', alignItems: 'flex-end', gap: '2px', height: '100px',
-            padding: '1rem', background: '#0A0A0A', borderRadius: '0.75rem',
-            border: '1px solid #27272a', userSelect: 'none',
+            padding: '1rem', background: 'var(--portal-surface)', borderRadius: '0.75rem',
+            border: '1px solid var(--portal-border)', userSelect: 'none',
           }}
           onMouseLeave={() => { if (dragging) handleBarMouseUp() }}
         >
@@ -435,10 +435,10 @@ export default function FleetStatsPage() {
                   flex: 1,
                   height: `${Math.max((d.plays / maxDailyPlays) * 100, 2)}%`,
                   background: isSelected
-                    ? '#60A5FA'
+                    ? 'var(--portal-info)'
                     : isInactive
-                      ? 'rgba(96,165,250,0.1)'
-                      : d.plays > 0 ? 'rgba(96,165,250,0.5)' : 'rgba(96,165,250,0.12)',
+                      ? 'rgba(76, 106, 136, 0.14)'
+                      : d.plays > 0 ? 'rgba(76, 106, 136, 0.14)' : 'rgba(76, 106, 136, 0.14)',
                   borderRadius: '2px 2px 0 0',
                   minWidth: '3px',
                   cursor: 'pointer',
@@ -448,7 +448,7 @@ export default function FleetStatsPage() {
             )
           })}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: '#525252' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: 'var(--portal-muted)' }}>
           <span>{dailyTrend[0]?.date}</span>
           <span>{dailyTrend[dailyTrend.length - 1]?.date}</span>
         </div>
@@ -467,9 +467,9 @@ export default function FleetStatsPage() {
             onClick={() => setActiveTab(tab.key)}
             style={{
               padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid',
-              borderColor: activeTab === tab.key ? '#60A5FA' : '#27272a',
-              background: activeTab === tab.key ? 'rgba(96,165,250,0.1)' : 'transparent',
-              color: activeTab === tab.key ? '#60A5FA' : '#71717a',
+              borderColor: activeTab === tab.key ? 'var(--portal-info)' : 'var(--portal-border)',
+              background: activeTab === tab.key ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
+              color: activeTab === tab.key ? 'var(--portal-info)' : 'var(--portal-muted)',
               cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
               display: 'flex', alignItems: 'center', gap: '0.5rem',
             }}
@@ -484,7 +484,7 @@ export default function FleetStatsPage() {
       <div className="portal-section">
         {activeTab === 'campaigns' && (
           <>
-            <h2>{ft.perCampaign} {hasSelection && <span style={{ fontSize: 13, color: '#525252', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>{ft.perCampaign} {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -497,7 +497,7 @@ export default function FleetStatsPage() {
                 </thead>
                 <tbody>
                   {campaignNames.length === 0 ? (
-                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#71717a' }}>{ft.noData}</td></tr>
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--portal-muted)' }}>{ft.noData}</td></tr>
                   ) : campaignNames.map(name => {
                     const cp = campaignPlays[name]
                     return (
@@ -517,7 +517,7 @@ export default function FleetStatsPage() {
 
         {activeTab === 'devices' && (
           <>
-            <h2>{ft.perDevice} {hasSelection && <span style={{ fontSize: 13, color: '#525252', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>{ft.perDevice} {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -530,7 +530,7 @@ export default function FleetStatsPage() {
                 </thead>
                 <tbody>
                   {myDeviceIds.length === 0 ? (
-                    <tr><td colSpan={4} style={{ textAlign: 'center', color: '#71717a' }}>{ft.noData}</td></tr>
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--portal-muted)' }}>{ft.noData}</td></tr>
                   ) : myDeviceIds.map(id => {
                     const dp = devicePlays[id]
                     return (
@@ -550,7 +550,7 @@ export default function FleetStatsPage() {
 
         {activeTab === 'daily' && (
           <>
-            <h2>{ft.dailyBreakdown} {hasSelection && <span style={{ fontSize: 13, color: '#525252', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>{ft.dailyBreakdown} {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -581,7 +581,7 @@ export default function FleetStatsPage() {
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <h2 style={{ margin: 0 }}>{ft.playLocations}</h2>
-              <span style={{ fontSize: 12, color: '#71717a', marginLeft: 4 }}>
+              <span style={{ fontSize: 12, color: 'var(--portal-muted)', marginLeft: 4 }}>
                 {mapPoints.length.toLocaleString()} {ft.playsOnMap}
               </span>
             </div>
@@ -590,14 +590,14 @@ export default function FleetStatsPage() {
             <div style={{
               display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end',
               marginBottom: 12, padding: '12px 16px',
-              background: '#0A0A0A', borderRadius: '0.75rem',
-              border: '1px solid #27272a',
+              background: 'var(--portal-surface)', borderRadius: '0.75rem',
+              border: '1px solid var(--portal-border)',
             }}>
               <FilterSelect label={ft.campaign} value={mapCampaign} options={campaignOptions} onChange={setMapCampaign} />
               <FilterSelect label={ft.device} value={mapDevice} options={deviceOptions} onChange={setMapDevice} />
 
               <div style={{ flex: 1, minWidth: 200 }}>
-                <label style={{ fontSize: 11, color: '#71717a', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 11, color: 'var(--portal-muted)', display: 'block', marginBottom: 4 }}>
                   {ft.timeOfDay}: {formatHour(hourRange[0])} — {formatHour(hourRange[1])}
                 </label>
                 <RangeSlider min={0} max={23} value={hourRange} onChange={setHourRange} />
@@ -606,7 +606,7 @@ export default function FleetStatsPage() {
 
             <div style={{
               height: 480, borderRadius: '0.75rem', overflow: 'hidden',
-              border: '1px solid #27272a',
+              border: '1px solid var(--portal-border)',
             }}>
               <StatsMapView points={mapPoints} showDistricts />
             </div>

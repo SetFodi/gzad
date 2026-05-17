@@ -5,7 +5,7 @@ import '../portal/portal.css'
 export default function FleetLayout({ children }: { children: React.ReactNode }) {
   return (
     <LanguageProvider>
-      <div className="dark portal-layout">
+      <div className="portal-layout">
         <FleetSidebar />
         <main className="portal-main">
           {children}

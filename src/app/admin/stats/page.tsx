@@ -121,21 +121,21 @@ function RangeSlider({ min, max, value, onChange }: {
         {/* Active range */}
         <div style={{
           position: 'absolute', top: 0, left: `${lowPct}%`, width: `${highPct - lowPct}%`,
-          height: '100%', background: '#60A5FA', borderRadius: 4,
+          height: '100%', background: 'var(--portal-info)', borderRadius: 4,
         }} />
       </div>
       {/* Low handle */}
       <div onMouseDown={onMouseDown('low')} style={{
         position: 'absolute', top: 8, left: `${lowPct}%`, transform: 'translateX(-50%)',
         width: 20, height: 20, borderRadius: '50%', background: '#fff',
-        border: '2px solid #60A5FA', cursor: 'grab', zIndex: 2,
+        border: '2px solid var(--portal-info)', cursor: 'grab', zIndex: 2,
         boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
       }} />
       {/* High handle */}
       <div onMouseDown={onMouseDown('high')} style={{
         position: 'absolute', top: 8, left: `${highPct}%`, transform: 'translateX(-50%)',
         width: 20, height: 20, borderRadius: '50%', background: '#fff',
-        border: '2px solid #60A5FA', cursor: 'grab', zIndex: 2,
+        border: '2px solid var(--portal-info)', cursor: 'grab', zIndex: 2,
         boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
       }} />
     </div>
@@ -466,8 +466,8 @@ export default function AdminStatsPage() {
       {/* Overview Cards */}
       <div className="stats-grid" style={{ marginBottom: '2rem' }}>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(96,165,250,0.1)' }}>
-            <Play size={24} color="#60A5FA" />
+          <div className="stat-card-icon" style={{ background: 'rgba(76, 106, 136, 0.14)' }}>
+            <Play size={24} color="var(--portal-info)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalPlays.toLocaleString()}</span>
@@ -475,8 +475,8 @@ export default function AdminStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(22,101,52,0.1)' }}>
-            <Clock size={24} color="#166534" />
+          <div className="stat-card-icon" style={{ background: 'rgba(47, 125, 89, 0.12)' }}>
+            <Clock size={24} color="var(--portal-success)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatDuration(totalDuration)}</span>
@@ -484,8 +484,8 @@ export default function AdminStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(251,191,36,0.1)' }}>
-            <Monitor size={24} color="#FBBF24" />
+          <div className="stat-card-icon" style={{ background: 'rgba(167, 98, 23, 0.14)' }}>
+            <Monitor size={24} color="var(--portal-warning)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalDevices}</span>
@@ -493,8 +493,8 @@ export default function AdminStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(167,139,250,0.1)' }}>
-            <Megaphone size={24} color="#A78BFA" />
+          <div className="stat-card-icon" style={{ background: 'rgba(185, 133, 71, 0.13)' }}>
+            <Megaphone size={24} color="var(--portal-brass)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{activeCampaigns} / {totalCampaigns}</span>
@@ -509,11 +509,11 @@ export default function AdminStatsPage() {
           <h2 style={{ margin: 0 }}>Last 30 Days</h2>
           {hasSelection && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: '#60A5FA', fontWeight: 500 }}>{selLabel}</span>
+              <span style={{ fontSize: 13, color: 'var(--portal-info)', fontWeight: 500 }}>{selLabel}</span>
               <button onClick={clearSelection} style={{
                 display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-                borderRadius: 6, fontSize: 12, border: '1px solid rgba(96,165,250,0.3)',
-                background: 'rgba(96,165,250,0.08)', color: '#60A5FA', cursor: 'pointer',
+                borderRadius: 6, fontSize: 12, border: '1px solid rgba(76, 106, 136, 0.14)',
+                background: 'rgba(76, 106, 136, 0.14)', color: 'var(--portal-info)', cursor: 'pointer',
               }}>
                 <X size={12} /> Clear
               </button>
@@ -541,10 +541,10 @@ export default function AdminStatsPage() {
                   flex: 1,
                   height: `${Math.max((d.plays / maxDailyPlays) * 100, 2)}%`,
                   background: isSelected
-                    ? '#60A5FA'
+                    ? 'var(--portal-info)'
                     : isInactive
-                      ? 'rgba(96,165,250,0.1)'
-                      : d.plays > 0 ? 'rgba(96,165,250,0.5)' : 'rgba(96,165,250,0.12)',
+                      ? 'rgba(76, 106, 136, 0.14)'
+                      : d.plays > 0 ? 'rgba(76, 106, 136, 0.14)' : 'rgba(76, 106, 136, 0.14)',
                   borderRadius: '2px 2px 0 0',
                   minWidth: '3px',
                   cursor: 'pointer',
@@ -554,7 +554,7 @@ export default function AdminStatsPage() {
             )
           })}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: '#525252' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: 'var(--portal-muted)' }}>
           <span>{dailyTrend[0]?.date}</span>
           <span>{dailyTrend[dailyTrend.length - 1]?.date}</span>
         </div>
@@ -574,9 +574,9 @@ export default function AdminStatsPage() {
             onClick={() => setActiveTab(tab.key)}
             style={{
               padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid',
-              borderColor: activeTab === tab.key ? '#60A5FA' : 'var(--border)',
-              background: activeTab === tab.key ? 'rgba(96,165,250,0.1)' : 'transparent',
-              color: activeTab === tab.key ? '#60A5FA' : 'var(--muted-foreground)',
+              borderColor: activeTab === tab.key ? 'var(--portal-info)' : 'var(--border)',
+              background: activeTab === tab.key ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
+              color: activeTab === tab.key ? 'var(--portal-info)' : 'var(--muted-foreground)',
               cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
               display: 'flex', alignItems: 'center', gap: '0.5rem',
             }}
@@ -591,7 +591,7 @@ export default function AdminStatsPage() {
       <div className="portal-section">
         {activeTab === 'campaigns' && (
           <>
-            <h2>Per-Campaign Stats {hasSelection && <span style={{ fontSize: 13, color: '#525252', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>Per-Campaign Stats {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -613,15 +613,15 @@ export default function AdminStatsPage() {
                         <td style={{ fontWeight: 600 }}>
                           {c.name}
                           {c.isDeleted && (
-                            <span style={{ marginLeft: 6, fontSize: 11, color: '#EF4444', fontWeight: 400 }}>(deleted)</span>
+                            <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--portal-danger)', fontWeight: 400 }}>(deleted)</span>
                           )}
                         </td>
                         <td>{c.clientName}</td>
                         <td>{c.groupName}</td>
                         <td>
                           <span className="status-badge" style={{
-                            color: c.status === 'active' ? '#22c55e' : c.status === 'pending_review' ? '#FBBF24' : c.status === 'deleted' ? '#EF4444' : '#64748B',
-                            borderColor: c.status === 'active' ? '#22c55e' : c.status === 'pending_review' ? '#FBBF24' : c.status === 'deleted' ? '#EF4444' : '#64748B',
+                            color: c.status === 'active' ? 'var(--portal-success)' : c.status === 'pending_review' ? 'var(--portal-warning)' : c.status === 'deleted' ? 'var(--portal-danger)' : 'var(--portal-muted)',
+                            borderColor: c.status === 'active' ? 'var(--portal-success)' : c.status === 'pending_review' ? 'var(--portal-warning)' : c.status === 'deleted' ? 'var(--portal-danger)' : 'var(--portal-muted)',
                           }}>{c.status.replace('_', ' ')}</span>
                         </td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cp?.plays || 0).toLocaleString()}</td>
@@ -639,7 +639,7 @@ export default function AdminStatsPage() {
 
         {activeTab === 'devices' && (
           <>
-            <h2>Per-Device Stats {hasSelection && <span style={{ fontSize: 13, color: '#525252', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>Per-Device Stats {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -670,7 +670,7 @@ export default function AdminStatsPage() {
 
         {activeTab === 'groups' && (
           <>
-            <h2>Per-Group Stats {hasSelection && <span style={{ fontSize: 13, color: '#525252', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>Per-Group Stats {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -746,7 +746,7 @@ export default function AdminStatsPage() {
 
         {activeTab === 'daily' && (
           <>
-            <h2>Daily Breakdown {hasSelection && <span style={{ fontSize: 13, color: '#525252', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>Daily Breakdown {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>

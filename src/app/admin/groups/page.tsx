@@ -176,14 +176,10 @@ export default function GroupsPage() {
       </div>
 
       {showCreate && (
-        <div style={{
-          background: 'rgba(204,243,129,0.06)',
-          border: '1px solid rgba(204,243,129,0.15)',
-          borderRadius: 12, padding: 20, marginBottom: 24,
-        }}>
-          <h3 style={{ color: '#CCF381', marginBottom: 12, fontSize: 15 }}>Create Group</h3>
+        <div className="portal-panel" style={{ marginBottom: 24 }}>
+          <h3 style={{ marginBottom: 12, fontSize: 15 }}>Create Group</h3>
           {error && (
-            <div style={{ color: '#EF4444', fontSize: 13, marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 8 }}>
+            <div className="portal-alert portal-alert-danger" style={{ marginBottom: 12 }}>
               {error}
             </div>
           )}
@@ -207,31 +203,23 @@ export default function GroupsPage() {
 
       {/* Unassigned devices */}
       {unassigned.length > 0 && (
-        <div style={{
-          background: 'rgba(251,191,36,0.06)',
-          border: '1px solid rgba(251,191,36,0.15)',
-          borderRadius: 12, padding: '16px 20px', marginBottom: 24,
-        }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#FBBF24', marginBottom: 10 }}>
+        <div className="portal-panel" style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--portal-warning)', marginBottom: 10 }}>
             Unassigned Devices ({unassigned.length})
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {unassigned.map(d => (
               <div key={d.id} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
-                background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 8,
+                background: 'rgba(255, 249, 240, 0.72)', border: '1px solid var(--portal-border)', borderRadius: 8,
                 padding: '8px 12px', fontSize: 13,
               }}>
-                <Monitor size={14} style={{ color: '#71717a' }} />
-                <span style={{ color: '#d4d4d8', fontFamily: 'monospace', fontSize: 12 }}>{d.id}</span>
+                <Monitor size={14} style={{ color: 'var(--portal-primary)' }} />
+                <span style={{ color: 'var(--portal-text)', fontFamily: 'monospace', fontSize: 12, fontWeight: 700 }}>{d.id}</span>
                 {groups.length > 0 && (
                   <select
                     onChange={(e) => assignDevice(d.id, e.target.value || null)}
                     defaultValue=""
-                    style={{
-                      background: '#141414', border: '1px solid #27272a', borderRadius: 6,
-                      color: '#CCF381', padding: '4px 8px', fontSize: 12, cursor: 'pointer',
-                    }}
                   >
                     <option value="">Assign to...</option>
                     {groups.map(g => (
@@ -253,35 +241,27 @@ export default function GroupsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {groups.map(g => (
-            <div key={g.id} style={{
-              background: '#0A0A0A', border: '1px solid #1a1a1a',
-              borderRadius: 12, padding: '16px 20px',
-            }}>
+            <div key={g.id} className="campaign-card" style={{ cursor: 'default' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <Link href={`/admin/groups/${g.id}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
                   <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 600, color: '#e4e4e7', margin: 0 }}>{g.name}</h3>
-                    <span style={{ fontSize: 12, color: '#71717a' }}>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--portal-text)', margin: 0 }}>{g.name}</h3>
+                    <span style={{ fontSize: 13, color: 'var(--portal-muted)' }}>
                       {g.devices.length} device{g.devices.length !== 1 ? 's' : ''} · {g.campaign_count} campaign{g.campaign_count !== 1 ? 's' : ''}
                     </span>
                   </div>
-                  <ChevronRight size={18} style={{ color: '#3f3f46', marginLeft: 'auto' }} />
+                  <ChevronRight size={18} style={{ color: 'var(--portal-muted)', marginLeft: 'auto' }} />
                 </Link>
                 <button
                   onClick={() => deleteGroup(g.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '6px 12px', borderRadius: 8, fontSize: 12,
-                    border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)',
-                    color: '#EF4444', cursor: 'pointer', fontWeight: 500,
-                  }}
+                  className="action-btn reject"
                 >
                   <Trash2 size={12} /> Delete
                 </button>
               </div>
 
               {g.devices.length === 0 ? (
-                <div style={{ color: '#3f3f46', fontSize: 13, padding: '8px 0' }}>
+                <div style={{ color: 'var(--portal-muted)', fontSize: 14, padding: '10px 0' }}>
                   No devices in this group. Assign devices from the unassigned list above.
                 </div>
               ) : (
@@ -289,15 +269,15 @@ export default function GroupsPage() {
                   {g.devices.map(d => (
                     <div key={d.id} style={{
                       display: 'flex', alignItems: 'center', gap: 6,
-                      background: 'rgba(204,243,129,0.06)', border: '1px solid rgba(204,243,129,0.15)',
+                      background: 'var(--portal-primary-soft)', border: '1px solid var(--portal-border)',
                       borderRadius: 8, padding: '6px 10px', fontSize: 12,
                     }}>
-                      <Monitor size={12} style={{ color: '#CCF381' }} />
-                      <span style={{ color: '#CCF381', fontFamily: 'monospace' }}>{d.id}</span>
+                      <Monitor size={12} style={{ color: 'var(--portal-primary)' }} />
+                      <span style={{ color: 'var(--portal-primary)', fontFamily: 'monospace', fontWeight: 700 }}>{d.id}</span>
                       <button
                         onClick={() => assignDevice(d.id, null)}
                         style={{
-                          background: 'none', border: 'none', color: '#71717a',
+                          background: 'none', border: 'none', color: 'var(--portal-muted)',
                           cursor: 'pointer', padding: 2, display: 'flex',
                         }}
                         title="Remove from group"

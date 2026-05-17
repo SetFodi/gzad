@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dark portal-layout">
+    <div className="portal-layout">
       <AdminSidebar />
       <main className="portal-main">
         {children}

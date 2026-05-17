@@ -153,7 +153,7 @@ export default function SubmitAdPage() {
     return (
       <div className="portal-page">
         <div className="portal-success">
-          <CheckCircle size={48} color="#CCF381" />
+          <CheckCircle size={48} color="var(--portal-success)" />
           <h2>{p.success}</h2>
           <p>{p.successMessage}</p>
         </div>
@@ -178,8 +178,8 @@ export default function SubmitAdPage() {
             placeholder={p.campaignNamePlaceholder}
             required
           />
-          {nameError && <span style={{ color: '#EF4444', fontSize: '13px', marginTop: '4px', display: 'block' }}>{nameError}</span>}
-          <span style={{ color: '#525252', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+          {nameError && <span style={{ color: 'var(--portal-danger)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{nameError}</span>}
+          <span style={{ color: 'var(--portal-muted)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
             {p.nameHint}
           </span>
         </div>
@@ -288,9 +288,9 @@ export default function SubmitAdPage() {
                     fontSize: 14,
                     fontWeight: 600,
                     cursor: 'pointer',
-                    background: active ? 'rgba(204,243,129,0.12)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${active ? 'rgba(204,243,129,0.5)' : '#1a1a1a'}`,
-                    color: active ? '#CCF381' : '#a3a3a3',
+                    background: active ? 'var(--portal-primary-soft)' : 'rgba(255, 249, 240, 0.62)',
+                    border: `1px solid ${active ? 'var(--portal-primary)' : 'var(--portal-border)'}`,
+                    color: active ? 'var(--portal-primary)' : 'var(--portal-muted)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -299,7 +299,7 @@ export default function SubmitAdPage() {
               )
             })}
           </div>
-          <span style={{ color: '#525252', fontSize: 12, marginTop: 6, display: 'block' }}>
+          <span style={{ color: 'var(--portal-muted)', fontSize: 12, marginTop: 6, display: 'block' }}>
             {p.adDurationHint}
           </span>
         </div>

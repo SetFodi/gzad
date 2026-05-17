@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from '@/lib/i18n'
+import { Receipt, WalletCards } from 'lucide-react'
 
 interface Invoice {
   id: string
@@ -49,10 +50,10 @@ export default function BillingPage() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case 'paid': return '#CCF381'
-      case 'pending': return '#FBBF24'
-      case 'overdue': return '#EF4444'
-      default: return '#64748B'
+      case 'paid': return 'var(--portal-success)'
+      case 'pending': return 'var(--portal-warning)'
+      case 'overdue': return 'var(--portal-danger)'
+      default: return 'var(--portal-muted)'
     }
   }
 
@@ -63,18 +64,29 @@ export default function BillingPage() {
 
   return (
     <div className="portal-page">
-      <h1 className="portal-page-title">{p.title}</h1>
+      <div className="portal-page-header">
+        <div>
+          <h1 className="portal-page-title">{p.title}</h1>
+          <p className="portal-subtitle">Campaign invoices, balances, and payment status.</p>
+        </div>
+      </div>
 
       <div className="stats-grid two-col">
         <div className="stat-card">
+          <div className="stat-card-icon" style={{ color: 'var(--portal-warning)' }}>
+            <Receipt size={24} />
+          </div>
           <div className="stat-card-info">
-            <span className="stat-card-value" style={{ color: '#FBBF24' }}>{totalPending} GEL</span>
+            <span className="stat-card-value" style={{ color: 'var(--portal-warning)' }}>{totalPending} GEL</span>
             <span className="stat-card-label">{p.pending}</span>
           </div>
         </div>
         <div className="stat-card">
+          <div className="stat-card-icon" style={{ color: 'var(--portal-success)' }}>
+            <WalletCards size={24} />
+          </div>
           <div className="stat-card-info">
-            <span className="stat-card-value" style={{ color: '#CCF381' }}>{totalPaid} GEL</span>
+            <span className="stat-card-value" style={{ color: 'var(--portal-success)' }}>{totalPaid} GEL</span>
             <span className="stat-card-label">{p.paid}</span>
           </div>
         </div>
@@ -82,7 +94,9 @@ export default function BillingPage() {
 
       {invoices.length === 0 ? (
         <div className="portal-empty">
-          <p>{p.noInvoices}</p>
+          <Receipt size={34} style={{ color: 'var(--portal-primary)', opacity: 0.84 }} />
+          <h2>{p.noInvoices}</h2>
+          <p>Invoices will appear here after campaigns are approved and billed.</p>
         </div>
       ) : (
         <div className="portal-section">

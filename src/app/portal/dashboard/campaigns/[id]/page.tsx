@@ -211,13 +211,13 @@ export default function CampaignDetailPage() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case 'active': return '#CCF381'
-      case 'pending_review': return '#FBBF24'
-      case 'paused': return '#94A3B8'
-      case 'completed': return '#60A5FA'
-      case 'approved': return '#CCF381'
-      case 'rejected': return '#EF4444'
-      default: return '#64748B'
+      case 'active': return 'var(--portal-success)'
+      case 'pending_review': return 'var(--portal-warning)'
+      case 'paused': return 'var(--portal-muted)'
+      case 'completed': return 'var(--portal-info)'
+      case 'approved': return 'var(--portal-success)'
+      case 'rejected': return 'var(--portal-danger)'
+      default: return 'var(--portal-muted)'
     }
   }
 
@@ -262,8 +262,8 @@ export default function CampaignDetailPage() {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(204,243,129,0.1)' }}>
-            <Play size={24} color="#CCF381" />
+          <div className="stat-card-icon" style={{ color: 'var(--portal-primary)' }}>
+            <Play size={24} />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalPlays.toLocaleString()}</span>
@@ -271,8 +271,8 @@ export default function CampaignDetailPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(96,165,250,0.1)' }}>
-            <Clock size={24} color="#60A5FA" />
+          <div className="stat-card-icon" style={{ color: 'var(--portal-info)' }}>
+            <Clock size={24} />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatScreenTime(totalDuration)}</span>
@@ -281,8 +281,8 @@ export default function CampaignDetailPage() {
         </div>
         {totalKm > 0 && (
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(251,191,36,0.1)' }}>
-              <MapPin size={24} color="#FBBF24" />
+            <div className="stat-card-icon" style={{ color: 'var(--portal-warning)' }}>
+              <MapPin size={24} />
             </div>
             <div className="stat-card-info">
               <span className="stat-card-value">{totalKm.toFixed(0)} km</span>
@@ -291,8 +291,8 @@ export default function CampaignDetailPage() {
           </div>
         )}
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(163,230,53,0.1)' }}>
-            <Car size={24} color="#A3E635" />
+          <div className="stat-card-icon" style={{ color: 'var(--portal-success)' }}>
+            <Car size={24} />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{avgTaxis}</span>
@@ -307,11 +307,11 @@ export default function CampaignDetailPage() {
           <h2 style={{ margin: 0 }}>{p.dailyPlayLog}</h2>
           {hasSelection && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: '#CCF381', fontWeight: 500 }}>{selLabel}</span>
+              <span style={{ fontSize: 13, color: 'var(--portal-primary)', fontWeight: 700 }}>{selLabel}</span>
               <button onClick={clearSelection} style={{
                 display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-                borderRadius: 6, fontSize: 12, border: '1px solid rgba(204,243,129,0.3)',
-                background: 'rgba(204,243,129,0.08)', color: '#CCF381', cursor: 'pointer',
+                borderRadius: 6, fontSize: 12, border: '1px solid var(--portal-primary)',
+                background: 'var(--portal-primary-soft)', color: 'var(--portal-primary)', cursor: 'pointer',
               }}>
                 <X size={12} /> Clear
               </button>
@@ -339,10 +339,10 @@ export default function CampaignDetailPage() {
                   flex: 1,
                   height: `${Math.max((d.play_count / maxDailyPlays) * 100, 2)}%`,
                   background: isSelected
-                    ? '#CCF381'
+                    ? 'var(--portal-primary)'
                     : isInactive
-                      ? 'rgba(204,243,129,0.1)'
-                      : d.play_count > 0 ? 'rgba(204,243,129,0.5)' : 'rgba(204,243,129,0.12)',
+                      ? 'rgba(129, 11, 56, 0.10)'
+                      : d.play_count > 0 ? 'rgba(129, 11, 56, 0.46)' : 'rgba(129, 11, 56, 0.12)',
                   borderRadius: '2px 2px 0 0',
                   minWidth: '3px',
                   cursor: 'pointer',
@@ -352,7 +352,7 @@ export default function CampaignDetailPage() {
             )
           })}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#525252', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--portal-muted)', marginBottom: 16 }}>
           <span>{allDays[0]?.date}</span>
           <span>{allDays[allDays.length - 1]?.date}</span>
         </div>

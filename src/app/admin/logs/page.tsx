@@ -103,8 +103,8 @@ export default function LogsPage() {
     cursor: 'pointer' as const,
     borderRadius: 8,
     border: 'none',
-    background: tab === t ? 'rgba(96,165,250,0.15)' : 'transparent',
-    color: tab === t ? '#60A5FA' : '#71717a',
+    background: tab === t ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
+    color: tab === t ? 'var(--portal-info)' : 'var(--portal-muted)',
     display: 'flex',
     alignItems: 'center',
     gap: 6,
@@ -115,15 +115,15 @@ export default function LogsPage() {
     padding: '8px 12px',
     fontSize: 12,
     fontWeight: 600,
-    color: '#71717a',
-    borderBottom: '1px solid #1a1a1a',
+    color: 'var(--portal-muted)',
+    borderBottom: '1px solid var(--portal-border)',
     whiteSpace: 'nowrap' as const,
   }
 
   const tdStyle = {
     padding: '8px 12px',
     fontSize: 13,
-    color: '#d4d4d8',
+    color: 'var(--portal-text-soft)',
     borderBottom: '1px solid #0f0f0f',
     whiteSpace: 'nowrap' as const,
   }
@@ -154,15 +154,15 @@ export default function LogsPage() {
         <div className="portal-loading">Loading...</div>
       ) : (
         <div style={{
-          background: '#0A0A0A',
-          border: '1px solid #1A1A1A',
+          background: 'var(--portal-surface)',
+          border: '1px solid var(--portal-border)',
           borderRadius: 12,
           overflow: 'auto',
         }}>
           {/* Play Logs Tab */}
           {tab === 'playlogs' && (
             playLogs.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: '#525252' }}>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--portal-muted)' }}>
                 <Play size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
                 <p>No play logs yet.</p>
                 <p style={{ fontSize: 13 }}>Logs will appear once the controller starts reporting plays via callbacks.</p>
@@ -183,11 +183,11 @@ export default function LogsPage() {
                   {playLogs.map((log) => (
                     <tr key={log.id}>
                       <td style={tdStyle}>
-                        <span style={{ color: log.campaign_id ? '#CCF381' : '#71717a' }}>
+                        <span style={{ color: log.campaign_id ? 'var(--portal-success)' : 'var(--portal-muted)' }}>
                           {log.program_name}
                         </span>
                         {!log.campaign_id && (
-                          <span style={{ fontSize: 11, color: '#525252', marginLeft: 6 }}>unmatched</span>
+                          <span style={{ fontSize: 11, color: 'var(--portal-muted)', marginLeft: 6 }}>unmatched</span>
                         )}
                       </td>
                       <td style={{ ...tdStyle, fontSize: 12, fontFamily: 'monospace' }}>{log.device_id}</td>
@@ -198,16 +198,16 @@ export default function LogsPage() {
                             href={`https://www.google.com/maps?q=${log.lat},${log.lng}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ color: '#60A5FA', textDecoration: 'none', fontSize: 12 }}
+                            style={{ color: 'var(--portal-info)', textDecoration: 'none', fontSize: 12 }}
                           >
                             {Number(log.lat).toFixed(4)}, {Number(log.lng).toFixed(4)}
                           </a>
                         ) : (
-                          <span style={{ color: '#3f3f46' }}>—</span>
+                          <span style={{ color: 'var(--portal-muted)' }}>—</span>
                         )}
                       </td>
                       <td style={tdStyle}>{new Date(log.began_at).toLocaleString()}</td>
-                      <td style={{ ...tdStyle, color: '#71717a' }}>{log.received_at ? new Date(log.received_at).toLocaleString() : '—'}</td>
+                      <td style={{ ...tdStyle, color: 'var(--portal-muted)' }}>{log.received_at ? new Date(log.received_at).toLocaleString() : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -218,7 +218,7 @@ export default function LogsPage() {
           {/* GPS Logs Tab */}
           {tab === 'gps' && (
             gpsLogs.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: '#525252' }}>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--portal-muted)' }}>
                 <MapPin size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
                 <p>No GPS logs yet.</p>
                 <p style={{ fontSize: 13 }}>GPS data will appear once the controller starts reporting via callbacks.</p>
@@ -247,12 +247,12 @@ export default function LogsPage() {
                           href={`https://www.google.com/maps?q=${log.lat},${log.lng}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ color: '#60A5FA', textDecoration: 'none', fontSize: 12 }}
+                          style={{ color: 'var(--portal-info)', textDecoration: 'none', fontSize: 12 }}
                         >
                           Open
                         </a>
                       </td>
-                      <td style={{ ...tdStyle, color: '#71717a' }}>{log.recorded_at ? new Date(log.recorded_at).toLocaleString() : '—'}</td>
+                      <td style={{ ...tdStyle, color: 'var(--portal-muted)' }}>{log.recorded_at ? new Date(log.recorded_at).toLocaleString() : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -263,7 +263,7 @@ export default function LogsPage() {
           {/* Devices Tab */}
           {tab === 'devices' && (
             deviceRecords.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: '#525252' }}>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--portal-muted)' }}>
                 <Monitor size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
                 <p>No devices registered yet.</p>
                 <p style={{ fontSize: 13 }}>Devices appear here when callbacks report data.</p>
@@ -287,8 +287,8 @@ export default function LogsPage() {
                       <td style={tdStyle}>
                         <span style={{
                           color: dev.last_seen_at && (Date.now() - new Date(dev.last_seen_at).getTime()) < 300000
-                            ? '#CCF381'
-                            : '#71717a',
+                            ? 'var(--portal-success)'
+                            : 'var(--portal-muted)',
                         }}>
                           {dev.last_seen_at ? new Date(dev.last_seen_at).toLocaleString() : '—'}
                         </span>
@@ -299,15 +299,15 @@ export default function LogsPage() {
                             href={`https://www.google.com/maps?q=${dev.last_lat},${dev.last_lng}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ color: '#60A5FA', textDecoration: 'none', fontSize: 12 }}
+                            style={{ color: 'var(--portal-info)', textDecoration: 'none', fontSize: 12 }}
                           >
                             {Number(dev.last_lat).toFixed(4)}, {Number(dev.last_lng).toFixed(4)}
                           </a>
                         ) : (
-                          <span style={{ color: '#3f3f46' }}>—</span>
+                          <span style={{ color: 'var(--portal-muted)' }}>—</span>
                         )}
                       </td>
-                      <td style={{ ...tdStyle, color: '#71717a' }}>{dev.created_at ? new Date(dev.created_at).toLocaleString() : '—'}</td>
+                      <td style={{ ...tdStyle, color: 'var(--portal-muted)' }}>{dev.created_at ? new Date(dev.created_at).toLocaleString() : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -317,7 +317,7 @@ export default function LogsPage() {
         </div>
       )}
 
-      <div style={{ marginTop: 12, color: '#3f3f46', fontSize: 12 }}>
+      <div style={{ marginTop: 12, color: 'var(--portal-muted)', fontSize: 12 }}>
         Showing latest 100 entries per tab. Data comes from controller callbacks.
       </div>
     </div>

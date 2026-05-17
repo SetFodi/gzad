@@ -218,11 +218,11 @@ export default function AdminCampaignsPage() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case 'active': return '#CCF381'
-      case 'pending_review': return '#FBBF24'
-      case 'paused': return '#94A3B8'
-      case 'completed': return '#60A5FA'
-      default: return '#64748B'
+      case 'active': return 'var(--portal-success)'
+      case 'pending_review': return 'var(--portal-warning)'
+      case 'paused': return 'var(--portal-muted)'
+      case 'completed': return 'var(--portal-info)'
+      default: return 'var(--portal-muted)'
     }
   }
 
@@ -240,15 +240,15 @@ export default function AdminCampaignsPage() {
 
       {showCreate && (
         <div style={{
-          background: 'rgba(204,243,129,0.06)',
-          border: '1px solid rgba(204,243,129,0.15)',
-          borderRadius: 12,
+          background: 'var(--portal-surface)',
+          border: '1px solid var(--portal-border)',
+          borderRadius: 8,
           padding: '20px',
           marginBottom: 24,
         }}>
-          <h3 style={{ color: '#CCF381', marginBottom: 16, fontSize: 15 }}>New Campaign</h3>
+          <h3 style={{ color: 'var(--portal-text)', marginBottom: 16, fontSize: 15 }}>New Campaign</h3>
           {createError && (
-            <div style={{ color: '#EF4444', fontSize: 13, marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 8 }}>
+            <div style={{ color: 'var(--portal-danger)', fontSize: 13, marginBottom: 12, padding: '8px 12px', background: 'rgba(163, 58, 58, 0.14)', borderRadius: 8 }}>
               {createError}
             </div>
           )}
@@ -261,14 +261,13 @@ export default function AdminCampaignsPage() {
                 onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value.toLowerCase().replace(/[^a-z0-9 ]/g, '') })}
                 placeholder="e.g. summer sale promo"
               />
-              <span style={{ color: '#525252', fontSize: 11 }}>Lowercase English + numbers + spaces only</span>
+              <span style={{ color: 'var(--portal-muted)', fontSize: 11 }}>Lowercase English + numbers + spaces only</span>
             </div>
             <div className="portal-input-group" style={{ flex: '1 1 200px' }}>
               <label>Client</label>
               <select
                 value={newCampaign.client_id}
                 onChange={(e) => setNewCampaign({ ...newCampaign, client_id: e.target.value })}
-                style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 8, color: '#e4e4e7', padding: '8px 12px', fontSize: 14, width: '100%' }}
               >
                 <option value="">Select client...</option>
                 {clients.map(c => (
@@ -330,17 +329,17 @@ export default function AdminCampaignsPage() {
                         <video
                           src={c.first_media_url}
                           muted
-                          style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #27272a', background: '#000' }}
+                          style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--portal-border)', background: '#160606' }}
                         />
                       ) : (
                         <img
                           src={c.first_media_url}
                           alt=""
-                          style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #27272a', background: '#000' }}
+                          style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--portal-border)', background: '#160606' }}
                         />
                       )
                     ) : (
-                      <span style={{ color: '#3f3f46', fontSize: 12 }}>—</span>
+                      <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>—</span>
                     )}
                   </td>
                   <td>{c.clients?.company_name || '—'}</td>
@@ -351,11 +350,11 @@ export default function AdminCampaignsPage() {
                   </td>
                   <td>
                     {c.device_groups?.name ? (
-                      <span style={{ fontSize: 12, color: '#CCF381', background: 'rgba(204,243,129,0.1)', border: '1px solid rgba(204,243,129,0.2)', borderRadius: 6, padding: '2px 8px' }}>
+                      <span style={{ fontSize: 12, color: 'var(--portal-primary)', background: 'var(--portal-primary-soft)', border: '1px solid var(--portal-border)', borderRadius: 6, padding: '2px 8px' }}>
                         {c.device_groups.name}
                       </span>
                     ) : (
-                      <span style={{ color: '#3f3f46', fontSize: 12 }}>—</span>
+                      <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>—</span>
                     )}
                   </td>
                   <td>
@@ -385,8 +384,8 @@ export default function AdminCampaignsPage() {
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4,
                           padding: '4px 10px', borderRadius: 6, fontSize: 12,
-                          border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)',
-                          color: '#EF4444', cursor: 'pointer', fontWeight: 500,
+                          border: '1px solid rgba(163, 58, 58, 0.14)', background: 'rgba(163, 58, 58, 0.14)',
+                          color: 'var(--portal-danger)', cursor: 'pointer', fontWeight: 500,
                         }}
                       >
                         <Trash2 size={12} />

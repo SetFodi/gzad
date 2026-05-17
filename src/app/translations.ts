@@ -30,7 +30,7 @@ export const translations = {
             marqueeAds: [
                 { eyebrow: "Open Until 02:00", brand: "Kafe Oaza", tagline: "Rustaveli 12 · Tbilisi" },
                 { eyebrow: "Wine Flights Nightly", brand: "Marani", tagline: "Vake · Reservations recommended" },
-                { eyebrow: "Your Brand Here", brand: "Gzad", tagline: "Reach 50K+ daily impressions" }
+                { eyebrow: "Available · Apply Today", brand: "Your Ad Here", tagline: "" }
             ]
         },
         problem: {
@@ -548,7 +548,7 @@ export const translations = {
             marqueeAds: [
                 { eyebrow: "ღიაა 02:00-მდე", brand: "Kafe Oaza", tagline: "რუსთაველი 12 · თბილისი" },
                 { eyebrow: "ღვინის საღამოები", brand: "Marani", tagline: "ვაკე · დაჯავშნა აუცილებელია" },
-                { eyebrow: "შენი ბრენდი აქ", brand: "Gzad", tagline: "50K+ დღიური ნახვა" }
+                { eyebrow: "ხელმისაწვდომია", brand: "შენი რეკლამა აქ", tagline: "" }
             ]
         },
         problem: {

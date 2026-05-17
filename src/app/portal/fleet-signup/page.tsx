@@ -53,24 +53,20 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="dark portal-login-page">
+    <div className="portal-login-page">
       <div className="portal-login-container">
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <div className="portal-lang-row">
           <button
             onClick={() => setLang(lang === 'en' ? 'ge' : 'en')}
-            style={{
-              background: 'rgba(204,243,129,0.08)', border: '1px solid rgba(204,243,129,0.2)',
-              borderRadius: 6, padding: '4px 10px', fontSize: 12, color: '#CCF381',
-              cursor: 'pointer', fontWeight: 500,
-            }}
+            className="portal-lang-toggle"
           >
             {lang === 'en' ? 'ქართ' : 'ENG'}
           </button>
         </div>
         <div className="portal-login-logo">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="8" width="18" height="10" rx="2" fill="#0A0A0A" />
-            <rect x="5" y="10" width="14" height="6" rx="1" fill="#CCF381" />
+            <rect x="3" y="8" width="18" height="10" rx="2" fill="var(--portal-text)" />
+            <rect x="5" y="10" width="14" height="6" rx="1" fill="var(--portal-primary)" />
           </svg>
           <span>Gzad</span>
         </div>
@@ -79,37 +75,19 @@ export default function SignupPage() {
 
         {/* Role Selection */}
         {!role && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
+          <div className="role-options">
             <button
               onClick={() => setRole('client')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                padding: '18px 20px', borderRadius: 12,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid #27272a',
-                color: '#e4e4e7', cursor: 'pointer', textAlign: 'left',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(204,243,129,0.4)'
-                e.currentTarget.style.background = 'rgba(204,243,129,0.06)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#27272a'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-              }}
+              className="role-card"
             >
-              <div style={{
-                width: 44, height: 44, borderRadius: 10,
-                background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.2)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <Megaphone size={20} style={{ color: '#60A5FA' }} />
+              <div className="role-icon">
+                <Megaphone size={20} />
               </div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>
+                <div className="role-title">
                   {lang === 'en' ? 'Advertiser' : 'რეკლამის განმთავსებელი'}
                 </div>
-                <div style={{ fontSize: 13, color: '#71717a' }}>
+                <div className="role-description">
                   {lang === 'en' ? 'I want to advertise on taxi LEDs' : 'მინდა რეკლამა ტაქსის LED-ებზე'}
                 </div>
               </div>
@@ -117,34 +95,16 @@ export default function SignupPage() {
 
             <button
               onClick={() => setRole('fleet')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                padding: '18px 20px', borderRadius: 12,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid #27272a',
-                color: '#e4e4e7', cursor: 'pointer', textAlign: 'left',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(204,243,129,0.4)'
-                e.currentTarget.style.background = 'rgba(204,243,129,0.06)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#27272a'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-              }}
+              className="role-card"
             >
-              <div style={{
-                width: 44, height: 44, borderRadius: 10,
-                background: 'rgba(204,243,129,0.1)', border: '1px solid rgba(204,243,129,0.2)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <Car size={20} style={{ color: '#CCF381' }} />
+              <div className="role-icon">
+                <Car size={20} />
               </div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>
+                <div className="role-title">
                   {lang === 'en' ? 'Fleet Driver' : 'ფლოტის მძღოლი'}
                 </div>
-                <div style={{ fontSize: 13, color: '#71717a' }}>
+                <div className="role-description">
                   {lang === 'en' ? 'I have a vehicle and want an LED display' : 'მაქვს მანქანა და მინდა LED ეკრანი'}
                 </div>
               </div>
@@ -157,23 +117,12 @@ export default function SignupPage() {
           <>
             <button
               onClick={() => { setRole(null); setError('') }}
-              style={{
-                background: 'none', border: 'none', color: '#71717a',
-                fontSize: 13, cursor: 'pointer', marginTop: 16, marginBottom: 4,
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}
+              className="role-back"
             >
               &larr; {lang === 'en' ? 'Choose different type' : 'აირჩიეთ სხვა ტიპი'}
             </button>
 
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '6px 12px', borderRadius: 8, marginBottom: 16,
-              background: role === 'fleet' ? 'rgba(204,243,129,0.08)' : 'rgba(96,165,250,0.08)',
-              border: `1px solid ${role === 'fleet' ? 'rgba(204,243,129,0.2)' : 'rgba(96,165,250,0.2)'}`,
-              fontSize: 13, fontWeight: 500,
-              color: role === 'fleet' ? '#CCF381' : '#60A5FA',
-            }}>
+            <div className="role-badge">
               {role === 'fleet' ? <Car size={14} /> : <Megaphone size={14} />}
               {role === 'fleet'
                 ? (lang === 'en' ? 'Fleet Driver' : 'ფლოტის მძღოლი')
@@ -251,7 +200,7 @@ export default function SignupPage() {
 
         <p className="portal-login-footer" style={{ marginTop: 20 }}>
           {f.alreadyHaveAccount}{' '}
-          <a href="/portal/login" style={{ color: '#CCF381' }}>{f.signIn}</a>
+          <a href="/portal/login">{f.signIn}</a>
         </p>
       </div>
     </div>

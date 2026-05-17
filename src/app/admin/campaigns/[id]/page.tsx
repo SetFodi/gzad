@@ -321,8 +321,8 @@ export default function AdminCampaignDetailPage() {
           borderRadius: 8,
           fontSize: 13,
           marginBottom: 16,
-          background: invoiceMsg.includes('success') ? 'rgba(204,243,129,0.1)' : 'rgba(239,68,68,0.1)',
-          color: invoiceMsg.includes('success') ? '#CCF381' : '#EF4444',
+          background: invoiceMsg.includes('success') ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
+          color: invoiceMsg.includes('success') ? 'var(--portal-success)' : 'var(--portal-danger)',
         }}>
           {invoiceMsg}
         </div>
@@ -330,23 +330,23 @@ export default function AdminCampaignDetailPage() {
 
       {/* Push to Group */}
       <div style={{
-        background: 'rgba(204,243,129,0.06)',
-        border: '1px solid rgba(204,243,129,0.15)',
+        background: 'rgba(47, 125, 89, 0.14)',
+        border: '1px solid rgba(47, 125, 89, 0.14)',
         borderRadius: '12px',
         padding: '16px 20px',
         marginBottom: '24px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Monitor size={18} style={{ color: '#CCF381' }} />
-          <span style={{ fontWeight: 600, color: '#CCF381', fontSize: 15 }}>Push to Group</span>
-          <span style={{ color: '#525252', fontSize: 12, marginLeft: 4 }}>
+          <Monitor size={18} style={{ color: 'var(--portal-success)' }} />
+          <span style={{ fontWeight: 600, color: 'var(--portal-success)', fontSize: 15 }}>Push to Group</span>
+          <span style={{ color: 'var(--portal-muted)', fontSize: 12, marginLeft: 4 }}>
             ({media.filter(m => m.status === 'approved').length} approved file{media.filter(m => m.status === 'approved').length !== 1 ? 's' : ''})
           </span>
         </div>
 
         {groups.length === 0 ? (
-          <p style={{ color: '#525252', fontSize: 13, margin: 0 }}>
-            No groups created yet. Go to <Link href="/admin/groups" style={{ color: '#60A5FA' }}>Groups</Link> to create one and assign devices.
+          <p style={{ color: 'var(--portal-muted)', fontSize: 13, margin: 0 }}>
+            No groups created yet. Go to <Link href="/admin/groups" style={{ color: 'var(--portal-info)' }}>Groups</Link> to create one and assign devices.
           </p>
         ) : (
           <>
@@ -355,10 +355,10 @@ export default function AdminCampaignDetailPage() {
                 value={selectedGroup}
                 onChange={(e) => setSelectedGroup(e.target.value)}
                 style={{
-                  background: '#0A0A0A',
-                  border: '1px solid #27272a',
+                  background: 'var(--portal-surface)',
+                  border: '1px solid var(--portal-border)',
                   borderRadius: 8,
-                  color: '#e4e4e7',
+                  color: 'var(--portal-text)',
                   padding: '8px 12px',
                   fontSize: 14,
                   minWidth: 200,
@@ -381,10 +381,10 @@ export default function AdminCampaignDetailPage() {
             </div>
 
             {!selectedGroup && (
-              <span style={{ color: '#FBBF24', fontSize: 12, display: 'block', marginTop: 10 }}>Select a group to push to</span>
+              <span style={{ color: 'var(--portal-warning)', fontSize: 12, display: 'block', marginTop: 10 }}>Select a group to push to</span>
             )}
             {selectedGroup && !media.some(m => m.status === 'approved') && (
-              <span style={{ color: '#FBBF24', fontSize: 12, display: 'block', marginTop: 10 }}>Approve a media file first</span>
+              <span style={{ color: 'var(--portal-warning)', fontSize: 12, display: 'block', marginTop: 10 }}>Approve a media file first</span>
             )}
           </>
         )}
@@ -395,8 +395,8 @@ export default function AdminCampaignDetailPage() {
             padding: '8px 12px',
             borderRadius: 8,
             fontSize: 13,
-            background: pushResult.ok ? 'rgba(204,243,129,0.1)' : 'rgba(239,68,68,0.1)',
-            color: pushResult.ok ? '#CCF381' : '#EF4444',
+            background: pushResult.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
+            color: pushResult.ok ? 'var(--portal-success)' : 'var(--portal-danger)',
           }}>
             {pushResult.msg}
           </div>
@@ -491,9 +491,9 @@ export default function AdminCampaignDetailPage() {
                 gap: 6,
                 padding: '8px 16px',
                 borderRadius: 8,
-                border: '1px solid #27272a',
-                background: 'rgba(255,255,255,0.05)',
-                color: '#e4e4e7',
+                border: '1px solid var(--portal-border)',
+                background: 'rgba(255, 249, 240, 0.72)',
+                color: 'var(--portal-text)',
                 cursor: uploadingMedia ? 'wait' : 'pointer',
                 fontSize: 14,
                 fontWeight: 500,
@@ -520,8 +520,8 @@ export default function AdminCampaignDetailPage() {
             padding: '8px 12px',
             borderRadius: 8,
             fontSize: 13,
-            background: uploadMsg.ok ? 'rgba(204,243,129,0.1)' : 'rgba(239,68,68,0.1)',
-            color: uploadMsg.ok ? '#CCF381' : '#EF4444',
+            background: uploadMsg.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
+            color: uploadMsg.ok ? 'var(--portal-success)' : 'var(--portal-danger)',
           }}>
             {uploadMsg.msg}
           </div>
@@ -543,14 +543,14 @@ export default function AdminCampaignDetailPage() {
                 <div className="admin-media-info">
                   <span className="admin-media-name">{m.file_name}</span>
                   <span className="status-badge" style={{
-                    color: m.status === 'approved' ? '#CCF381' : m.status === 'rejected' ? '#EF4444' : '#FBBF24',
-                    borderColor: m.status === 'approved' ? '#CCF381' : m.status === 'rejected' ? '#EF4444' : '#FBBF24',
+                    color: m.status === 'approved' ? 'var(--portal-success)' : m.status === 'rejected' ? 'var(--portal-danger)' : 'var(--portal-warning)',
+                    borderColor: m.status === 'approved' ? 'var(--portal-success)' : m.status === 'rejected' ? 'var(--portal-danger)' : 'var(--portal-warning)',
                   }}>
                     {m.status.replace('_', ' ')}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
-                  <span style={{ fontSize: 12, color: '#737373' }}>Duration:</span>
+                  <span style={{ fontSize: 12, color: 'var(--portal-muted)' }}>Duration:</span>
                   {[10, 20, 30].map(sec => {
                     const active = (m.display_duration_seconds || 10) === sec
                     return (
@@ -563,9 +563,9 @@ export default function AdminCampaignDetailPage() {
                           fontSize: 12,
                           fontWeight: 600,
                           cursor: 'pointer',
-                          background: active ? 'rgba(204,243,129,0.12)' : 'rgba(255,255,255,0.04)',
-                          border: `1px solid ${active ? 'rgba(204,243,129,0.5)' : '#27272a'}`,
-                          color: active ? '#CCF381' : '#a3a3a3',
+                          background: active ? 'rgba(47, 125, 89, 0.14)' : 'rgba(255, 249, 240, 0.72)',
+                          border: `1px solid ${active ? 'rgba(47, 125, 89, 0.14)' : 'var(--portal-border)'}`,
+                          color: active ? 'var(--portal-success)' : 'var(--portal-muted)',
                         }}
                       >
                         {sec}s
@@ -583,9 +583,9 @@ export default function AdminCampaignDetailPage() {
                       gap: '6px',
                       padding: '6px 12px',
                       borderRadius: '8px',
-                      border: '1px solid #27272a',
-                      background: 'rgba(255,255,255,0.05)',
-                      color: '#d4d4d8',
+                      border: '1px solid var(--portal-border)',
+                      background: 'rgba(255, 249, 240, 0.72)',
+                      color: 'var(--portal-text-soft)',
                       cursor: 'pointer',
                       fontSize: '13px',
                       fontWeight: 500,

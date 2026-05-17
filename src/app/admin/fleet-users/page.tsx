@@ -127,7 +127,7 @@ export default function AdminFleetUsersPage() {
     <div className="portal-page">
       <div className="portal-page-header">
         <h1 className="portal-page-title">Fleet Users</h1>
-        <span style={{ color: '#71717a', fontSize: 14 }}>
+        <span style={{ color: 'var(--portal-muted)', fontSize: 14 }}>
           {fleetUsers.length} driver{fleetUsers.length !== 1 ? 's' : ''} registered
         </span>
       </div>
@@ -147,11 +147,6 @@ export default function AdminFleetUsersPage() {
                 <select
                   value={selectedDevice}
                   onChange={(e) => setSelectedDevice(e.target.value)}
-                  style={{
-                    width: '100%', padding: '10px 12px', borderRadius: 8,
-                    border: '1px solid #27272a', background: '#0A0A0A', color: '#e4e4e7',
-                    fontSize: 14,
-                  }}
                 >
                   <option value="">-- No device --</option>
                   {devices.map((d) => (
@@ -181,7 +176,7 @@ export default function AdminFleetUsersPage() {
         <div className="portal-empty">
           <Car size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
           <p>No fleet users registered yet.</p>
-          <p style={{ color: '#525252', fontSize: 14 }}>
+          <p style={{ color: 'var(--portal-muted)', fontSize: 14 }}>
             Fleet users can sign up at <code>/portal/fleet-signup</code>
           </p>
         </div>
@@ -194,7 +189,7 @@ export default function AdminFleetUsersPage() {
                   <Car size={18} />
                   <span>{u.contact_name}</span>
                 </h3>
-                <span style={{ color: '#71717a', fontSize: 13 }}>
+                <span style={{ color: 'var(--portal-muted)', fontSize: 13 }}>
                   {u.vehicles.length} vehicle{u.vehicles.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -236,12 +231,12 @@ export default function AdminFleetUsersPage() {
                           <td>{v.color}</td>
                           <td>
                             {v.device_id ? (
-                              <span style={{ color: '#CCF381', fontSize: 12 }}>
+                              <span style={{ color: 'var(--portal-success)', fontSize: 12 }}>
                                 <Monitor size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
                                 {v.device_id}
                               </span>
                             ) : (
-                              <span style={{ color: '#71717a', fontSize: 12 }}>None</span>
+                              <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>None</span>
                             )}
                           </td>
                           <td>
@@ -262,8 +257,8 @@ export default function AdminFleetUsersPage() {
                                   onClick={() => handleUnassign(v.id)}
                                   style={{
                                     padding: '4px 8px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4,
-                                    border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)',
-                                    color: '#EF4444', cursor: 'pointer', borderRadius: 8,
+                                    border: '1px solid rgba(163, 58, 58, 0.14)', background: 'rgba(163, 58, 58, 0.14)',
+                                    color: 'var(--portal-danger)', cursor: 'pointer', borderRadius: 8,
                                   }}
                                 >
                                   <Unlink size={12} /> Unassign

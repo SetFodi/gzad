@@ -212,7 +212,7 @@ export default function GroupDetailPage() {
   if (!group) return <div className="portal-loading">Group not found</div>
 
   const statusColor = (s: string) =>
-    s === 'active' ? '#CCF381' : s === 'completed' ? '#60A5FA' : s === 'paused' ? '#FBBF24' : '#71717a'
+    s === 'active' ? 'var(--portal-success)' : s === 'completed' ? 'var(--portal-info)' : s === 'paused' ? 'var(--portal-warning)' : 'var(--portal-muted)'
 
   return (
     <div className="portal-page">
@@ -241,9 +241,9 @@ export default function GroupDetailPage() {
       {syncResult && (
         <div style={{
           marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 13,
-          background: syncResult.ok ? 'rgba(204,243,129,0.08)' : 'rgba(239,68,68,0.08)',
-          border: `1px solid ${syncResult.ok ? 'rgba(204,243,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-          color: syncResult.ok ? '#CCF381' : '#EF4444',
+          background: syncResult.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
+          border: `1px solid ${syncResult.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)'}`,
+          color: syncResult.ok ? 'var(--portal-success)' : 'var(--portal-danger)',
         }}>
           {syncResult.msg}
         </div>
@@ -252,7 +252,7 @@ export default function GroupDetailPage() {
       {/* Campaigns assigned to this group */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#e4e4e7', margin: 0 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--portal-text)', margin: 0 }}>
             Campaigns in this Group
           </h2>
           {unassignedCampaigns.length > 0 && (
@@ -268,8 +268,8 @@ export default function GroupDetailPage() {
                 }}
                 disabled={assigning}
                 style={{
-                  background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 8,
-                  color: '#e4e4e7', padding: '8px 12px', fontSize: 13,
+                  background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', borderRadius: 8,
+                  color: 'var(--portal-text)', padding: '8px 12px', fontSize: 13,
                 }}
               >
                 <option value="">
@@ -279,18 +279,18 @@ export default function GroupDetailPage() {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              <Plus size={16} style={{ color: '#71717a' }} />
+              <Plus size={16} style={{ color: 'var(--portal-muted)' }} />
             </div>
           )}
         </div>
 
         {campaigns.length === 0 ? (
           <div style={{
-            background: 'rgba(251,191,36,0.06)',
-            border: '1px solid rgba(251,191,36,0.15)',
+            background: 'rgba(167, 98, 23, 0.14)',
+            border: '1px solid rgba(167, 98, 23, 0.14)',
             borderRadius: 12, padding: '16px 20px',
           }}>
-            <p style={{ color: '#FBBF24', fontSize: 13, margin: 0 }}>
+            <p style={{ color: 'var(--portal-warning)', fontSize: 13, margin: 0 }}>
               No campaigns assigned to this group yet. Assign one above, or go to a campaign&apos;s detail page → Edit Details → set Device Group.
             </p>
           </div>
@@ -298,7 +298,7 @@ export default function GroupDetailPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {campaigns.map(c => (
               <div key={c.id} style={{
-                background: '#0A0A0A', border: '1px solid #1a1a1a',
+                background: 'var(--portal-surface)', border: '1px solid var(--portal-border)',
                 borderRadius: 10, padding: '14px 18px',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 flexWrap: 'wrap', gap: 10,
@@ -309,13 +309,13 @@ export default function GroupDetailPage() {
                       <video
                         src={c.first_media_url}
                         muted
-                        style={{ width: 56, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #27272a', background: '#000', flexShrink: 0 }}
+                        style={{ width: 56, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--portal-border)', background: '#000', flexShrink: 0 }}
                       />
                     ) : (
                       <img
                         src={c.first_media_url}
                         alt=""
-                        style={{ width: 56, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #27272a', background: '#000', flexShrink: 0 }}
+                        style={{ width: 56, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--portal-border)', background: '#000', flexShrink: 0 }}
                       />
                     )
                   ) : (
@@ -324,11 +324,11 @@ export default function GroupDetailPage() {
                   <div>
                     <Link
                       href={`/admin/campaigns/${c.id}`}
-                      style={{ color: '#e4e4e7', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
+                      style={{ color: 'var(--portal-text)', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
                     >
                       {c.name}
                     </Link>
-                    <div style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--portal-muted)', marginTop: 2 }}>
                       {c.clients?.company_name || 'No client'} · {c.approved_count} approved file{c.approved_count !== 1 ? 's' : ''}
                       {c.start_date && c.end_date && (
                         <span> · {c.start_date} to {c.end_date}</span>
@@ -348,8 +348,8 @@ export default function GroupDetailPage() {
                   <button
                     onClick={() => unassignCampaign(c.id)}
                     style={{
-                      background: 'none', border: '1px solid rgba(239,68,68,0.3)',
-                      borderRadius: 6, color: '#EF4444', cursor: 'pointer',
+                      background: 'none', border: '1px solid rgba(163, 58, 58, 0.14)',
+                      borderRadius: 6, color: 'var(--portal-danger)', cursor: 'pointer',
                       padding: '4px 10px', fontSize: 11, fontWeight: 500,
                     }}
                   >
@@ -364,18 +364,18 @@ export default function GroupDetailPage() {
 
       {/* Devices in this group */}
       <div>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: '#e4e4e7', marginBottom: 14 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--portal-text)', marginBottom: 14 }}>
           Devices in this Group
         </h2>
 
         {devices.length === 0 ? (
           <div style={{
-            background: 'rgba(251,191,36,0.06)',
-            border: '1px solid rgba(251,191,36,0.15)',
+            background: 'rgba(167, 98, 23, 0.14)',
+            border: '1px solid rgba(167, 98, 23, 0.14)',
             borderRadius: 12, padding: '16px 20px',
           }}>
-            <p style={{ color: '#FBBF24', fontSize: 13, margin: 0 }}>
-              No devices in this group. Go to <Link href="/admin/groups" style={{ color: '#60A5FA' }}>Groups</Link> to assign devices.
+            <p style={{ color: 'var(--portal-warning)', fontSize: 13, margin: 0 }}>
+              No devices in this group. Go to <Link href="/admin/groups" style={{ color: 'var(--portal-info)' }}>Groups</Link> to assign devices.
             </p>
           </div>
         ) : (
@@ -384,7 +384,7 @@ export default function GroupDetailPage() {
               const isExpanded = expandedDevice === d.id
               return (
                 <div key={d.id} style={{
-                  background: '#0A0A0A', border: '1px solid #1a1a1a',
+                  background: 'var(--portal-surface)', border: '1px solid var(--portal-border)',
                   borderRadius: 10, overflow: 'hidden',
                 }}>
                   <button
@@ -395,19 +395,19 @@ export default function GroupDetailPage() {
                       cursor: 'pointer', textAlign: 'left',
                     }}
                   >
-                    {isExpanded ? <ChevronDown size={16} style={{ color: '#CCF381' }} /> : <ChevronRight size={16} style={{ color: '#71717a' }} />}
-                    {onlineDeviceIds.has(d.id) ? <Wifi size={14} style={{ color: '#CCF381' }} /> : <WifiOff size={14} style={{ color: '#3f3f46' }} />}
-                    <span style={{ color: onlineDeviceIds.has(d.id) ? '#CCF381' : '#71717a', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>{d.id}</span>
-                    {d.name && <span style={{ color: '#71717a', fontSize: 12 }}>({d.name})</span>}
-                    <span style={{ color: onlineDeviceIds.has(d.id) ? '#CCF381' : '#3f3f46', fontSize: 12, marginLeft: 'auto' }}>
+                    {isExpanded ? <ChevronDown size={16} style={{ color: 'var(--portal-success)' }} /> : <ChevronRight size={16} style={{ color: 'var(--portal-muted)' }} />}
+                    {onlineDeviceIds.has(d.id) ? <Wifi size={14} style={{ color: 'var(--portal-success)' }} /> : <WifiOff size={14} style={{ color: 'var(--portal-muted)' }} />}
+                    <span style={{ color: onlineDeviceIds.has(d.id) ? 'var(--portal-success)' : 'var(--portal-muted)', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>{d.id}</span>
+                    {d.name && <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>({d.name})</span>}
+                    <span style={{ color: onlineDeviceIds.has(d.id) ? 'var(--portal-success)' : 'var(--portal-muted)', fontSize: 12, marginLeft: 'auto' }}>
                       {onlineDeviceIds.has(d.id) ? 'online' : 'offline'}
                     </span>
                   </button>
 
                   {isExpanded && (
-                    <div style={{ padding: '0 18px 14px 44px', borderTop: '1px solid #141414' }}>
+                    <div style={{ padding: '0 18px 14px 44px', borderTop: '1px solid var(--portal-border)' }}>
                       {campaigns.length === 0 ? (
-                        <p style={{ color: '#3f3f46', fontSize: 13, margin: '12px 0 0' }}>
+                        <p style={{ color: 'var(--portal-muted)', fontSize: 13, margin: '12px 0 0' }}>
                           No campaigns targeting this group yet.
                         </p>
                       ) : (
@@ -419,8 +419,8 @@ export default function GroupDetailPage() {
                               style={{
                                 display: 'flex', alignItems: 'center', gap: 10,
                                 padding: '10px 14px', borderRadius: 8,
-                                background: 'rgba(204,243,129,0.04)',
-                                border: '1px solid rgba(204,243,129,0.1)',
+                                background: 'rgba(47, 125, 89, 0.14)',
+                                border: '1px solid rgba(47, 125, 89, 0.14)',
                                 textDecoration: 'none',
                               }}
                             >
@@ -429,21 +429,21 @@ export default function GroupDetailPage() {
                                   <video
                                     src={c.first_media_url}
                                     muted
-                                    style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 3, border: '1px solid #27272a', background: '#000', flexShrink: 0 }}
+                                    style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--portal-border)', background: '#000', flexShrink: 0 }}
                                   />
                                 ) : (
                                   <img
                                     src={c.first_media_url}
                                     alt=""
-                                    style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 3, border: '1px solid #27272a', background: '#000', flexShrink: 0 }}
+                                    style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--portal-border)', background: '#000', flexShrink: 0 }}
                                   />
                                 )
                               ) : (
                                 <Megaphone size={14} style={{ color: statusColor(c.status), flexShrink: 0 }} />
                               )}
                               <div style={{ flex: 1 }}>
-                                <div style={{ color: '#e4e4e7', fontSize: 13, fontWeight: 500 }}>{c.name}</div>
-                                <div style={{ color: '#71717a', fontSize: 11, marginTop: 2 }}>
+                                <div style={{ color: 'var(--portal-text)', fontSize: 13, fontWeight: 500 }}>{c.name}</div>
+                                <div style={{ color: 'var(--portal-muted)', fontSize: 11, marginTop: 2 }}>
                                   {c.clients?.company_name} · {c.approved_count} file{c.approved_count !== 1 ? 's' : ''} · {c.status}
                                 </div>
                               </div>

@@ -311,31 +311,19 @@ export default function DevicesPage() {
       </div>
 
       {error && (
-        <div style={{
-          marginBottom: '1rem', padding: '10px 14px', borderRadius: 8,
-          background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)',
-          color: '#FBBF24', fontSize: 13,
-        }}>
+        <div className="portal-alert portal-alert-warning">
           {error}. Showing registered devices — online status unavailable until Realtime Server is reachable.
         </div>
       )}
 
       {actionResult && (
-        <div style={{
-          marginBottom: '1rem',
-          padding: '10px 14px',
-          borderRadius: 8,
-          background: actionResult.ok ? 'rgba(204,243,129,0.08)' : 'rgba(239,68,68,0.08)',
-          border: `1px solid ${actionResult.ok ? 'rgba(204,243,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-          color: actionResult.ok ? '#CCF381' : '#EF4444',
-          fontSize: 13,
-        }}>
+        <div className={`portal-alert ${actionResult.ok ? 'portal-alert-success' : 'portal-alert-danger'}`}>
           <div style={{ fontWeight: 600, marginBottom: actionResult.data ? 6 : 0 }}>{actionResult.msg}</div>
           {actionResult.data && (
             <pre style={{
               margin: 0,
               fontSize: 11,
-              color: '#a1a1aa',
+              color: 'var(--portal-text-soft)',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-all',
               maxHeight: 200,
@@ -351,7 +339,7 @@ export default function DevicesPage() {
         <div className="portal-empty">
           <Monitor size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
           <p>No devices registered.</p>
-          <p style={{ color: '#525252', fontSize: 14 }}>
+          <p style={{ color: 'var(--portal-muted)', fontSize: 14 }}>
             Register a device in the <code>devices</code> table or connect a controller to the Realtime Server.
           </p>
         </div>
@@ -367,7 +355,7 @@ export default function DevicesPage() {
                     <span>
                       {d.name && d.name !== d.cardId ? d.name : d.cardId}
                       {d.name && d.name !== d.cardId && (
-                        <span style={{ fontSize: 11, color: '#71717a', fontWeight: 400, marginLeft: 6 }}>{d.cardId}</span>
+                        <span style={{ fontSize: 12, color: 'var(--portal-muted)', fontWeight: 600, marginLeft: 6 }}>{d.cardId}</span>
                       )}
                     </span>
                   </h3>
@@ -376,13 +364,13 @@ export default function DevicesPage() {
                     {d.online && health && health.screenOn !== undefined && (
                       <span title={health.screenOn ? 'Screen ON' : 'Screen OFF'} style={{
                         width: 10, height: 10, borderRadius: '50%', display: 'inline-block',
-                        background: health.screenOn ? '#CCF381' : '#71717a',
-                        boxShadow: health.screenOn ? '0 0 6px rgba(204,243,129,0.5)' : 'none',
+                        background: health.screenOn ? 'var(--portal-success)' : 'var(--portal-muted)',
+                        boxShadow: health.screenOn ? '0 0 0 4px rgba(47, 125, 89, 0.12)' : 'none',
                       }} />
                     )}
                     <span className="status-badge" style={{
-                      color: d.online ? '#CCF381' : '#EF4444',
-                      borderColor: d.online ? '#CCF381' : '#EF4444',
+                      color: d.online ? 'var(--portal-success)' : 'var(--portal-danger)',
+                      borderColor: d.online ? 'var(--portal-success)' : 'var(--portal-danger)',
                       display: 'flex', alignItems: 'center', gap: 4,
                     }}>
                       {d.online ? <Wifi size={14} /> : <WifiOff size={14} />}
@@ -415,8 +403,8 @@ export default function DevicesPage() {
                 {!d.online && (
                   <div style={{
                     marginTop: 12, padding: '12px 14px', borderRadius: 8,
-                    background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.1)',
-                    color: '#a1a1aa', fontSize: 13,
+                    background: 'rgba(163, 58, 58, 0.07)', border: '1px solid rgba(163, 58, 58, 0.16)',
+                    color: 'var(--portal-text-soft)', fontSize: 13, lineHeight: 1.55,
                   }}>
                     Device is powered off or not connected to the Realtime Server. Controls will appear when it comes online.
                   </div>
@@ -427,30 +415,30 @@ export default function DevicesPage() {
                   <div style={{
                     display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12,
                     padding: '10px 14px', borderRadius: 8,
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid #1a1a1a',
+                    background: 'rgba(255, 249, 240, 0.72)', border: '1px solid var(--portal-border)',
                   }}>
                     {health.temperature !== undefined && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <Thermometer size={14} style={{ color: '#FBBF24' }} />
-                        <span style={{ color: '#e4e4e7' }}>{health.temperature.toFixed(1)}°C</span>
+                        <Thermometer size={14} style={{ color: 'var(--portal-warning)' }} />
+                        <span style={{ color: 'var(--portal-text)' }}>{health.temperature.toFixed(1)}°C</span>
                       </div>
                     )}
                     {health.voltage !== undefined && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <Zap size={14} style={{ color: '#60A5FA' }} />
-                        <span style={{ color: '#e4e4e7' }}>{health.voltage.toFixed(1)}V</span>
+                        <Zap size={14} style={{ color: 'var(--portal-info)' }} />
+                        <span style={{ color: 'var(--portal-text)' }}>{health.voltage.toFixed(1)}V</span>
                       </div>
                     )}
                     {health.humidity !== undefined && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <Droplets size={14} style={{ color: '#38BDF8' }} />
-                        <span style={{ color: '#e4e4e7' }}>{health.humidity.toFixed(0)}%</span>
+                        <Droplets size={14} style={{ color: 'var(--portal-info)' }} />
+                        <span style={{ color: 'var(--portal-text)' }}>{health.humidity.toFixed(0)}%</span>
                       </div>
                     )}
                     {health.signalStrength !== undefined && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <Signal size={14} style={{ color: health.signalStrength > -80 ? '#CCF381' : health.signalStrength > -100 ? '#FBBF24' : '#EF4444' }} />
-                        <span style={{ color: '#e4e4e7' }}>
+                        <Signal size={14} style={{ color: health.signalStrength > -80 ? 'var(--portal-success)' : health.signalStrength > -100 ? 'var(--portal-warning)' : 'var(--portal-danger)' }} />
+                        <span style={{ color: 'var(--portal-text)' }}>
                           {health.signalStrength} dBm
                           {health.signalType ? ` (${health.signalType})` : ''}
                         </span>
@@ -463,7 +451,7 @@ export default function DevicesPage() {
                   <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {/* Brightness Control */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Sun size={16} style={{ color: '#FBBF24', flexShrink: 0 }} />
+                      <Sun size={16} style={{ color: 'var(--portal-warning)', flexShrink: 0 }} />
                       <input
                         type="range"
                         min={1}
@@ -472,7 +460,7 @@ export default function DevicesPage() {
                         onChange={(e) => setBrightness(parseInt(e.target.value))}
                         style={{ flex: 1 }}
                       />
-                      <span style={{ color: '#A3A3A3', fontSize: 12, width: 30, textAlign: 'right' }}>{brightness}</span>
+                      <span style={{ color: 'var(--portal-text-soft)', fontSize: 12, width: 30, textAlign: 'right' }}>{brightness}</span>
                       <button
                         onClick={() => sendAction(d.cardId, 'brightness', { brightness })}
                         disabled={actionLoading === `${d.cardId}-brightness`}
@@ -485,7 +473,7 @@ export default function DevicesPage() {
 
                     {/* Volume Control */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Volume2 size={16} style={{ color: '#60A5FA', flexShrink: 0 }} />
+                      <Volume2 size={16} style={{ color: 'var(--portal-info)', flexShrink: 0 }} />
                       <input
                         type="range"
                         min={0}
@@ -494,7 +482,7 @@ export default function DevicesPage() {
                         onChange={(e) => setVolume(parseInt(e.target.value))}
                         style={{ flex: 1 }}
                       />
-                      <span style={{ color: '#A3A3A3', fontSize: 12, width: 20, textAlign: 'right' }}>{volume}</span>
+                      <span style={{ color: 'var(--portal-text-soft)', fontSize: 12, width: 20, textAlign: 'right' }}>{volume}</span>
                       <button
                         onClick={() => sendAction(d.cardId, 'volume', { volume })}
                         disabled={actionLoading === `${d.cardId}-volume`}
@@ -515,9 +503,9 @@ export default function DevicesPage() {
                         disabled={!!actionLoading}
                         style={{
                           ...btnStyle,
-                          border: `1px solid ${health?.screenOn === true ? 'rgba(204,243,129,0.4)' : '#27272a'}`,
-                          background: health?.screenOn === true ? 'rgba(204,243,129,0.12)' : 'rgba(255,255,255,0.05)',
-                          color: health?.screenOn === true ? '#CCF381' : '#e4e4e7',
+                          border: `1px solid ${health?.screenOn === true ? 'rgba(47, 125, 89, 0.14)' : 'var(--portal-border)'}`,
+                          background: health?.screenOn === true ? 'rgba(47, 125, 89, 0.14)' : 'rgba(255, 249, 240, 0.72)',
+                          color: health?.screenOn === true ? 'var(--portal-success)' : 'var(--portal-text)',
                           cursor: 'pointer', borderRadius: 8, fontWeight: 500,
                         }}
                       >
@@ -531,9 +519,9 @@ export default function DevicesPage() {
                         disabled={!!actionLoading}
                         style={{
                           ...btnStyle,
-                          border: `1px solid ${health?.screenOn === false ? 'rgba(239,68,68,0.4)' : '#27272a'}`,
-                          background: health?.screenOn === false ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)',
-                          color: health?.screenOn === false ? '#EF4444' : '#e4e4e7',
+                          border: `1px solid ${health?.screenOn === false ? 'rgba(163, 58, 58, 0.14)' : 'var(--portal-border)'}`,
+                          background: health?.screenOn === false ? 'rgba(163, 58, 58, 0.14)' : 'rgba(255, 249, 240, 0.72)',
+                          color: health?.screenOn === false ? 'var(--portal-danger)' : 'var(--portal-text)',
                           cursor: 'pointer', borderRadius: 8, fontWeight: 500,
                         }}
                       >
@@ -563,8 +551,8 @@ export default function DevicesPage() {
                         disabled={!!actionLoading}
                         style={{
                           ...btnStyle,
-                          border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)',
-                          color: '#EF4444', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
+                          border: '1px solid rgba(163, 58, 58, 0.14)', background: 'rgba(163, 58, 58, 0.14)',
+                          color: 'var(--portal-danger)', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
                         }}
                       >
                         <Trash2 size={14} /> Clear Program
@@ -573,10 +561,10 @@ export default function DevicesPage() {
 
                     {/* Row 3: Query Buttons */}
                     <div style={{
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid #1a1a1a',
+                      background: 'rgba(255, 249, 240, 0.72)', border: '1px solid var(--portal-border)',
                       borderRadius: 8, padding: '10px 14px',
                     }}>
-                      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ fontSize: 12, color: 'var(--portal-muted)', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Search size={12} /> Query Device State
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -603,10 +591,10 @@ export default function DevicesPage() {
 
                     {/* Scheduled Brightness */}
                     <div style={{
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid #1a1a1a',
+                      background: 'rgba(255, 249, 240, 0.72)', border: '1px solid var(--portal-border)',
                       borderRadius: 8, padding: '10px 14px',
                     }}>
-                      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ fontSize: 12, color: 'var(--portal-muted)', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Clock size={12} /> Scheduled Brightness
                       </div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -614,16 +602,16 @@ export default function DevicesPage() {
                           type="time"
                           value={schedBrightness.time}
                           onChange={(e) => setSchedBrightness({ ...schedBrightness, time: e.target.value })}
-                          style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6, color: '#e4e4e7', padding: '4px 8px', fontSize: 12 }}
+                          style={{ background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', borderRadius: 6, color: 'var(--portal-text)', padding: '4px 8px', fontSize: 12 }}
                         />
-                        <span style={{ color: '#71717a', fontSize: 12 }}>at</span>
+                        <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>at</span>
                         <input
                           type="number"
                           min={1}
                           max={255}
                           value={schedBrightness.value}
                           onChange={(e) => setSchedBrightness({ ...schedBrightness, value: parseInt(e.target.value) || 1 })}
-                          style={{ background: '#0A0A0A', border: '1px solid #27272a', borderRadius: 6, color: '#e4e4e7', padding: '4px 8px', fontSize: 12, width: 60 }}
+                          style={{ background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', borderRadius: 6, color: 'var(--portal-text)', padding: '4px 8px', fontSize: 12, width: 60 }}
                         />
                         <button
                           onClick={() => sendAction(d.cardId, 'scheduled-brightness', {
@@ -645,8 +633,8 @@ export default function DevicesPage() {
                         disabled={!!actionLoading}
                         style={{
                           ...btnStyle,
-                          border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.08)',
-                          color: '#FBBF24', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
+                          border: '1px solid rgba(167, 98, 23, 0.14)', background: 'rgba(167, 98, 23, 0.14)',
+                          color: 'var(--portal-warning)', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
                         }}
                       >
                         <HardDrive size={14} /> Clean Storage
@@ -660,8 +648,8 @@ export default function DevicesPage() {
                         disabled={!!actionLoading}
                         style={{
                           ...btnStyle,
-                          border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)',
-                          color: '#EF4444', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
+                          border: '1px solid rgba(163, 58, 58, 0.14)', background: 'rgba(163, 58, 58, 0.14)',
+                          color: 'var(--portal-danger)', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
                         }}
                       >
                         <RotateCcw size={14} /> Reboot Device
@@ -671,11 +659,11 @@ export default function DevicesPage() {
                     {/* Screenshot Preview */}
                     {screenshotUrl && (
                       <div style={{ marginTop: 4 }}>
-                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Screenshot:</div>
+                        <div style={{ fontSize: 12, color: 'var(--portal-muted)', marginBottom: 6 }}>Screenshot:</div>
                         <img
                           src={screenshotUrl}
                           alt="Device screenshot"
-                          style={{ width: '100%', minWidth: 600, borderRadius: 8, border: '1px solid #27272a' }}
+                          style={{ width: '100%', minWidth: 600, borderRadius: 8, border: '1px solid var(--portal-border)' }}
                         />
                       </div>
                     )}
@@ -684,7 +672,7 @@ export default function DevicesPage() {
                     {playingInfo && (
                       <div style={{
                         padding: '8px 12px', borderRadius: 8, fontSize: 13,
-                        background: 'rgba(96,165,250,0.1)', color: '#60A5FA',
+                        background: 'rgba(76, 106, 136, 0.14)', color: 'var(--portal-info)',
                       }}>
                         Now playing: {playingInfo}
                       </div>
@@ -697,9 +685,9 @@ export default function DevicesPage() {
         </div>
       )}
 
-      <div className="portal-section" style={{ marginTop: '2rem' }}>
+      <div className="portal-panel" style={{ marginTop: '2rem' }}>
         <h2>Setup Guide</h2>
-        <div style={{ color: '#A3A3A3', fontSize: 14, lineHeight: 1.8 }}>
+        <div style={{ color: 'var(--portal-text-soft)', fontSize: 14, lineHeight: 1.8 }}>
           <p><strong>1.</strong> Deploy the Realtime Server on a VPS (see <code>realtime-server/</code> folder)</p>
           <p><strong>2.</strong> Set the controller&apos;s server URL to your VPS address using LEDOK tool</p>
           <p><strong>3.</strong> Add <code>REALTIME_SERVER_URL</code> and <code>REALTIME_SERVER_SECRET</code> to your Vercel env vars</p>
