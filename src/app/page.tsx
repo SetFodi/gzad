@@ -11,6 +11,7 @@ export default function Home() {
   const [adIndex, setAdIndex] = useState(0);
   const [lang, setLang] = useState<'en' | 'ge'>('en');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('gzad-theme');
@@ -31,6 +32,21 @@ export default function Home() {
   useEffect(() => {
     document.body.classList.toggle('lang-ge', lang === 'ge');
   }, [lang]);
+
+  // Lock scroll + close on resize-up for mobile menu
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onResize = () => {
+      if (window.innerWidth >= 1024) setMobileMenuOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('resize', onResize);
+    };
+  }, [mobileMenuOpen]);
 
   const t = translations[lang];
 
@@ -149,9 +165,144 @@ export default function Home() {
             >
               {lang === 'en' ? 'Sign Up' : 'რეგისტრაცია'}
             </a>
+
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className={`${lang === 'ge' ? 'xl:hidden' : 'lg:hidden'} w-9 h-9 flex flex-col items-center justify-center gap-[5px] text-[#541A1A] dark:text-[#F1E2D1] -mr-1`}
+              aria-label="Open menu"
+            >
+              <span className="block w-5 h-px bg-current" />
+              <span className="block w-5 h-px bg-current" />
+            </button>
           </div>
         </div>
       </nav>
+
+      {/* ─────────────────────── MOBILE MENU SHEET ─────────────────────── */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            className="fixed inset-0 z-[100] bg-[#F1E2D1] dark:bg-[#160606] paper-grain flex flex-col lg:hidden"
+          >
+            {/* Top bar: logo + close */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#DCC3AA] dark:border-[#D6A569]/15">
+              <a href="#" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5">
+                <span className="font-serif italic text-[26px] tracking-tight text-[#541A1A] dark:text-[#F1E2D1] leading-none">Gzad</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#810B38] dark:bg-[#D6A569]" />
+              </a>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+                className="w-10 h-10 flex items-center justify-center text-[#541A1A] dark:text-[#F1E2D1] -mr-2"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <line x1="5" y1="5" x2="19" y2="19" />
+                  <line x1="19" y1="5" x2="5" y2="19" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 flex flex-col px-6 py-8 overflow-y-auto">
+
+              {/* Nav links */}
+              <ul className="flex flex-col">
+                {navItems.map((n, i) => (
+                  <motion.li
+                    key={n.href}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.06 + i * 0.05, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="border-b border-[#DCC3AA] dark:border-[#D6A569]/15"
+                  >
+                    <a
+                      href={n.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-5 group"
+                    >
+                      <span className="font-serif italic text-[26px] text-[#541A1A] dark:text-[#F1E2D1] leading-none">
+                        {n.label}
+                      </span>
+                      <span className="text-[#810B38] dark:text-[#D6A569] opacity-50 group-hover:opacity-100 transition-opacity duration-300">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                          <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                      </span>
+                    </a>
+                  </motion.li>
+                ))}
+              </ul>
+
+              {/* Account actions */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06 + navItems.length * 0.05, duration: 0.45 }}
+                className="mt-8 flex flex-col gap-3"
+              >
+                <a
+                  href="/portal/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="inline-flex items-center justify-center px-6 py-4 border border-[#541A1A]/30 dark:border-[#D6A569]/40 text-[#541A1A] dark:text-[#F1E2D1] font-bold tracking-[0.22em] uppercase text-[11px]"
+                >
+                  {lang === 'en' ? 'Log In' : 'შესვლა'}
+                </a>
+                <a
+                  href="/portal/fleet-signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="inline-flex items-center justify-center px-6 py-4 bg-[#810B38] dark:bg-[#D6A569] text-[#F1E2D1] dark:text-[#160606] font-bold tracking-[0.22em] uppercase text-[11px]"
+                >
+                  {lang === 'en' ? 'Sign Up' : 'რეგისტრაცია'}
+                </a>
+              </motion.div>
+
+              {/* Bottom strip: lang + theme */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.06 + (navItems.length + 1) * 0.05, duration: 0.5 }}
+                className="mt-auto pt-10 flex items-center justify-between border-t border-[#DCC3AA] dark:border-[#D6A569]/15"
+              >
+                {/* Language */}
+                <div className="flex items-center gap-3 text-[12px] font-bold tracking-[0.28em]" lang="en">
+                  <button
+                    onClick={() => setLang('en')}
+                    className={`pb-0.5 border-b transition-colors duration-200 ${
+                      lang === 'en'
+                        ? 'border-[#810B38] text-[#810B38] dark:border-[#D6A569] dark:text-[#D6A569]'
+                        : 'border-transparent text-[#541A1A]/55 dark:text-[#DCC3AA]/65'
+                    }`}
+                  >EN</button>
+                  <span className="text-[#DCC3AA] dark:text-[#D6A569]/40 select-none">·</span>
+                  <button
+                    onClick={() => setLang('ge')}
+                    className={`pb-0.5 border-b transition-colors duration-200 ${
+                      lang === 'ge'
+                        ? 'border-[#810B38] text-[#810B38] dark:border-[#D6A569] dark:text-[#D6A569]'
+                        : 'border-transparent text-[#541A1A]/55 dark:text-[#DCC3AA]/65'
+                    }`}
+                  >GE</button>
+                </div>
+
+                {/* Theme */}
+                <button
+                  onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                  className="w-10 h-10 border border-[#541A1A]/25 dark:border-[#D6A569]/30 flex items-center justify-center text-[#810B38] dark:text-[#D6A569]"
+                  aria-label="Toggle theme"
+                >
+                  {theme === 'light' ? MoonIcon : SunIcon}
+                </button>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─────────────────────── HERO ─────────────────────── */}
       <section className="relative paper-grain pt-24 lg:pt-28 pb-12 lg:pb-16 px-6 lg:px-12">
