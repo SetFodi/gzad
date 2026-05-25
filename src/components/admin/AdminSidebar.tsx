@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Users, Megaphone, Monitor, MapPin, Map, ScrollText, LogOut, Menu, X, FolderOpen, BarChart3, DollarSign, Car } from 'lucide-react'
+import { LayoutDashboard, Users, Megaphone, Monitor, MapPin, Map, ScrollText, LogOut, Menu, X, FolderOpen, BarChart3, DollarSign, Car, LayoutGrid } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/admin/fleet-users', label: 'Fleet Users', icon: Car },
   { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
   { href: '/admin/devices', label: 'Devices', icon: Monitor },
+  { href: '/admin/slots', label: 'Slots', icon: LayoutGrid },
   { href: '/admin/groups', label: 'Groups', icon: FolderOpen },
   { href: '/admin/stats', label: 'Stats', icon: BarChart3 },
   { href: '/admin/pricing', label: 'Pricing', icon: DollarSign },
