@@ -214,6 +214,7 @@ export default function CampaignDetailPage() {
       case 'active': return 'var(--portal-success)'
       case 'pending_review': return 'var(--portal-warning)'
       case 'paused': return 'var(--portal-muted)'
+      case 'paused_billing': return 'var(--portal-danger)'
       case 'completed': return 'var(--portal-info)'
       case 'approved': return 'var(--portal-success)'
       case 'rejected': return 'var(--portal-danger)'
@@ -226,6 +227,7 @@ export default function CampaignDetailPage() {
       case 'active': return c.active
       case 'pending_review': return c.pendingReview
       case 'paused': return c.paused
+      case 'paused_billing': return c.pausedBilling
       case 'completed': return c.completed
       default: return status.replace('_', ' ')
     }

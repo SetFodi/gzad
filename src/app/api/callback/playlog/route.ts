@@ -172,23 +172,26 @@ export async function POST(request: NextRequest) {
           .gte('began_at', dayStart)
           .lt('began_at', dayEnd)
 
-        const { data: durationData } = await supabase
-          .from('play_logs')
-          .select('duration_seconds')
-          .eq('campaign_id', campaignId)
-          .gte('began_at', dayStart)
-          .lt('began_at', dayEnd)
-
-        const totalDuration = durationData?.reduce((sum, r) => sum + r.duration_seconds, 0) || 0
-
-        const { data: deviceData } = await supabase
-          .from('play_logs')
-          .select('device_id')
-          .eq('campaign_id', campaignId)
-          .gte('began_at', dayStart)
-          .lt('began_at', dayEnd)
-
-        const uniqueDevices = new Set(deviceData?.map(d => d.device_id)).size || 1
+        // Paginate past PostgREST's 1000-row cap so busy days aren't undercounted
+        let totalDuration = 0
+        const uniqueDeviceIds = new Set<string>()
+        const PAGE = 1000
+        for (let page = 0; ; page++) {
+          const { data: batch } = await supabase
+            .from('play_logs')
+            .select('duration_seconds, device_id')
+            .eq('campaign_id', campaignId)
+            .gte('began_at', dayStart)
+            .lt('began_at', dayEnd)
+            .range(page * PAGE, (page + 1) * PAGE - 1)
+          if (!batch || batch.length === 0) break
+          for (const r of batch) {
+            totalDuration += r.duration_seconds || 0
+            uniqueDeviceIds.add(r.device_id)
+          }
+          if (batch.length < PAGE) break
+        }
+        const uniqueDevices = uniqueDeviceIds.size || 1
 
         // Upsert — REPLACE existing stats (not add)
         await supabase

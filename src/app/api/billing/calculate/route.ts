@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDistrictsForPoint } from '@/lib/districts'
-
-const REALTIME_SERVER_URL = process.env.REALTIME_SERVER_URL || 'http://localhost:8081'
-const REALTIME_SERVER_SECRET = process.env.REALTIME_SERVER_SECRET || ''
+import { syncDevicePlaylist } from '@/lib/device-sync'
 
 function getSupabase() {
   return createClient(
@@ -153,13 +151,21 @@ export async function POST(request: NextRequest) {
   const devicesToSync = new Set<string>()
 
   for (const [clientId, charge] of Object.entries(clientCharges)) {
-    // Insert billing logs (unique index prevents double-billing)
+    // Insert billing logs (unique index prevents double-billing).
+    // .select() returns only the rows actually inserted, so a repeated run
+    // for the same period deducts nothing instead of charging twice.
+    let chargedTotal = 0
     if (charge.logs.length > 0) {
-      await supabase.from('billing_logs').upsert(charge.logs, {
-        onConflict: 'campaign_id,device_id,period_start',
-        ignoreDuplicates: true,
-      })
+      const { data: inserted } = await supabase
+        .from('billing_logs')
+        .upsert(charge.logs, {
+          onConflict: 'campaign_id,device_id,period_start',
+          ignoreDuplicates: true,
+        })
+        .select('total_cost')
+      chargedTotal = (inserted || []).reduce((sum, r) => sum + Number(r.total_cost), 0)
     }
+    if (chargedTotal === 0) continue
 
     // Deduct
     const { data: client } = await supabase
@@ -168,9 +174,9 @@ export async function POST(request: NextRequest) {
       .eq('id', clientId)
       .single()
 
-    const newBalance = Math.round(((client?.balance || 0) - charge.total) * 100) / 100
+    const newBalance = Math.round(((client?.balance || 0) - chargedTotal) * 100) / 100
     await supabase.from('clients').update({ balance: newBalance }).eq('id', clientId)
-    totalCharged += charge.total
+    totalCharged += chargedTotal
 
     // Pause campaigns if balance depleted
     if (newBalance <= 0) {
@@ -189,14 +195,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Resync affected devices so they stop playing paused ads
+  // Re-push each affected device's playlist so paused ads stop playing
+  // while other clients' active campaigns keep running.
   for (const deviceId of devicesToSync) {
-    const devGps = deviceGps[deviceId]
-    fetch(`${REALTIME_SERVER_URL}/devices/${deviceId}/clear-program`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${REALTIME_SERVER_SECRET}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    }).catch(() => {})
+    await syncDevicePlaylist(supabase, deviceId).catch(() => {})
   }
 
   return NextResponse.json({

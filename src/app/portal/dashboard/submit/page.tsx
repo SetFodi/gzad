@@ -99,19 +99,21 @@ export default function SubmitAdPage() {
 
       if (!client) throw new Error('Client profile not found')
 
-      const { data: existing } = await supabase
-        .from('campaigns')
-        .select('id')
-        .ilike('name', name.trim())
-        .limit(1)
-
-      if (existing && existing.length > 0) {
+      // Global uniqueness check (RLS hides other clients' campaigns, so this
+      // must go through the API — play logs are matched to campaigns by name)
+      const checkRes = await fetch('/api/campaigns/check-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() }),
+      })
+      const check = await checkRes.json()
+      if (!checkRes.ok || !check.available) {
         throw new Error(p.nameDuplicate)
       }
 
       const { data: campaign, error: campError } = await supabase
         .from('campaigns')
-        .insert({ client_id: client.id, name: name.trim(), status: 'pending_review' })
+        .insert({ client_id: client.id, name: name.trim(), status: 'pending_review', slot_duration: duration })
         .select()
         .single()
 

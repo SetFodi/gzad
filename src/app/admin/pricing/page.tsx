@@ -81,7 +81,7 @@ export default function PricingPage() {
     setLoading(true)
     const [configRes, clientsRes, logsRes] = await Promise.all([
       supabase.from('pricing_config').select('key, value'),
-      supabase.from('clients').select('id, company_name, balance').order('company_name'),
+      supabase.from('clients').select('id, company_name, balance').eq('is_admin', false).neq('role', 'fleet').order('company_name'),
       supabase.from('billing_logs')
         .select('id, client_id, campaign_id, device_id, period_start, district, district_tier, base_rate, district_multiplier, time_multiplier, total_cost, ad_duration_seconds, campaigns(name), clients(company_name)')
         .order('period_start', { ascending: false })
@@ -127,8 +127,7 @@ export default function PricingPage() {
     setSaving(false)
   }
 
-  async function addBalance(clientId: string) {
-    const amount = parseFloat(topUpAmounts[clientId] || '0')
+  async function adjustBalance(clientId: string, amount: number) {
     if (!amount || amount === 0) return
 
     const client = clients.find(c => c.id === clientId)
@@ -139,14 +138,24 @@ export default function PricingPage() {
 
     // If balance was restored and client had paused_billing campaigns, reactivate them
     if (newBalance > 0) {
-      await supabase
+      const { data: reactivated } = await supabase
         .from('campaigns')
         .update({ status: 'active' })
         .eq('client_id', clientId)
         .eq('status', 'paused_billing')
+        .select('id')
+
+      // Devices were cleared when billing paused — re-push their playlists
+      if (reactivated && reactivated.length > 0) {
+        fetch('/api/admin/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId }),
+        }).catch(() => {})
+      }
     }
 
-    setTopUpAmounts({ ...topUpAmounts, [clientId]: '' })
+    setTopUpAmounts(prev => ({ ...prev, [clientId]: '' }))
     await load()
   }
 
@@ -624,7 +633,7 @@ export default function PricingPage() {
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
                           <button
-                            onClick={() => addBalance(c.id)}
+                            onClick={() => adjustBalance(c.id, parseFloat(topUpAmounts[c.id] || '0'))}
                             title="Add balance"
                             style={{
                               display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px',
@@ -637,10 +646,7 @@ export default function PricingPage() {
                           <button
                             onClick={() => {
                               const amt = parseFloat(topUpAmounts[c.id] || '0')
-                              if (amt > 0) {
-                                setTopUpAmounts({ ...topUpAmounts, [c.id]: (-amt).toString() })
-                                setTimeout(() => addBalance(c.id), 0)
-                              }
+                              if (amt > 0) adjustBalance(c.id, -amt)
                             }}
                             title="Deduct balance"
                             style={{

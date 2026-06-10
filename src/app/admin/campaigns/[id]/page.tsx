@@ -99,6 +99,16 @@ export default function AdminCampaignDetailPage() {
 
   const updateMediaDuration = async (mediaId: string, seconds: number) => {
     await supabase.from('ad_media').update({ display_duration_seconds: seconds }).eq('id', mediaId)
+
+    // Keep the campaign's billing slot_duration in sync (billed at the
+    // longest media duration in the campaign)
+    const { data: allMedia } = await supabase
+      .from('ad_media')
+      .select('display_duration_seconds')
+      .eq('campaign_id', params.id as string)
+    const maxDuration = Math.max(10, ...(allMedia || []).map(m => m.display_duration_seconds || 10))
+    await supabase.from('campaigns').update({ slot_duration: maxDuration }).eq('id', params.id as string)
+
     await load()
   }
 

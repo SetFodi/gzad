@@ -125,7 +125,7 @@ export default function GroupDetailPage() {
       for (const c of activeCampaigns || []) {
         const { data: approved } = await supabase
           .from('ad_media')
-          .select('file_url, file_type')
+          .select('file_url, file_type, display_duration_seconds')
           .eq('campaign_id', c.id)
           .eq('status', 'approved')
         if (approved && approved.length > 0) {
@@ -134,7 +134,7 @@ export default function GroupDetailPage() {
             mediaItems.push({
               url: m.file_url,
               type: m.file_type,
-              duration: m.file_type.startsWith('video') ? 30 : 10,
+              duration: m.display_duration_seconds || 10,
               campaignName: c.name,
             })
           }

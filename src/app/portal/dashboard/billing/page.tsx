@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from '@/lib/i18n'
-import { Receipt, WalletCards } from 'lucide-react'
+import { Receipt, WalletCards, Wallet } from 'lucide-react'
 
 interface Invoice {
   id: string
@@ -15,8 +15,19 @@ interface Invoice {
   campaigns: { name: string } | null
 }
 
+interface BillingLog {
+  id: string
+  period_start: string
+  device_id: string
+  district: string
+  total_cost: number
+  campaigns: { name: string } | null
+}
+
 export default function BillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [balance, setBalance] = useState<number | null>(null)
+  const [charges, setCharges] = useState<BillingLog[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
   const { t } = useTranslations()
@@ -30,19 +41,30 @@ export default function BillingPage() {
 
       const { data: client } = await supabase
         .from('clients')
-        .select('id')
+        .select('id, balance')
         .eq('auth_user_id', user.id)
         .single()
 
       if (!client) { setLoading(false); return }
 
-      const { data } = await supabase
-        .from('invoices')
-        .select('*, campaigns(name)')
-        .eq('client_id', client.id)
-        .order('created_at', { ascending: false })
+      setBalance(typeof client.balance === 'number' ? client.balance : 0)
 
-      setInvoices(data || [])
+      const [{ data: invoiceData }, { data: chargeData }] = await Promise.all([
+        supabase
+          .from('invoices')
+          .select('*, campaigns(name)')
+          .eq('client_id', client.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('billing_logs')
+          .select('id, period_start, device_id, district, total_cost, campaigns(name)')
+          .eq('client_id', client.id)
+          .order('period_start', { ascending: false })
+          .limit(50),
+      ])
+
+      setInvoices(invoiceData || [])
+      setCharges((chargeData || []) as unknown as BillingLog[])
       setLoading(false)
     }
     load()
@@ -71,7 +93,18 @@ export default function BillingPage() {
         </div>
       </div>
 
-      <div className="stats-grid two-col">
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-card-icon" style={{ color: (balance ?? 0) > 0 ? 'var(--portal-success)' : 'var(--portal-danger)' }}>
+            <Wallet size={24} />
+          </div>
+          <div className="stat-card-info">
+            <span className="stat-card-value" style={{ color: (balance ?? 0) > 0 ? 'var(--portal-success)' : 'var(--portal-danger)' }}>
+              {(balance ?? 0).toFixed(2)} GEL
+            </span>
+            <span className="stat-card-label">{p.balance}</span>
+          </div>
+        </div>
         <div className="stat-card">
           <div className="stat-card-icon" style={{ color: 'var(--portal-warning)' }}>
             <Receipt size={24} />
@@ -92,13 +125,43 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {invoices.length === 0 ? (
-        <div className="portal-empty">
-          <Receipt size={34} style={{ color: 'var(--portal-primary)', opacity: 0.84 }} />
-          <h2>{p.noInvoices}</h2>
-          <p>Invoices will appear here after campaigns are approved and billed.</p>
-        </div>
-      ) : (
+      <p style={{ color: 'var(--portal-muted)', fontSize: 13, marginTop: -8, marginBottom: 24 }}>
+        {p.balanceHint}
+      </p>
+
+      <div className="portal-section">
+        <h2>{p.recentCharges}</h2>
+        {charges.length === 0 ? (
+          <p className="portal-empty-text" style={{ color: 'var(--portal-muted)', fontSize: 13 }}>{p.noCharges}</p>
+        ) : (
+          <div className="campaigns-table-wrapper">
+            <table className="portal-table">
+              <thead>
+                <tr>
+                  <th>{p.time}</th>
+                  <th>{p.campaign}</th>
+                  <th>{p.district}</th>
+                  <th style={{ textAlign: 'right' }}>{p.cost}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {charges.map((l) => (
+                  <tr key={l.id}>
+                    <td style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
+                      {new Date(l.period_start).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td>{l.campaigns?.name || '—'}</td>
+                    <td>{l.district || '—'}</td>
+                    <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{l.total_cost.toFixed(2)} GEL</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {invoices.length > 0 && (
         <div className="portal-section">
           <div className="campaigns-table-wrapper">
             <table className="portal-table">

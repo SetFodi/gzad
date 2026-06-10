@@ -172,13 +172,13 @@ export default function AdminCampaignsPage() {
       for (const c of activeCampaigns || []) {
         const { data: approved } = await supabase
           .from('ad_media')
-          .select('file_url, file_type')
+          .select('file_url, file_type, display_duration_seconds')
           .eq('campaign_id', c.id)
           .eq('status', 'approved')
         if (approved && approved.length > 0) {
           campaignNames.push(c.name)
           for (const m of approved) {
-            mediaItems.push({ url: m.file_url, type: m.file_type, duration: m.file_type.startsWith('video') ? 30 : 10, campaignName: c.name })
+            mediaItems.push({ url: m.file_url, type: m.file_type, duration: m.display_duration_seconds || 10, campaignName: c.name })
           }
         }
       }
@@ -221,6 +221,7 @@ export default function AdminCampaignsPage() {
       case 'active': return 'var(--portal-success)'
       case 'pending_review': return 'var(--portal-warning)'
       case 'paused': return 'var(--portal-muted)'
+      case 'paused_billing': return 'var(--portal-danger)'
       case 'completed': return 'var(--portal-info)'
       default: return 'var(--portal-muted)'
     }
@@ -288,7 +289,7 @@ export default function AdminCampaignsPage() {
       )}
 
       <div className="admin-filters">
-        {['all', 'pending_review', 'active', 'paused', 'completed'].map((f) => (
+        {['all', 'pending_review', 'active', 'paused', 'paused_billing', 'completed'].map((f) => (
           <button
             key={f}
             className={`admin-filter-btn ${filter === f ? 'active' : ''}`}
@@ -376,7 +377,7 @@ export default function AdminCampaignsPage() {
                       {c.status === 'active' && (
                         <button className="action-btn pause" onClick={() => updateStatus(c.id, 'paused')}>Pause</button>
                       )}
-                      {c.status === 'paused' && (
+                      {(c.status === 'paused' || c.status === 'paused_billing') && (
                         <button className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>Resume</button>
                       )}
                       <button
