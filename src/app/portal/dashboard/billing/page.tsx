@@ -5,16 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from '@/lib/i18n'
 import { Receipt, WalletCards, Wallet } from 'lucide-react'
 
-interface Invoice {
-  id: string
-  amount: number
-  status: string
-  due_date: string
-  paid_at: string | null
-  created_at: string
-  campaigns: { name: string } | null
-}
-
 interface BillingLog {
   id: string
   period_start: string
@@ -24,10 +14,27 @@ interface BillingLog {
   campaigns: { name: string } | null
 }
 
+interface BalanceTransaction {
+  id: string
+  amount: number
+  balance_after: number | null
+  type: string
+  note: string | null
+  created_at: string
+}
+
+const TRANSACTION_LABELS: Record<string, string> = {
+  topup: 'Top-up',
+  adjustment: 'Adjustment',
+  billing: 'Airtime',
+  refund: 'Refund',
+}
+
 export default function BillingPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([])
   const [balance, setBalance] = useState<number | null>(null)
   const [charges, setCharges] = useState<BillingLog[]>([])
+  const [transactions, setTransactions] = useState<BalanceTransaction[]>([])
+  const [spent30, setSpent30] = useState(0)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
   const { t } = useTranslations()
@@ -49,47 +56,50 @@ export default function BillingPage() {
 
       setBalance(typeof client.balance === 'number' ? client.balance : 0)
 
-      const [{ data: invoiceData }, { data: chargeData }] = await Promise.all([
-        supabase
-          .from('invoices')
-          .select('*, campaigns(name)')
-          .eq('client_id', client.id)
-          .order('created_at', { ascending: false }),
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+      const [{ data: chargeData }, { data: spendData }, { data: txData }] = await Promise.all([
         supabase
           .from('billing_logs')
           .select('id, period_start, device_id, district, total_cost, campaigns(name)')
           .eq('client_id', client.id)
           .order('period_start', { ascending: false })
           .limit(50),
+        supabase
+          .from('billing_logs')
+          .select('total_cost')
+          .eq('client_id', client.id)
+          .gte('period_start', thirtyDaysAgo.toISOString()),
+        supabase
+          .from('balance_transactions')
+          .select('id, amount, balance_after, type, note, created_at')
+          .eq('client_id', client.id)
+          .neq('type', 'billing')
+          .order('created_at', { ascending: false })
+          .limit(50),
       ])
 
-      setInvoices(invoiceData || [])
       setCharges((chargeData || []) as unknown as BillingLog[])
+      setSpent30((spendData || []).reduce((sum, r) => sum + Number(r.total_cost), 0))
+      setTransactions(txData || [])
       setLoading(false)
     }
     load()
   }, [])
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'paid': return 'var(--portal-success)'
-      case 'pending': return 'var(--portal-warning)'
-      case 'overdue': return 'var(--portal-danger)'
-      default: return 'var(--portal-muted)'
-    }
-  }
-
   if (loading) return <div className="portal-loading">{c.loading}</div>
 
-  const totalPending = invoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0)
-  const totalPaid = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0)
+  const toppedUp = transactions
+    .filter(tx => tx.amount > 0)
+    .reduce((sum, tx) => sum + Number(tx.amount), 0)
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
           <h1 className="portal-page-title">{p.title}</h1>
-          <p className="portal-subtitle">Campaign invoices, balances, and payment status.</p>
+          <p className="portal-subtitle">{p.subtitle}</p>
         </div>
       </div>
 
@@ -110,8 +120,8 @@ export default function BillingPage() {
             <Receipt size={24} />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value" style={{ color: 'var(--portal-warning)' }}>{totalPending} GEL</span>
-            <span className="stat-card-label">{p.pending}</span>
+            <span className="stat-card-value" style={{ color: 'var(--portal-warning)' }}>{spent30.toFixed(2)} GEL</span>
+            <span className="stat-card-label">{p.spent30}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -119,8 +129,8 @@ export default function BillingPage() {
             <WalletCards size={24} />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value" style={{ color: 'var(--portal-success)' }}>{totalPaid} GEL</span>
-            <span className="stat-card-label">{p.paid}</span>
+            <span className="stat-card-value" style={{ color: 'var(--portal-success)' }}>{toppedUp.toFixed(2)} GEL</span>
+            <span className="stat-card-label">{p.toppedUp}</span>
           </div>
         </div>
       </div>
@@ -161,38 +171,43 @@ export default function BillingPage() {
         )}
       </div>
 
-      {invoices.length > 0 && (
-        <div className="portal-section">
+      <div className="portal-section">
+        <h2>{p.balanceHistory}</h2>
+        {transactions.length === 0 ? (
+          <p className="portal-empty-text" style={{ color: 'var(--portal-muted)', fontSize: 13 }}>{p.noBalanceHistory}</p>
+        ) : (
           <div className="campaigns-table-wrapper">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>{p.campaign}</th>
-                  <th>{p.amount}</th>
-                  <th>{p.status}</th>
-                  <th>{p.dueDate}</th>
-                  <th>{p.paidDate}</th>
+                  <th>{p.date}</th>
+                  <th>{p.type}</th>
+                  <th>{p.note}</th>
+                  <th style={{ textAlign: 'right' }}>{p.amount}</th>
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((inv) => (
-                  <tr key={inv.id}>
-                    <td>{inv.campaigns?.name || '—'}</td>
-                    <td>{inv.amount} GEL</td>
-                    <td>
-                      <span className="status-badge" style={{ color: statusColor(inv.status), borderColor: statusColor(inv.status) }}>
-                        {inv.status}
-                      </span>
+                {transactions.map((tx) => (
+                  <tr key={tx.id}>
+                    <td style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
+                      {new Date(tx.created_at).toLocaleDateString('en-GB', { timeZone: 'Asia/Tbilisi', year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
-                    <td>{inv.due_date}</td>
-                    <td>{inv.paid_at ? new Date(inv.paid_at).toLocaleDateString() : '—'}</td>
+                    <td>{TRANSACTION_LABELS[tx.type] || tx.type}</td>
+                    <td style={{ color: 'var(--portal-muted)', fontSize: 13 }}>{tx.note || '—'}</td>
+                    <td style={{
+                      textAlign: 'right',
+                      fontVariantNumeric: 'tabular-nums',
+                      color: tx.amount > 0 ? 'var(--portal-success)' : 'var(--portal-danger)',
+                    }}>
+                      {tx.amount > 0 ? '+' : ''}{Number(tx.amount).toFixed(2)} GEL
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

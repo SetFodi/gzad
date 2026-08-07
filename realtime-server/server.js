@@ -4,52 +4,69 @@ const http = require('http')
 const { WebSocketServer } = require('ws')
 const { v4: uuidv4 } = require('uuid')
 const crypto = require('crypto')
-const { execFile } = require('child_process')
-const fs = require('fs')
-const os = require('os')
-const path = require('path')
 const config = require('./config')
 
-// Try to get video duration via ffprobe; returns seconds or null
-function probeVideoDuration(buffer) {
-  return new Promise((resolve) => {
-    const tmp = path.join(os.tmpdir(), `gzad_probe_${Date.now()}.mp4`)
-    fs.writeFileSync(tmp, buffer)
-    execFile('ffprobe', [
-      '-v', 'error',
-      '-show_entries', 'format=duration',
-      '-of', 'csv=p=0',
-      tmp,
-    ], { timeout: 10000 }, (err, stdout) => {
-      try { fs.unlinkSync(tmp) } catch {}
-      if (err) return resolve(null)
-      const dur = parseFloat(stdout.trim())
-      resolve(isFinite(dur) && dur > 0 ? Math.ceil(dur) : null)
-    })
-  })
-}
+// Ad slot lengths an advertiser can buy, in seconds.
+const ALLOWED_SLOT_DURATIONS = [10, 20, 30]
+const DEFAULT_SLOT_DURATION = 10
 
 const app = express()
-app.use(express.json({ limit: '100mb' }))
+app.set('trust proxy', true)
 
 // ─── State ───────────────────────────────────────────────────────────────────
 // Connected controllers: { cardId: { ws, connectedAt, lastSeen, info } }
 const devices = {}
 // Pending commands: { commandId: { resolve, reject, timer } }
 const pendingCommands = {}
+// Per-device callback keys, cached after the first lookup against the app.
+const deviceKeyCache = new Map()
 
 // ─── Auth middleware ─────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
-  const auth = req.headers['authorization']
-  if (auth !== `Bearer ${config.apiSecret}`) {
+  const auth = req.headers['authorization'] || ''
+  const expected = `Bearer ${config.apiSecret}`
+  // Constant-time compare so the secret can't be recovered by timing the response.
+  const a = Buffer.from(auth)
+  const b = Buffer.from(expected)
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
   next()
 }
 
+// ─── Rate limiting ───────────────────────────────────────────────────────────
+// Fixed-window counter per IP. This server has one instance, so an in-process
+// map is sufficient; it exists to blunt floods, not to meter fair usage.
+const rateBuckets = new Map()
+
+function rateLimit({ windowMs = 60_000, max = 300 } = {}) {
+  return (req, res, next) => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown'
+    const now = Date.now()
+    let bucket = rateBuckets.get(ip)
+    if (!bucket || now > bucket.resetAt) {
+      bucket = { count: 0, resetAt: now + windowMs }
+      rateBuckets.set(ip, bucket)
+    }
+    bucket.count++
+    if (bucket.count > max) {
+      return res.status(429).json({ error: 'Too many requests' })
+    }
+    next()
+  }
+}
+
+// Drop expired buckets so the map can't grow without bound.
+setInterval(() => {
+  const now = Date.now()
+  for (const [ip, bucket] of rateBuckets) {
+    if (now > bucket.resetAt) rateBuckets.delete(ip)
+  }
+}, 5 * 60 * 1000).unref()
+
 // ─── HTTP API ────────────────────────────────────────────────────────────────
 
-// Health check
+// Health check — no auth, no body parsing.
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -58,8 +75,15 @@ app.get('/health', (req, res) => {
   })
 })
 
+// Everything past this point is machine-to-machine. Authenticate and rate limit
+// BEFORE parsing a body, so an unauthenticated caller can never make this
+// process allocate memory for their payload.
+app.use(rateLimit({ windowMs: 60_000, max: 300 }))
+app.use(requireAuth)
+app.use(express.json({ limit: '2mb' }))
+
 // List all connected devices
-app.get('/devices', requireAuth, (req, res) => {
+app.get('/devices', (req, res) => {
   const list = Object.entries(devices).map(([cardId, d]) => ({
     cardId,
     online: d.ws ? d.ws.readyState === 1 : false,
@@ -71,7 +95,7 @@ app.get('/devices', requireAuth, (req, res) => {
 })
 
 // Get single device status
-app.get('/devices/:cardId', requireAuth, (req, res) => {
+app.get('/devices/:cardId', (req, res) => {
   const d = devices[req.params.cardId]
   if (!d) return res.status(404).json({ error: 'Device not connected' })
   res.json({
@@ -84,7 +108,7 @@ app.get('/devices/:cardId', requireAuth, (req, res) => {
 })
 
 // Send command to device
-app.post('/command/:cardId', requireAuth, async (req, res) => {
+app.post('/command/:cardId', async (req, res) => {
   const { cardId } = req.params
   const data = req.body
 
@@ -99,7 +123,7 @@ app.post('/command/:cardId', requireAuth, async (req, res) => {
 // ─── Convenience endpoints ───────────────────────────────────────────────────
 
 // Set brightness (SDK: callCardService + setBrightness)
-app.post('/devices/:cardId/brightness', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/brightness', async (req, res) => {
   const { brightness } = req.body // 1-255
   try {
     const result = await sendCommand(req.params.cardId, {
@@ -114,7 +138,7 @@ app.post('/devices/:cardId/brightness', requireAuth, async (req, res) => {
 })
 
 // Screen on/off (SDK: callCardService + setScreenOpen)
-app.post('/devices/:cardId/screen', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/screen', async (req, res) => {
   const { on } = req.body // true or false
   try {
     const result = await sendCommand(req.params.cardId, {
@@ -129,7 +153,7 @@ app.post('/devices/:cardId/screen', requireAuth, async (req, res) => {
 })
 
 // Get device info (SDK: getCardInformation)
-app.post('/devices/:cardId/info', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/info', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'getCardInformation',
@@ -141,7 +165,7 @@ app.post('/devices/:cardId/info', requireAuth, async (req, res) => {
 })
 
 // Push a program (ad) to device — supports single or multiple media files + scheduling
-app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/push-program', async (req, res) => {
   const { name, duration, mediaUrl, mediaType, width, height, mediaItems, schedule } = req.body
 
   // Support both old single-file format and new multi-file format
@@ -171,7 +195,11 @@ app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
       totalSize += fileSize
       console.log(`[${new Date().toISOString()}] Media: ${fileSize} bytes, MD5: ${fileMd5}`)
 
-      const duration = 10 // All content plays for 10 seconds regardless of file length
+      // Slot length is what the advertiser bought and is billed for — the file's
+      // own length is irrelevant, but the purchased duration must be honored.
+      const duration = ALLOWED_SLOT_DURATIONS.includes(Number(item.duration))
+        ? Number(item.duration)
+        : DEFAULT_SLOT_DURATION
 
       processedItems.push({
         url: item.url,
@@ -202,7 +230,7 @@ app.post('/devices/:cardId/push-program', requireAuth, async (req, res) => {
 })
 
 // Clear all programs from device (SDK: clearPlayerTask)
-app.post('/devices/:cardId/clear-program', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/clear-program', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, { type: 'clearPlayerTask' })
     res.json(result)
@@ -212,7 +240,7 @@ app.post('/devices/:cardId/clear-program', requireAuth, async (req, res) => {
 })
 
 // Get current program JSON (SDK: getProgramTask, conn 10.0.9+)
-app.post('/devices/:cardId/get-program', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/get-program', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, { type: 'getProgramTask' })
     res.json(result)
@@ -222,7 +250,7 @@ app.post('/devices/:cardId/get-program', requireAuth, async (req, res) => {
 })
 
 // Get currently playing program name (SDK: getPlayingProgram, conn 10.0.9+)
-app.post('/devices/:cardId/get-playing', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/get-playing', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, { type: 'getPlayingProgram' })
     res.json(result)
@@ -232,7 +260,7 @@ app.post('/devices/:cardId/get-playing', requireAuth, async (req, res) => {
 })
 
 // Take screenshot (SDK: callCardService + screenshot)
-app.post('/devices/:cardId/screenshot', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/screenshot', async (req, res) => {
   const { quality, scale } = req.body
   try {
     const result = await sendCommand(req.params.cardId, {
@@ -248,7 +276,7 @@ app.post('/devices/:cardId/screenshot', requireAuth, async (req, res) => {
 })
 
 // Set volume (SDK: callCardService + setVolume, 0-15)
-app.post('/devices/:cardId/volume', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/volume', async (req, res) => {
   const { volume } = req.body
   try {
     const result = await sendCommand(req.params.cardId, {
@@ -264,7 +292,7 @@ app.post('/devices/:cardId/volume', requireAuth, async (req, res) => {
 
 // Scheduled brightness (SDK: timedBrightness)
 // Accepts: { items: [{ time: "HH:MM", brightness: 100 }] }
-app.post('/devices/:cardId/scheduled-brightness', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/scheduled-brightness', async (req, res) => {
   const { items } = req.body
   if (!items || items.length === 0) {
     return res.status(400).json({ error: 'items array required' })
@@ -289,7 +317,7 @@ app.post('/devices/:cardId/scheduled-brightness', requireAuth, async (req, res) 
 })
 
 // Reboot device (SDK: callCardService + reboot)
-app.post('/devices/:cardId/reboot', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/reboot', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'callCardService',
@@ -303,7 +331,7 @@ app.post('/devices/:cardId/reboot', requireAuth, async (req, res) => {
 })
 
 // Get current brightness (SDK: callCardService + getBrightness)
-app.post('/devices/:cardId/get-brightness', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/get-brightness', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'callCardService',
@@ -316,7 +344,7 @@ app.post('/devices/:cardId/get-brightness', requireAuth, async (req, res) => {
 })
 
 // Get screen status (SDK: callCardService + isScreenOpen)
-app.post('/devices/:cardId/is-screen-on', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/is-screen-on', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'callCardService',
@@ -329,7 +357,7 @@ app.post('/devices/:cardId/is-screen-on', requireAuth, async (req, res) => {
 })
 
 // Get GPS location via getCardInformation (Y12-EU doesn't support dedicated GPS commands)
-app.post('/devices/:cardId/get-gps', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/get-gps', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'getCardInformation',
@@ -350,7 +378,7 @@ app.post('/devices/:cardId/get-gps', requireAuth, async (req, res) => {
 })
 
 // Get disk space (SDK: getDiskSpace)
-app.post('/devices/:cardId/get-disk-space', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/get-disk-space', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'getDiskSpace',
@@ -362,7 +390,7 @@ app.post('/devices/:cardId/get-disk-space', requireAuth, async (req, res) => {
 })
 
 // Get play log upload config (SDK: getUploadLogUrl)
-app.post('/devices/:cardId/get-upload-log-url', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/get-upload-log-url', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'getUploadLogUrl',
@@ -374,7 +402,7 @@ app.post('/devices/:cardId/get-upload-log-url', requireAuth, async (req, res) =>
 })
 
 // Get GPS subscription config (SDK: getSubGPS)
-app.post('/devices/:cardId/get-sub-gps', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/get-sub-gps', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'getSubGPS',
@@ -386,7 +414,7 @@ app.post('/devices/:cardId/get-sub-gps', requireAuth, async (req, res) => {
 })
 
 // Get SIM/network info (SDK: callCardService + getSimInfo)
-app.post('/devices/:cardId/get-sim-info', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/get-sim-info', async (req, res) => {
   try {
     const result = await sendCommand(req.params.cardId, {
       type: 'callCardService',
@@ -399,7 +427,7 @@ app.post('/devices/:cardId/get-sim-info', requireAuth, async (req, res) => {
 })
 
 // Clean device storage (clear programs + optional cleanStorage)
-app.post('/devices/:cardId/clean-storage', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/clean-storage', async (req, res) => {
   const results = {}
   try {
     // Step 1: Clear all player tasks
@@ -429,7 +457,7 @@ app.post('/devices/:cardId/clean-storage', requireAuth, async (req, res) => {
 })
 
 // Enable/disable play logging (SDK: callCardService + setLogSwitch)
-app.post('/devices/:cardId/set-log-switch', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/set-log-switch', async (req, res) => {
   const { enabled } = req.body // true or false, defaults to true
   try {
     const result = await sendCommand(req.params.cardId, {
@@ -444,14 +472,15 @@ app.post('/devices/:cardId/set-log-switch', requireAuth, async (req, res) => {
 })
 
 // Configure play log + GPS callback URLs
-app.post('/devices/:cardId/setup-callbacks', requireAuth, async (req, res) => {
+app.post('/devices/:cardId/setup-callbacks', async (req, res) => {
   const results = {}
+  const key = await fetchDeviceCallbackKey(req.params.cardId)
 
   try {
     // 1. Set play log upload URL (SDK: direct top-level command, NOT wrapped in commandXixunPlayer)
     const playlogResult = await sendCommand(req.params.cardId, {
       type: 'setUploadLogUrl',
-      uploadurl: `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${req.params.cardId}`,
+      uploadurl: callbackUrl('playlog', req.params.cardId, key),
       interval: '5',
     })
     results.playlog = playlogResult
@@ -464,7 +493,7 @@ app.post('/devices/:cardId/setup-callbacks', requireAuth, async (req, res) => {
     const gpsResult = await sendCommand(req.params.cardId, {
       type: 'setSubGPS',
       openSub: true,
-      endpoint: `${config.gzadAppUrl}/api/callback/gps?key=${config.callbackSecret}&device=${req.params.cardId}`,
+      endpoint: callbackUrl('gps', req.params.cardId, key),
       topic: 'gzad/gps/location',
       interval: 30,
       mode: 'http',
@@ -797,11 +826,45 @@ async function forwardGPS(cardId, data) {
   }
 }
 
+// ─── Device callback credentials ─────────────────────────────────────────────
+// A controller authenticates its own callbacks with its own key, so a taxi that
+// is physically tampered with exposes only that device rather than the whole
+// fleet's play-log and GPS ingestion. Falls back to the shared secret when the
+// app can't issue a key (e.g. before the migration has been applied).
+async function fetchDeviceCallbackKey(cardId) {
+  const cached = deviceKeyCache.get(cardId)
+  if (cached) return cached
+
+  try {
+    const res = await fetch(`${config.gzadAppUrl}/api/devices/callback-config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.callbackSecret}` },
+      body: JSON.stringify({ cardId }),
+    })
+    if (!res.ok) throw new Error(`callback-config returned ${res.status}`)
+    const { key } = await res.json()
+    if (key) {
+      deviceKeyCache.set(cardId, key)
+      return key
+    }
+    throw new Error('no key in response')
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] Device key lookup failed for ${cardId} (${err.message}) — using shared secret`)
+    return config.callbackSecret
+  }
+}
+
+function callbackUrl(kind, cardId, key) {
+  return `${config.gzadAppUrl}/api/callback/${kind}`
+    + `?key=${encodeURIComponent(key)}&device=${encodeURIComponent(cardId)}`
+}
+
 async function autoSetupDevice(cardId) {
   // Small delay to let the WebSocket fully establish
   await new Promise(r => setTimeout(r, 1000))
 
-  const playlogUrl = `${config.gzadAppUrl}/api/callback/playlog?key=${config.callbackSecret}&device=${cardId}`
+  const key = await fetchDeviceCallbackKey(cardId)
+  const playlogUrl = callbackUrl('playlog', cardId, key)
 
   // Run all setup commands in parallel — each has its own try/catch so one failure won't block others
   await Promise.allSettled([
@@ -835,7 +898,55 @@ async function autoSetupDevice(cardId) {
   ])
 }
 
+// ─── Billing trigger ─────────────────────────────────────────────────────────
+// Vercel's free plan caps scheduled functions at one run per day, but this
+// process is always up on the VPS. /api/billing/calculate only ever charges
+// whole elapsed hours and dedupes on a unique index, so calling it on a short
+// interval is both safe and self-healing after an outage.
+function startBillingTrigger() {
+  if (!config.billingTriggerEnabled) return
+
+  const tick = async () => {
+    try {
+      const res = await fetch(`${config.gzadAppUrl}/api/billing/calculate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.callbackSecret}` },
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        console.error(`[${new Date().toISOString()}] Billing run failed (${res.status}):`, body.error || body)
+        return
+      }
+      if (body.periodsBilled) {
+        console.log(`[${new Date().toISOString()}] Billing: ${body.periodsBilled} period(s), ${body.totalCharged} GEL, ${body.pausedClients} client(s) paused`)
+      }
+    } catch (err) {
+      console.error(`[${new Date().toISOString()}] Billing trigger error:`, err.message)
+    }
+  }
+
+  setTimeout(tick, 30_000)
+  setInterval(tick, config.billingIntervalMs)
+  console.log(`Billing trigger enabled — every ${Math.round(config.billingIntervalMs / 60000)} min`)
+}
+
 // ─── Start ───────────────────────────────────────────────────────────────────
+
+// Refuse to run with placeholder secrets outside development — these guard the
+// command channel to every screen in the fleet.
+const insecureSecrets = []
+if (config.apiSecret === 'change-me-in-production') insecureSecrets.push('API_SECRET')
+if (config.callbackSecret === 'change-me-in-production') insecureSecrets.push('CALLBACK_SECRET')
+if (!config.wsSecret) insecureSecrets.push('WS_SECRET (unset — any client may connect as a device)')
+
+if (insecureSecrets.length > 0) {
+  const message = `Insecure configuration: ${insecureSecrets.join(', ')}`
+  if (process.env.NODE_ENV === 'production') {
+    console.error(`FATAL: ${message}. Set them in .env before starting.`)
+    process.exit(1)
+  }
+  console.warn(`WARNING: ${message}. This is fatal when NODE_ENV=production.`)
+}
 
 server.listen(config.port, () => {
   console.log(`
@@ -847,6 +958,16 @@ server.listen(config.port, () => {
 ║  Forwarding:  ${config.gzadAppUrl}     ║
 ╚════════════════════════════════════════════════════╝
   `)
+  startBillingTrigger()
+})
+
+// A rejected promise anywhere in the request path must not take down the process
+// that holds every device's command channel.
+process.on('unhandledRejection', (reason) => {
+  console.error(`[${new Date().toISOString()}] Unhandled rejection:`, reason)
+})
+process.on('uncaughtException', (err) => {
+  console.error(`[${new Date().toISOString()}] Uncaught exception:`, err)
 })
 
 // Graceful shutdown

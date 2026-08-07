@@ -10,6 +10,16 @@ const NAME_REGEX = /^[a-z0-9][a-z0-9 ]*[a-z0-9]$|^[a-z0-9]$/
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
 
+// Kept in step with the storage bucket's allowed_mime_types (migration 009) —
+// the bucket rejects anything else, so catch it here for a readable error.
+const ALLOWED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'video/mp4',
+  'video/webm',
+]
+
 type AdDuration = 10 | 20 | 30
 
 export default function SubmitAdPage() {
@@ -24,7 +34,6 @@ export default function SubmitAdPage() {
   const supabase = createClient()
   const { t } = useTranslations()
   const p = t.portal.submit
-  const c = t.portal.common
 
   // Generate preview URLs for selected files
   const previews = useMemo(() => {
@@ -47,6 +56,13 @@ export default function SubmitAdPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selected = Array.from(e.target.files)
+
+      const wrongType = selected.find(f => !ALLOWED_TYPES.includes(f.type))
+      if (wrongType) {
+        setError(`${wrongType.name}: unsupported file type. Use JPG, PNG, WebP, MP4 or WebM.`)
+        return
+      }
+
       const invalid = selected.find(f => {
         const limit = f.type.startsWith('video/') ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE
         return f.size > limit
@@ -193,7 +209,7 @@ export default function SubmitAdPage() {
               type="file"
               id="files"
               multiple
-              accept="image/*,video/mp4"
+              accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
               onChange={handleFileChange}
               className="file-input"
             />

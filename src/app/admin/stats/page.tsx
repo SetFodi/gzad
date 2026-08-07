@@ -186,7 +186,6 @@ export default function AdminStatsPage() {
   const [totalDevices, setTotalDevices] = useState(0)
   const [totalCampaigns, setTotalCampaigns] = useState(0)
   const [activeCampaigns, setActiveCampaigns] = useState(0)
-  const [totalGroups, setTotalGroups] = useState(0)
   const [activeTab, setActiveTab] = useState<'campaigns' | 'devices' | 'groups' | 'daily' | 'map'>('campaigns')
 
   // Date range selection
@@ -201,6 +200,7 @@ export default function AdminStatsPage() {
   const [mapDevice, setMapDevice] = useState('all')
   const [hourRange, setHourRange] = useState<[number, number]>([0, 23])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/immutability -- load() is async: state is set once the query resolves, not during render
   useEffect(() => { load() }, [])
 
   async function load() {
@@ -210,17 +210,14 @@ export default function AdminStatsPage() {
       { count: devCount },
       { count: campCount },
       { count: activeCount },
-      { count: grpCount },
     ] = await Promise.all([
       supabase.from('devices').select('*', { count: 'exact', head: true }),
       supabase.from('campaigns').select('*', { count: 'exact', head: true }),
       supabase.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-      supabase.from('device_groups').select('*', { count: 'exact', head: true }),
     ])
     setTotalDevices(devCount || 0)
     setTotalCampaigns(campCount || 0)
     setActiveCampaigns(activeCount || 0)
-    setTotalGroups(grpCount || 0)
 
     // Fetch ALL play_logs with needed fields (including lat/lng for map)
     const thirtyDaysAgo = new Date()

@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Users, Megaphone, Play, Receipt } from 'lucide-react'
+import { Users, Megaphone, Play, WalletMinimal } from 'lucide-react'
 
 interface Stats {
   totalClients: number
   activeCampaigns: number
   totalPlays: number
-  pendingInvoices: number
+  depletedClients: number
   recentCampaigns: { id: string; name: string; status: string; company_name: string }[]
 }
 
@@ -35,10 +35,13 @@ export default function AdminOverview() {
 
       const totalPlays = playData?.reduce((sum, p) => sum + p.play_count, 0) || 0
 
-      const { count: pendingInvoices } = await supabase
-        .from('invoices')
+      // Clients whose credit has run out — their ads are paused until topped up.
+      const { count: depletedClients } = await supabase
+        .from('clients')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
+        .eq('is_admin', false)
+        .neq('role', 'fleet')
+        .lte('balance', 0)
 
       const { data: recentCampaigns } = await supabase
         .from('campaigns')
@@ -50,7 +53,7 @@ export default function AdminOverview() {
         totalClients: totalClients || 0,
         activeCampaigns: activeCampaigns || 0,
         totalPlays,
-        pendingInvoices: pendingInvoices || 0,
+        depletedClients: depletedClients || 0,
         recentCampaigns: (recentCampaigns || []).map((c: Record<string, unknown>) => ({
           id: c.id as string,
           name: c.name as string,
@@ -100,11 +103,11 @@ export default function AdminOverview() {
         </div>
         <div className="stat-card">
           <div className="stat-card-icon" style={{ color: 'var(--portal-danger)' }}>
-            <Receipt size={24} />
+            <WalletMinimal size={24} />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value">{stats.pendingInvoices}</span>
-            <span className="stat-card-label">Pending Invoices</span>
+            <span className="stat-card-value">{stats.depletedClients}</span>
+            <span className="stat-card-label">Out of Balance</span>
           </div>
         </div>
       </div>

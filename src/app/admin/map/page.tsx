@@ -64,6 +64,7 @@ export default function MapPage() {
   }, [supabase, date, startTime, endTime])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loadGPS() is async: it flips a loading flag, then sets results once the query resolves
     loadGPS()
   }, [loadGPS])
 

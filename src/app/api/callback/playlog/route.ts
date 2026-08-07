@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { authenticateCallback } from '@/lib/callback-auth'
 
 const TZ = 'Asia/Tbilisi'
 function toTbilisiDate(iso: string): string {
@@ -22,18 +23,9 @@ function getSupabase() {
 export async function POST(request: NextRequest) {
   const supabase = getSupabase()
   try {
-    // Auth: check shared secret via query param OR Authorization header
-    const callbackKey = request.nextUrl.searchParams.get('key')
-    const authHeader = request.headers.get('authorization')
-    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-
-    const secret = process.env.CALLBACK_SECRET
-    if (!secret) {
-      console.error('CALLBACK_SECRET not configured')
-      return NextResponse.json({ _type: 'Error', message: 'Server misconfigured' }, { status: 500 })
-    }
-    if (callbackKey !== secret && bearerToken !== secret) {
-      return NextResponse.json({ _type: 'Error', message: 'Unauthorized' }, { status: 401 })
+    const auth = await authenticateCallback(supabase, request)
+    if (!auth.ok) {
+      return NextResponse.json({ _type: 'Error', message: auth.reason }, { status: auth.status })
     }
 
     const body = await request.json()
@@ -55,9 +47,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ _type: 'Error', message: 'Too many entries (max 5000)' }, { status: 413 })
     }
 
-    const deviceId = request.headers.get('card-id')
-      || request.nextUrl.searchParams.get('device')
-      || (!Array.isArray(body) && (body?.sn as string))  // firmware POSTs include sn field
+    // A device key pins the caller to its own device id. Only the Realtime
+    // Server, which authenticates with the shared secret, may name a device in
+    // the body (firmware POSTs include an `sn` field).
+    const deviceId = auth.deviceId
+      || (!Array.isArray(body) && typeof body?.sn === 'string' ? body.sn : null)
       || 'unknown'
 
     // Upsert device record (last_seen_at updated on every log batch)
@@ -75,11 +69,21 @@ export async function POST(request: NextRequest) {
 
     const campaignMap: Record<string, string> = {}
     if (programNames.length > 0) {
-      const { data: campaigns } = await supabase
-        .from('campaigns')
-        .select('id, name')
+      // Paginate past PostgREST's 1000-row cap — an unpaginated read would
+      // silently stop matching plays to campaigns once the catalogue grows.
+      const campaigns: { id: string; name: string }[] = []
+      const CAMPAIGN_PAGE = 1000
+      for (let page = 0; ; page++) {
+        const { data: batch } = await supabase
+          .from('campaigns')
+          .select('id, name')
+          .range(page * CAMPAIGN_PAGE, (page + 1) * CAMPAIGN_PAGE - 1)
+        if (!batch || batch.length === 0) break
+        campaigns.push(...batch)
+        if (batch.length < CAMPAIGN_PAGE) break
+      }
 
-      if (campaigns) {
+      if (campaigns.length > 0) {
         const campaignLookup = new Map(
           campaigns.map(c => [c.name.toLowerCase(), c])
         )

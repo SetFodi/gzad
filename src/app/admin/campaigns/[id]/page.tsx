@@ -3,8 +3,18 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Check, X, DollarSign, Download, Send, Monitor, Upload } from 'lucide-react'
+import { ArrowLeft, Check, X, Download, Send, Monitor, Upload } from 'lucide-react'
 import Link from 'next/link'
+import { SLOTS_PER_DEVICE } from '@/lib/slots'
+
+const CAMPAIGN_STATUSES = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'pending_review', label: 'Pending review' },
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'paused_billing', label: 'Paused — no balance' },
+  { value: 'completed', label: 'Completed' },
+]
 
 interface Campaign {
   id: string
@@ -41,6 +51,7 @@ export default function AdminCampaignDetailPage() {
   const [editMode, setEditMode] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState('')
   const [pushing, setPushing] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [pushResult, setPushResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const [groups, setGroups] = useState<DeviceGroup[]>([])
   const [form, setForm] = useState({
@@ -81,9 +92,44 @@ export default function AdminCampaignDetailPage() {
 
   useEffect(() => { load() }, [params.id])
 
+  // Anything that changes what should be on screen re-pushes the playlist.
+  // Without this a device keeps playing whatever it was last sent — an approved
+  // ad wouldn't air, and a paused one wouldn't stop.
+  const resync = async (label: string) => {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/admin/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId: params.id as string }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        setPushResult({ ok: false, msg: result.error || 'Sync failed' })
+        return
+      }
+      if (result.groups === 0) {
+        setPushResult({ ok: false, msg: `${label} saved — assign a device group to put it on air` })
+        return
+      }
+      const overflow = result.overflow
+        ? ` ${result.overflow} campaign(s) had no free slot.`
+        : ''
+      setPushResult({
+        ok: true,
+        msg: `${label} saved — ${result.media} item(s) pushed to ${result.synced}/${result.devices} device(s).${overflow}`,
+      })
+    } catch {
+      setPushResult({ ok: false, msg: `${label} saved, but the Realtime Server is unreachable` })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const updateMedia = async (mediaId: string, status: string) => {
     await supabase.from('ad_media').update({ status }).eq('id', mediaId)
     await load()
+    await resync(status === 'approved' ? 'Approval' : 'Change')
   }
 
   const approveAllMedia = async () => {
@@ -95,6 +141,7 @@ export default function AdminCampaignDetailPage() {
       .eq('campaign_id', params.id as string)
       .eq('status', 'pending_review')
     await load()
+    await resync('Approval')
   }
 
   const updateMediaDuration = async (mediaId: string, seconds: number) => {
@@ -110,30 +157,20 @@ export default function AdminCampaignDetailPage() {
     await supabase.from('campaigns').update({ slot_duration: maxDuration }).eq('id', params.id as string)
 
     await load()
+    await resync('Duration')
   }
 
   const saveCampaign = async () => {
     await supabase.from('campaigns').update(form).eq('id', params.id as string)
     setEditMode(false)
     await load()
+    await resync('Campaign')
   }
 
-  const [invoiceMsg, setInvoiceMsg] = useState<string | null>(null)
-
-  const createInvoice = async () => {
-    if (!campaign?.clients?.id || !campaign.monthly_price) return
-    const dueDate = new Date()
-    dueDate.setDate(dueDate.getDate() + 30)
-
-    const { error } = await supabase.from('invoices').insert({
-      client_id: campaign.clients.id,
-      campaign_id: campaign.id,
-      amount: campaign.monthly_price,
-      status: 'pending',
-      due_date: dueDate.toISOString().split('T')[0],
-    })
-    setInvoiceMsg(error ? error.message : 'Invoice created successfully')
-    setTimeout(() => setInvoiceMsg(null), 3000)
+  const updateStatus = async (status: string) => {
+    await supabase.from('campaigns').update({ status }).eq('id', params.id as string)
+    await load()
+    await resync('Status')
   }
 
   const downloadFile = async (url: string, fileName: string) => {
@@ -153,102 +190,55 @@ export default function AdminCampaignDetailPage() {
     }
   }
 
+  // Assigns the campaign to a group, then lets the server build and push the
+  // playlist. The playlist itself is built once, in src/lib/slots.ts, so this
+  // page can't drift from what billing and the slot view believe is on air.
   const pushToGroup = async () => {
     if (!campaign || !selectedGroup) return
 
     setPushing(true)
     setPushResult(null)
     try {
-      // 1. Assign this campaign to the selected group
       if (campaign.device_group_id !== selectedGroup) {
-        await supabase.from('campaigns').update({ device_group_id: selectedGroup }).eq('id', campaign.id)
-      }
-
-      // 2. Fetch all active campaigns in this group
-      const { data: activeCampaigns } = await supabase
-        .from('campaigns')
-        .select('id, name')
-        .eq('status', 'active')
-        .eq('device_group_id', selectedGroup)
-        .order('created_at', { ascending: true })
-
-      // Include this campaign if it's active but wasn't in the group yet
-      const campaignIds = new Set((activeCampaigns || []).map(c => c.id))
-      if (campaign.status === 'active' && !campaignIds.has(campaign.id)) {
-        activeCampaigns?.push({ id: campaign.id, name: campaign.name })
-      }
-
-      interface MediaItem { url: string; type: string; duration: number; campaignName: string }
-      const allMediaItems: MediaItem[] = []
-      const campaignNames: string[] = []
-
-      for (const c of activeCampaigns || []) {
-        const { data: approved } = await supabase
-          .from('ad_media')
-          .select('file_url, file_type, display_duration_seconds')
-          .eq('campaign_id', c.id)
-          .eq('status', 'approved')
-
-        if (approved && approved.length > 0) {
-          campaignNames.push(c.name)
-          for (const m of approved) {
-            allMediaItems.push({
-              url: m.file_url,
-              type: m.file_type,
-              duration: (m as { display_duration_seconds?: number }).display_duration_seconds || 10,
-              campaignName: c.name,
-            })
-          }
+        const { error } = await supabase
+          .from('campaigns')
+          .update({ device_group_id: selectedGroup })
+          .eq('id', campaign.id)
+        if (error) {
+          setPushResult({ ok: false, msg: error.message })
+          return
         }
       }
 
-      if (allMediaItems.length === 0) {
-        setPushResult({ ok: false, msg: 'No approved media found in this group' })
-        setPushing(false)
+      const res = await fetch('/api/admin/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId: selectedGroup }),
+      })
+      const result = await res.json()
+
+      if (!res.ok) {
+        setPushResult({ ok: false, msg: result.error || 'Push failed' })
         return
-      }
-
-      // 3. Get online devices in this group
-      const { data: groupDevices } = await supabase
-        .from('devices')
-        .select('id')
-        .eq('group_id', selectedGroup)
-      const groupDeviceIds = new Set((groupDevices || []).map((d: { id: string }) => d.id))
-
-      const devicesRes = await fetch('/api/devices')
-      const deviceList = await devicesRes.json()
-      const onlineInGroup = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
-        .filter((d: { online: boolean; cardId: string }) => d.online && groupDeviceIds.has(d.cardId))
-
-      if (onlineInGroup.length === 0) {
-        setPushResult({ ok: false, msg: 'No online devices in this group' })
-        setPushing(false)
-        return
-      }
-
-      // 4. Push to all online devices in the group
-      const programName = campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist'
-      let pushed = 0
-      for (const device of onlineInGroup) {
-        const res = await fetch('/api/devices/command', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            cardId: device.cardId,
-            action: 'push-program',
-            name: programName,
-            mediaItems: allMediaItems,
-            schedule: { startTime: '00:00', endTime: '23:59' },
-            width: 240,
-            height: 80,
-          }),
-        })
-        if (res.ok) pushed++
       }
 
       const groupName = groups.find(g => g.id === selectedGroup)?.name || selectedGroup
-      setPushResult({ ok: true, msg: `${allMediaItems.length} ad(s) from ${campaignNames.length} campaign(s) pushed to ${pushed} device(s) in "${groupName}"` })
-      await load() // Refresh to show updated group assignment
+      if (result.media === 0) {
+        setPushResult({
+          ok: false,
+          msg: `No live campaigns with approved media in "${groupName}" — devices were cleared`,
+        })
+        return
+      }
+
+      const overflow = result.overflow
+        ? ` ${result.overflow} campaign(s) exceeded the ${SLOTS_PER_DEVICE} slots available.`
+        : ''
+      setPushResult({
+        ok: true,
+        msg: `${result.media} item(s) pushed to ${result.synced}/${result.devices} device(s) in "${groupName}".${overflow}`,
+      })
+      await load()
     } catch {
       setPushResult({ ok: false, msg: 'Cannot reach Realtime Server' })
     } finally {
@@ -316,27 +306,22 @@ export default function AdminCampaignDetailPage() {
           <p className="portal-subtitle">{campaign.clients?.company_name}</p>
         </div>
         <div className="admin-header-actions">
-          <button onClick={createInvoice} className="portal-btn-secondary">
-            <DollarSign size={16} /> Create Invoice
-          </button>
+          <select
+            value={campaign.status}
+            onChange={(e) => updateStatus(e.target.value)}
+            disabled={syncing}
+            title="Changing status re-pushes the playlist to this campaign's devices"
+            style={{ padding: '8px 12px', borderRadius: 8, fontSize: 13 }}
+          >
+            {CAMPAIGN_STATUSES.map(s => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
           <button onClick={() => setEditMode(!editMode)} className="portal-btn-primary">
             {editMode ? 'Cancel' : 'Edit Details'}
           </button>
         </div>
       </div>
-
-      {invoiceMsg && (
-        <div style={{
-          padding: '10px 16px',
-          borderRadius: 8,
-          fontSize: 13,
-          marginBottom: 16,
-          background: invoiceMsg.includes('success') ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
-          color: invoiceMsg.includes('success') ? 'var(--portal-success)' : 'var(--portal-danger)',
-        }}>
-          {invoiceMsg}
-        </div>
-      )}
 
       {/* Push to Group */}
       <div style={{

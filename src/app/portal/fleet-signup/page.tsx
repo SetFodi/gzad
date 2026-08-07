@@ -186,9 +186,9 @@ export default function SignupPage() {
                   type="password"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder={lang === 'en' ? 'Min. 6 characters' : 'მინ. 6 სიმბოლო'}
+                  placeholder={lang === 'en' ? 'Min. 8 characters' : 'მინ. 8 სიმბოლო'}
                   required
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
               <button type="submit" disabled={loading} className="portal-login-btn">

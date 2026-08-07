@@ -168,6 +168,7 @@ export default function FleetStatsPage() {
   const [mapDevice, setMapDevice] = useState('all')
   const [hourRange, setHourRange] = useState<[number, number]>([0, 23])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/immutability -- load() is async: state is set once the query resolves, not during render
   useEffect(() => { load() }, [])
 
   async function load() {

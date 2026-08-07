@@ -50,7 +50,6 @@ export default function FleetDashboardPage() {
   const assignedVehicles = vehicles.filter(v => v.device_id)
   const totalPlays = stats.reduce((sum, s) => sum + s.total_plays, 0)
   const totalDuration = stats.reduce((sum, s) => sum + s.total_duration_seconds, 0)
-  const totalKm = stats.reduce((sum, s) => sum + s.km_covered, 0)
 
   if (loading) return <div className="portal-loading">Loading...</div>
 

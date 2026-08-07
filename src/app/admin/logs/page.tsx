@@ -45,6 +45,7 @@ export default function LogsPage() {
   const [deviceRecords, setDeviceRecords] = useState<DeviceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [counts, setCounts] = useState({ play: 0, gps: 0, devices: 0 })
+  const [now, setNow] = useState(() => Date.now())
   const supabase = createClient()
 
   const load = async () => {
@@ -82,19 +83,15 @@ export default function LogsPage() {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- load() is async: state is set once the query resolves, not during render
   useEffect(() => { load() }, [])
 
-  const timeAgo = (dateStr: string | null) => {
-    if (!dateStr) return '—'
-    const diff = Date.now() - new Date(dateStr).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hrs = Math.floor(mins / 60)
-    if (hrs < 24) return `${hrs}h ago`
-    const days = Math.floor(hrs / 24)
-    return `${days}d ago`
-  }
+  // "Last seen" is relative to a clock read that ticks on its own rather than
+  // during render, which would make the render impure.
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   const tabStyle = (t: Tab) => ({
     padding: '8px 16px',
@@ -286,7 +283,7 @@ export default function LogsPage() {
                       <td style={tdStyle}>{dev.name || '—'}</td>
                       <td style={tdStyle}>
                         <span style={{
-                          color: dev.last_seen_at && (Date.now() - new Date(dev.last_seen_at).getTime()) < 300000
+                          color: dev.last_seen_at && (now - new Date(dev.last_seen_at).getTime()) < 300000
                             ? 'var(--portal-success)'
                             : 'var(--portal-muted)',
                         }}>

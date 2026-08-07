@@ -69,12 +69,14 @@ export default function PricingPage() {
   const [clients, setClients] = useState<ClientRow[]>([])
   const [billingLogs, setBillingLogs] = useState<BillingLog[]>([])
   const [topUpAmounts, setTopUpAmounts] = useState<Record<string, string>>({})
+  const [balanceMsg, setBalanceMsg] = useState<{ ok: boolean; msg: string } | null>(null)
 
   // Map editor
   const [editableDistricts, setEditableDistricts] = useState<EditableDistrict[]>([])
   const [selectedMapDistrict, setSelectedMapDistrict] = useState<string | null>(null)
   const [mapDirty, setMapDirty] = useState(false)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/immutability -- load() is async: state is set once the query resolves, not during render
   useEffect(() => { load() }, [])
 
   async function load() {
@@ -127,36 +129,38 @@ export default function PricingPage() {
     setSaving(false)
   }
 
+  // Balance changes go through the server so each one is applied atomically and
+  // recorded in the ledger with the admin who made it. The database rejects
+  // direct writes to clients.balance.
   async function adjustBalance(clientId: string, amount: number) {
     if (!amount || amount === 0) return
 
-    const client = clients.find(c => c.id === clientId)
-    if (!client) return
+    setBalanceMsg(null)
+    try {
+      const res = await fetch('/api/admin/balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, amount }),
+      })
+      const result = await res.json()
 
-    const newBalance = Math.round((client.balance + amount) * 100) / 100
-    await supabase.from('clients').update({ balance: newBalance }).eq('id', clientId)
-
-    // If balance was restored and client had paused_billing campaigns, reactivate them
-    if (newBalance > 0) {
-      const { data: reactivated } = await supabase
-        .from('campaigns')
-        .update({ status: 'active' })
-        .eq('client_id', clientId)
-        .eq('status', 'paused_billing')
-        .select('id')
-
-      // Devices were cleared when billing paused — re-push their playlists
-      if (reactivated && reactivated.length > 0) {
-        fetch('/api/admin/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId }),
-        }).catch(() => {})
+      if (!res.ok) {
+        setBalanceMsg({ ok: false, msg: result.error || 'Balance update failed' })
+        return
       }
-    }
 
-    setTopUpAmounts(prev => ({ ...prev, [clientId]: '' }))
-    await load()
+      const resumed = result.reactivated
+        ? ` ${result.reactivated} campaign(s) resumed on ${result.devicesSynced} device(s).`
+        : ''
+      setBalanceMsg({
+        ok: true,
+        msg: `Balance updated to ${formatGEL(result.balance)}.${resumed}`,
+      })
+      setTopUpAmounts(prev => ({ ...prev, [clientId]: '' }))
+      await load()
+    } catch {
+      setBalanceMsg({ ok: false, msg: 'Could not reach the server' })
+    }
   }
 
   if (loading) return <div className="portal-loading">Loading...</div>
@@ -594,6 +598,18 @@ export default function PricingPage() {
         {activeTab === 'balances' && (
           <>
             <h2>Client Balances</h2>
+            {balanceMsg && (
+              <div style={{
+                padding: '10px 16px',
+                borderRadius: 8,
+                fontSize: 13,
+                marginBottom: 16,
+                background: balanceMsg.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
+                color: balanceMsg.ok ? 'var(--portal-success)' : 'var(--portal-danger)',
+              }}>
+                {balanceMsg.msg}
+              </div>
+            )}
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>

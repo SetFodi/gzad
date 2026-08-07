@@ -28,13 +28,6 @@ const deviceIcon = new L.DivIcon({
   className: '',
 })
 
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r},${g},${b},${alpha})`
-}
-
 export default function MapView({ positions, allPoints, showDistricts = false }: MapViewProps) {
   const center: [number, number] = positions.length > 0
     ? [positions[0].lat, positions[0].lng]

@@ -407,7 +407,6 @@ export const translations = {
                 title: "Billing",
                 pending: "Pending",
                 paid: "Paid",
-                noInvoices: "No invoices yet.",
                 campaign: "Campaign",
                 amount: "Amount",
                 status: "Status",
@@ -420,7 +419,15 @@ export const translations = {
                 time: "Time",
                 device: "Taxi",
                 district: "District",
-                cost: "Cost"
+                cost: "Cost",
+                spent30: "Spent (30 days)",
+                toppedUp: "Total Topped Up",
+                balanceHistory: "Balance History",
+                noBalanceHistory: "No balance activity yet.",
+                date: "Date",
+                type: "Type",
+                note: "Note",
+                subtitle: "Your prepaid balance, charges, and top-up history."
             },
             common: {
                 loading: "Loading...",
@@ -934,7 +941,6 @@ export const translations = {
                 title: "გადახდები",
                 pending: "მოლოდინში",
                 paid: "გადახდილი",
-                noInvoices: "ინვოისები ჯერ არ არის.",
                 campaign: "კამპანია",
                 amount: "თანხა",
                 status: "სტატუსი",
@@ -947,7 +953,15 @@ export const translations = {
                 time: "დრო",
                 device: "ტაქსი",
                 district: "უბანი",
-                cost: "ღირებულება"
+                cost: "ღირებულება",
+                spent30: "დახარჯული (30 დღე)",
+                toppedUp: "სულ შევსებული",
+                balanceHistory: "ბალანსის ისტორია",
+                noBalanceHistory: "ბალანსის აქტივობა ჯერ არ არის.",
+                date: "თარიღი",
+                type: "ტიპი",
+                note: "შენიშვნა",
+                subtitle: "თქვენი წინასწარ გადახდილი ბალანსი, ჩამოჭრები და შევსების ისტორია."
             },
             common: {
                 loading: "იტვირთება...",

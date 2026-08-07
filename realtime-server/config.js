@@ -19,6 +19,12 @@ module.exports = {
   // Example: 'y1c-825-61009,y1c-825-61010'
   allowedDevices: process.env.ALLOWED_DEVICES || '',
 
+  // Run the hourly billing calculation from this process. Vercel's free plan
+  // only allows one cron per day; this box is always up, so it drives billing
+  // instead. The endpoint is idempotent, so a repeated call is harmless.
+  billingTriggerEnabled: process.env.ENABLE_BILLING_TRIGGER === 'true',
+  billingIntervalMs: parseInt(process.env.BILLING_INTERVAL_MS) || 15 * 60 * 1000,
+
   // WebSocket ping interval (ms) — keeps connections alive
   pingInterval: 30000,
 

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { getDeviceSlots, cycleTimeSeconds, type SlotEntry, SLOTS_PER_DEVICE } from '@/lib/admin/slots'
+import { getDeviceSlots, cycleTimeSeconds, type SlotEntry, SLOTS_PER_DEVICE } from '@/lib/slots'
 
 const REALTIME_SERVER_URL = process.env.REALTIME_SERVER_URL || 'http://localhost:8081'
 const REALTIME_SERVER_SECRET = process.env.REALTIME_SERVER_SECRET || ''
@@ -116,11 +116,10 @@ export async function GET() {
     const slots = await getSlotsForGroup(d.group_id)
     const customerCount = slots.filter(s => s.type === 'customer').length
     const houseCount = slots.filter(s => s.type === 'house').length
-    const emptyCount = slots.filter(s => s.type === 'empty').length
 
     let configIssue: DeviceWithSlots['configIssue'] = null
     if (!d.group_id) configIssue = 'no_group'
-    else if (emptyCount === 0 && customerCount === 0) configIssue = 'no_campaigns'
+    else if (customerCount === 0) configIssue = 'no_campaigns'
 
     const live = liveMap.get(d.id)
 

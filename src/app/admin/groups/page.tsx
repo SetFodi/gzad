@@ -64,6 +64,7 @@ export default function GroupsPage() {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/immutability -- load() is async: state is set once the query resolves, not during render
   useEffect(() => { load() }, [])
 
   const createGroup = async () => {

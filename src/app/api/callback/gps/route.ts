@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { authenticateCallback } from '@/lib/callback-auth'
+
+const MAX_GPS_ENTRIES = 2000
 
 function getSupabase() {
   return createClient(
@@ -11,34 +14,33 @@ function getSupabase() {
 export async function POST(request: NextRequest) {
   const supabase = getSupabase()
   try {
-    // Auth: check shared secret via query param OR Authorization header
-    const callbackKey = request.nextUrl.searchParams.get('key')
-    const authHeader = request.headers.get('authorization')
-    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-
-    const secret = process.env.CALLBACK_SECRET
-    if (!secret) {
-      console.error('CALLBACK_SECRET not configured')
-      return NextResponse.json({ _type: 'Error', message: 'Server misconfigured' }, { status: 500 })
-    }
-    if (callbackKey !== secret && bearerToken !== secret) {
-      return NextResponse.json({ _type: 'Error', message: 'Unauthorized' }, { status: 401 })
+    const auth = await authenticateCallback(supabase, request)
+    if (!auth.ok) {
+      return NextResponse.json({ _type: 'Error', message: auth.reason }, { status: auth.status })
     }
 
     const body = await request.json()
 
     // GPS callback can be array or single object
     const entries = Array.isArray(body) ? body : [body]
+    if (entries.length > MAX_GPS_ENTRIES) {
+      return NextResponse.json(
+        { _type: 'Error', message: `Too many entries (max ${MAX_GPS_ENTRIES})` },
+        { status: 413 },
+      )
+    }
 
-    const deviceSerial = request.headers.get('card-id')
-      || request.nextUrl.searchParams.get('device')
-      || 'unknown'
+    const deviceSerial = auth.deviceId || 'unknown'
 
     const rows = entries
       .map((entry: Record<string, unknown>) => {
-        const lat = (entry.lat as number) || 0
-        const lng = (entry.lng as number) || 0
+        const lat = Number(entry.lat) || 0
+        const lng = Number(entry.lng) || 0
         if (lat === 0 && lng === 0) return null
+        // Out-of-range fixes are garbage, not a position — drop the row rather
+        // than letting it skew district pricing.
+        if (!Number.isFinite(lat) || lat < -90 || lat > 90) return null
+        if (!Number.isFinite(lng) || lng < -180 || lng > 180) return null
         return {
           device_serial: deviceSerial,
           lat,

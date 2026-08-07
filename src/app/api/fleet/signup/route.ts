@@ -1,11 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { allowRequest, clientIp } from '@/lib/rate-limit'
+
+// Public endpoint that creates confirmed auth users with the service role, so
+// it is the most abusable surface in the app. Keep the limits tight.
+const SIGNUPS_PER_IP = 5
+const SIGNUP_WINDOW_SECONDS = 60 * 60
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const MIN_PASSWORD_LENGTH = 8
 
 export async function POST(request: NextRequest) {
+  const adminSupabase = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+
+  const ip = clientIp(request)
+  const allowed = await allowRequest(adminSupabase, `signup:${ip}`, SIGNUPS_PER_IP, SIGNUP_WINDOW_SECONDS)
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Too many signup attempts. Please try again later.' },
+      { status: 429 },
+    )
+  }
+
   const { email, password, contact_name, phone, role, company_name } = await request.json()
 
   if (!email || !password || !contact_name || !role) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  if (typeof email !== 'string' || !EMAIL_PATTERN.test(email)) {
+    return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
   }
 
   if (role !== 'client' && role !== 'fleet') {
@@ -16,14 +43,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Company name is required for advertisers' }, { status: 400 })
   }
 
-  if (password.length < 6) {
-    return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
+  if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+    return NextResponse.json(
+      { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` },
+      { status: 400 },
+    )
   }
-
-  const adminSupabase = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
 
   // Create auth user
   const { data: authUser, error: authError } = await adminSupabase.auth.admin.createUser({

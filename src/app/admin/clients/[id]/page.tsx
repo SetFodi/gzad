@@ -24,19 +24,28 @@ interface Campaign {
   monthly_price: number
 }
 
-interface Invoice {
+interface BalanceTransaction {
   id: string
   amount: number
-  status: string
-  due_date: string
-  paid_at: string | null
+  balance_after: number | null
+  type: string
+  note: string | null
+  created_at: string
+}
+
+const TRANSACTION_LABELS: Record<string, string> = {
+  topup: 'Top-up',
+  adjustment: 'Adjustment',
+  billing: 'Airtime',
+  refund: 'Refund',
 }
 
 export default function AdminClientDetailPage() {
   const params = useParams()
   const [client, setClient] = useState<ClientDetail | null>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [transactions, setTransactions] = useState<BalanceTransaction[]>([])
+  const [spent, setSpent] = useState(0)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -56,15 +65,23 @@ export default function AdminClientDetailPage() {
         .eq('client_id', id)
         .order('created_at', { ascending: false })
 
-      const { data: invoiceData } = await supabase
-        .from('invoices')
-        .select('*')
+      const { data: txData } = await supabase
+        .from('balance_transactions')
+        .select('id, amount, balance_after, type, note, created_at')
         .eq('client_id', id)
+        .neq('type', 'billing')
         .order('created_at', { ascending: false })
+        .limit(50)
+
+      const { data: chargeData } = await supabase
+        .from('billing_logs')
+        .select('total_cost')
+        .eq('client_id', id)
 
       setClient(clientData)
       setCampaigns(campaignData || [])
-      setInvoices(invoiceData || [])
+      setTransactions(txData || [])
+      setSpent((chargeData || []).reduce((sum, r) => sum + Number(r.total_cost), 0))
       setLoading(false)
     }
     load()
@@ -73,8 +90,9 @@ export default function AdminClientDetailPage() {
   if (loading) return <div className="portal-loading">Loading...</div>
   if (!client) return <div className="portal-loading">Client not found</div>
 
-  const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0)
-  const totalPending = invoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0)
+  const toppedUp = transactions
+    .filter(tx => tx.amount > 0)
+    .reduce((sum, tx) => sum + Number(tx.amount), 0)
 
   return (
     <div className="portal-page">
@@ -98,14 +116,14 @@ export default function AdminClientDetailPage() {
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
-            <span className="stat-card-value" style={{ color: 'var(--portal-success)' }}>{totalRevenue} GEL</span>
-            <span className="stat-card-label">Total Paid</span>
+            <span className="stat-card-value" style={{ color: 'var(--portal-success)' }}>{toppedUp.toFixed(2)} GEL</span>
+            <span className="stat-card-label">Total Topped Up</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
-            <span className="stat-card-value" style={{ color: 'var(--portal-warning)' }}>{totalPending} GEL</span>
-            <span className="stat-card-label">Pending</span>
+            <span className="stat-card-value" style={{ color: 'var(--portal-warning)' }}>{spent.toFixed(2)} GEL</span>
+            <span className="stat-card-label">Spent on Airtime</span>
           </div>
         </div>
       </div>
@@ -147,33 +165,38 @@ export default function AdminClientDetailPage() {
         </div>
       )}
 
-      {invoices.length > 0 && (
+      {transactions.length > 0 && (
         <div className="portal-section">
-          <h2>Invoices</h2>
+          <h2>Balance History</h2>
           <div className="campaigns-table-wrapper">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Due Date</th>
-                  <th>Paid</th>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Note</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Balance After</th>
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((inv) => (
-                  <tr key={inv.id}>
-                    <td>{inv.amount} GEL</td>
-                    <td>
-                      <span className="status-badge" style={{
-                        color: inv.status === 'paid' ? 'var(--portal-success)' : inv.status === 'pending' ? 'var(--portal-warning)' : 'var(--portal-danger)',
-                        borderColor: inv.status === 'paid' ? 'var(--portal-success)' : inv.status === 'pending' ? 'var(--portal-warning)' : 'var(--portal-danger)',
-                      }}>
-                        {inv.status}
-                      </span>
+                {transactions.map((tx) => (
+                  <tr key={tx.id}>
+                    <td style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
+                      {new Date(tx.created_at).toLocaleDateString('en-GB', { timeZone: 'Asia/Tbilisi', year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
-                    <td>{inv.due_date}</td>
-                    <td>{inv.paid_at ? new Date(inv.paid_at).toLocaleDateString() : '—'}</td>
+                    <td>{TRANSACTION_LABELS[tx.type] || tx.type}</td>
+                    <td style={{ color: 'var(--portal-muted)', fontSize: 13 }}>{tx.note || '—'}</td>
+                    <td style={{
+                      textAlign: 'right',
+                      fontVariantNumeric: 'tabular-nums',
+                      color: tx.amount > 0 ? 'var(--portal-success)' : 'var(--portal-danger)',
+                    }}>
+                      {tx.amount > 0 ? '+' : ''}{Number(tx.amount).toFixed(2)} GEL
+                    </td>
+                    <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      {tx.balance_after !== null ? `${Number(tx.balance_after).toFixed(2)} GEL` : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

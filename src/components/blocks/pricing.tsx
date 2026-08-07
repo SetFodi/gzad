@@ -1,15 +1,11 @@
 "use client";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Star, Calculator, Sliders } from "lucide-react";
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
-import confetti from "canvas-confetti";
+import { useState } from "react";
 import NumberFlow from "@number-flow/react";
 
 interface PricingPlan {
@@ -63,7 +59,6 @@ export function Pricing({
     switchLabels,
 }: PricingProps) {
     const [isCustom, setIsCustom] = useState(false);
-    const isDesktop = useMediaQuery("(min-width: 768px)");
 
     // Calculator State
     const [duration, setDuration] = useState(30); // Default to a month
@@ -94,10 +89,6 @@ export function Pricing({
 
     const totalPrice = matchedPackage ? matchedPackage.price : calculateCustomPrice();
     const dailyPrice = Math.round(totalPrice / duration);
-
-    const handleToggle = (checked: boolean) => {
-        setIsCustom(checked);
-    };
 
 
     return (
@@ -357,7 +348,7 @@ export function Pricing({
                                             className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-primary/20 to-primary/10 border-2 border-primary/50 text-primary font-semibold flex items-center justify-center gap-2 hover:from-primary/30 hover:to-primary/20 transition-all duration-300 animate-pulse"
                                         >
                                             <Star className="w-5 h-5 fill-current" />
-                                            {calculatorLabels?.matchMessage || "This matches our"} "{matchedPackage.nameEn}" {calculatorLabels?.packageWord || "package"}!
+                                            {calculatorLabels?.matchMessage || "This matches our"} &ldquo;{matchedPackage.nameEn}&rdquo; {calculatorLabels?.packageWord || "package"}!
                                         </button>
                                     </motion.div>
                                 )}

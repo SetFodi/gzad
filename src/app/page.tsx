@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { translations } from './translations';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
@@ -10,17 +12,11 @@ export default function Home() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [adIndex, setAdIndex] = useState(0);
   const [lang, setLang] = useState<'en' | 'ge'>('en');
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('gzad-theme');
-    if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
-  }, []);
-
-  useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('gzad-theme', theme);
   }, [theme]);
 
   useEffect(() => {
@@ -1101,8 +1097,8 @@ export default function Home() {
               {t.footer.rights}
             </p>
             <div className="flex gap-8 text-[12px] text-[#541A1A]/65 dark:text-[#DCC3AA]/70 font-light tracking-[0.18em]">
-              <a href="#" className="hover:text-[#810B38] dark:hover:text-[#D6A569] transition-colors duration-300">Privacy</a>
-              <a href="#" className="hover:text-[#810B38] dark:hover:text-[#D6A569] transition-colors duration-300">Terms</a>
+              <Link href="/privacy" className="hover:text-[#810B38] dark:hover:text-[#D6A569] transition-colors duration-300">Privacy</Link>
+              <Link href="/terms" className="hover:text-[#810B38] dark:hover:text-[#D6A569] transition-colors duration-300">Terms</Link>
             </div>
           </div>
         </div>
