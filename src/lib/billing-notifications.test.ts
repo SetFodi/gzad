@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { deliverBillingNotifications } from './billing-notifications'
+import * as mailProvider from './billing-mail'
 
 const ALERT_ID = 'a0000000-0000-0000-0000-000000000001'
 const now = new Date('2026-10-20T10:00:00Z')
@@ -13,13 +14,14 @@ const alert = {
 }
 
 function configured() {
+  vi.stubEnv('BILLING_EMAIL_PROVIDER', 'resend')
   vi.stubEnv('BILLING_EMAIL_ENABLED', 'on')
   vi.stubEnv('RESEND_API_KEY', 're_test_never_sent')
   vi.stubEnv('BILLING_EMAIL_FROM', 'Gzad <billing@example.com>')
   vi.stubEnv('APP_URL', 'https://gzad.example')
 }
 
-function database(options: { claim?: boolean; readError?: boolean; finishError?: boolean } = {}) {
+function database(options: { claim?: boolean; readError?: boolean; finishError?: boolean; alerts?: typeof alert[] } = {}) {
   const requests: { url: URL; body: Record<string, unknown> | null }[] = []
   const dbFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input))
@@ -28,10 +30,10 @@ function database(options: { claim?: boolean; readError?: boolean; finishError?:
     let data: unknown
     if (url.pathname.endsWith('/billing_alerts')) {
       if (options.readError) return Response.json({ message: 'database unavailable' }, { status: 503 })
-      data = [alert]
-    } else if (url.pathname.endsWith('/claim_billing_alert_email')) {
+      data = options.alerts ?? [alert]
+    } else if (url.pathname.endsWith('/claim_billing_alert_email') || url.pathname.endsWith('/claim_billing_alert_smtp')) {
       data = options.claim === false ? null : { token: 'claim-token', payload: body?.p_payload }
-    } else if (url.pathname.endsWith('/finish_billing_alert_email')) {
+    } else if (url.pathname.endsWith('/finish_billing_alert_email') || url.pathname.endsWith('/finish_billing_alert_smtp')) {
       if (options.finishError) return Response.json({ message: 'write unavailable' }, { status: 503 })
       data = null
     } else throw new Error(`Unexpected database request ${url.pathname}`)
@@ -44,7 +46,7 @@ function database(options: { claim?: boolean; readError?: boolean; finishError?:
   return { supabase, requests, dbFetch }
 }
 
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); vi.unstubAllGlobals() })
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllEnvs(); vi.unstubAllGlobals() })
 
 describe('billing notification delivery', () => {
   it('stays disabled even if a Resend key is present until explicitly enabled', async () => {
@@ -119,5 +121,54 @@ describe('billing notification delivery', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ id: 'accepted-email' })))
     vi.spyOn(console, 'error').mockImplementation(() => {})
     await expect(deliverBillingNotifications(supabase, now)).resolves.toMatchObject({ sent: 0, failed: 1 })
+  })
+
+  it('gives the daily email-only run capacity for 50 pending alerts', async () => {
+    configured()
+    vi.useFakeTimers()
+    const { supabase, requests } = database({ alerts: Array.from({ length: 50 }, (_, index) => ({
+      ...alert, id: `a0000000-0000-0000-0000-${String(index).padStart(12, '0')}`,
+    })) })
+    const send = vi.fn(async () => Response.json({ id: 'accepted-email' }))
+    vi.stubGlobal('fetch', send)
+    const pending = deliverBillingNotifications(supabase, now, { maxAlerts: 50, budgetMs: 45000 })
+    await vi.runAllTimersAsync()
+    expect(await pending).toMatchObject({ sent: 50, failed: 0 })
+    expect(requests[0].url.searchParams.get('limit')).toBe('50')
+    expect(send).toHaveBeenCalledTimes(50)
+  })
+
+  it('stops before starting another delivery when its wall-clock budget is used', async () => {
+    configured()
+    let clock = 0
+    vi.spyOn(Date, 'now').mockImplementation(() => clock)
+    const { supabase, requests } = database({ alerts: [alert, { ...alert, id: 'second' }, { ...alert, id: 'third' }] })
+    const send = vi.fn(async () => { clock += 20000; return Response.json({ id: 'accepted' }) })
+    vi.stubGlobal('fetch', send)
+    const result = await deliverBillingNotifications(supabase, now, { maxAlerts: 50, budgetMs: 45000 })
+    expect(result.sent).toBe(2)
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(requests.filter(({ url }) => url.pathname.endsWith('/claim_billing_alert_email'))).toHaveLength(2)
+  })
+
+  it.each([true, false])('uses the durable SMTP claim and records retry safety as %s', async retrySafe => {
+    configured()
+    const { supabase, requests } = database()
+    const send = vi.fn(async () => ({ providerId: null, error: 'SMTP failure', retrySafe }))
+    vi.spyOn(mailProvider, 'billingMailProvider').mockReturnValue({ kind: 'smtp', send })
+    const result = await deliverBillingNotifications(supabase, now)
+    expect(result).toMatchObject({ sent: 0, failed: 1 })
+    expect(requests[1].url.pathname).toBe('/rest/v1/rpc/claim_billing_alert_smtp')
+    expect(requests.at(-1)?.url.pathname).toBe('/rest/v1/rpc/finish_billing_alert_smtp')
+    expect(requests.at(-1)?.body).toMatchObject({ p_provider_id: null, p_retry_safe: retrySafe })
+  })
+
+  it('does not send SMTP when its durable claim cannot be confirmed', async () => {
+    configured()
+    const { supabase } = database({ claim: false })
+    const send = vi.fn()
+    vi.spyOn(mailProvider, 'billingMailProvider').mockReturnValue({ kind: 'smtp', send })
+    expect(await deliverBillingNotifications(supabase, now)).toMatchObject({ sent: 0, skipped: 1 })
+    expect(send).not.toHaveBeenCalled()
   })
 })

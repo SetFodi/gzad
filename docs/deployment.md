@@ -67,6 +67,38 @@ the production `APP_URL`. Check a delivery to an approved recipient before
 setting `BILLING_EMAIL_ENABLED=on`. Auth SMTP and application balance emails
 use separate configuration, even when both use Resend.
 
+Gmail SMTP can be used while a company sending domain is unavailable. Apply
+`20261020170130_billing_alert_smtp_delivery.sql`, then set
+`BILLING_EMAIL_PROVIDER=smtp`, `BILLING_SMTP_HOST=smtp.gmail.com`,
+`BILLING_SMTP_PORT=465`, `BILLING_SMTP_USER`, and `BILLING_SMTP_PASS` to a Google
+app password. Match `BILLING_EMAIL_FROM` to that Gmail account. Port 587 also
+works with required STARTTLS. TLS certificate validation is always enabled.
+Keep the password server-only. Returning to Resend requires its verified domain
+and API key, then `BILLING_EMAIL_PROVIDER=resend`.
+
+SMTP has no provider idempotency guarantee. Its claim is saved before sending.
+Only definite failures before DATA are retried automatically. If acceptance is
+unknown or saving acceptance fails, the attempt stays blocked for manual review
+in `billing_alerts`, with `email_smtp_started_at` set and
+`email_next_attempt_at=infinity`. Check the sending mailbox before resolving an
+uncertain attempt. Never clear these fields just to retry an unconfirmed email.
+
+Set a random server-only `CRON_SECRET` in Vercel to authenticate scheduled runs.
+The Vercel schedule only calls `/api/billing/notifications`, which drains existing
+alerts independently of billing. It can also receive an authenticated `POST` using `CRON_SECRET` or
+the bridge's `CALLBACK_SECRET`; this path never calculates charges or changes
+campaigns. The existing billing trigger continues delivering alerts after each
+calculation. Verify the deployed bridge has `ENABLE_BILLING_TRIGGER=true` for
+regular delivery and retries. The daily backup reads at most 50 alerts and stops
+starting deliveries with ten seconds left in its 45-second worker budget. This
+budget is best effort because SMTP timeouts apply per phase or idle connection,
+rather than to the entire transaction. The route has a 60-second runtime limit.
+Remaining alerts stay queued, and an interrupted SMTP attempt stays blocked for
+manual review. The billing trigger still uses a batch of five for frequent delivery.
+Billing calculation remains driven by the existing VPS trigger. Do not add a
+calculation cron while configuring email delivery, since `CRON_SECRET` would also
+authorize that route and enable scheduled charges.
+
 ## Enable metered billing and retention
 
 Keep `BILLING_METERED_FROM` unset until all six screens report reliably and

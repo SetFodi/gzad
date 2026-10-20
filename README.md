@@ -82,16 +82,16 @@ The billing route requires migration `010` even in hourly mode. Retention only
 runs when `BILLING_RETENTION=on`. Deploying the application does not apply
 migrations or activate metered billing, retention, or email notifications.
 
-Two things trigger it:
+The Realtime Server drives billing when its trigger is enabled:
 
 | Trigger | Cadence | Configured in |
 | --- | --- | --- |
-| Vercel cron | daily (free plan limit) | `vercel.json` |
 | Realtime Server | every 15 min | `ENABLE_BILLING_TRIGGER=true` on the VPS |
 
-The VPS trigger is what actually gives hourly billing; the Vercel cron is a
-safety net for when the VPS is down. If you move to a paid Vercel plan, change
-the cron to `0 * * * *` and the VPS trigger becomes redundant.
+Vercel's daily cron only drains existing billing email alerts through
+`/api/billing/notifications`. It never calculates charges. Configure a server-only
+`CRON_SECRET` to authenticate that schedule. Keep billing scheduling separate
+from email setup so enabling delivery does not activate charges.
 
 When a balance hits zero the client's campaigns move to `paused_billing` and
 their devices are re-synced so the ads stop. Topping up through

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { billingMailProvider, type BillingMail } from './billing-mail'
 
-// Imported only by the server billing route. Keep the provider key out of client code.
+// Imported only by server billing routes. Keep provider credentials out of client code.
 const EMAIL_KINDS = ['low_20pct', 'runway_1d', 'depleted'] as const
 const DAY_MS = 24 * 60 * 60 * 1000
 const BATCH_SIZE = 5
@@ -13,16 +14,9 @@ interface PendingAlert {
   clients: { email: string } | { email: string }[] | null
 }
 
-interface EmailPayload {
-  from: string
-  to: string[]
-  subject: string
-  text: string
-}
-
 interface Claim {
   token: string
-  payload: EmailPayload
+  payload: BillingMail
 }
 
 export interface BillingNotificationResult {
@@ -33,7 +27,7 @@ export interface BillingNotificationResult {
   reason?: string
 }
 
-function emailPayload(alert: PendingAlert, from: string, appUrl: URL): EmailPayload | null {
+function emailPayload(alert: PendingAlert, from: string, appUrl: URL): BillingMail | null {
   const client = Array.isArray(alert.clients) ? alert.clients[0] : alert.clients
   if (!client?.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email)) return null
   const balance = Number(alert.balance)
@@ -69,22 +63,26 @@ function emailPayload(alert: PendingAlert, from: string, appUrl: URL): EmailPayl
 export async function deliverBillingNotifications(
   supabase: SupabaseClient,
   now = new Date(),
+  options: { maxAlerts?: number; budgetMs?: number } = {},
 ): Promise<BillingNotificationResult> {
   if (typeof window !== 'undefined') throw new Error('Billing email is server-only')
   const result: BillingNotificationResult = { enabled: false, sent: 0, failed: 0, skipped: 0 }
   if (process.env.BILLING_EMAIL_ENABLED !== 'on') return result
 
-  const apiKey = process.env.RESEND_API_KEY
   const from = process.env.BILLING_EMAIL_FROM
   let appUrl: URL
+  let provider: ReturnType<typeof billingMailProvider>
   try {
     appUrl = new URL(process.env.APP_URL ?? '')
     if (!['https:', 'http:'].includes(appUrl.protocol) || appUrl.username || appUrl.password) throw new Error('Invalid app URL')
-    if (!apiKey || !from || /[\r\n]/.test(from)) throw new Error('Missing email configuration')
-  } catch {
-    return { ...result, reason: 'Email delivery needs RESEND_API_KEY, BILLING_EMAIL_FROM and APP_URL' }
+    if (!from || /[\r\n]/.test(from)) throw new Error('Email delivery needs BILLING_EMAIL_FROM')
+    provider = billingMailProvider()
+  } catch (error) {
+    return { ...result, reason: error instanceof Error ? error.message : 'Email delivery needs valid sender, provider and APP_URL configuration' }
   }
   result.enabled = true
+  const deadline = Date.now() + Math.min(options.budgetMs ?? 45000, 45000)
+  const batchSize = Math.max(1, Math.min(options.maxAlerts ?? BATCH_SIZE, 50))
 
   try {
     const { data, error } = await supabase
@@ -97,17 +95,22 @@ export async function deliverBillingNotifications(
       .or(`email_next_attempt_at.is.null,email_next_attempt_at.lte.${now.toISOString()}`)
       .order('created_at')
       .order('id')
-      .limit(BATCH_SIZE)
+      .limit(batchSize)
     if (error) throw new Error(`Reading notification outbox failed: ${error.message}`)
 
     for (const [index, alert] of ((data ?? []) as PendingAlert[]).entries()) {
+      // Stop starting sends with ten seconds left. This is a best-effort
+      // budget: SMTP timeouts are per phase/inactivity, not a total deadline.
+      // The route's 60-second runtime limit is the final bound. Unprocessed
+      // rows stay pending, and an interrupted SMTP claim stays blocked.
+      if (Date.now() >= deadline - 10000) break
       try {
         const payload = emailPayload(alert, from, appUrl)
         if (!payload) {
           result.skipped++
           continue
         }
-        const { data: claimed, error: claimError } = await supabase.rpc('claim_billing_alert_email', {
+        const { data: claimed, error: claimError } = await supabase.rpc(provider.kind === 'smtp' ? 'claim_billing_alert_smtp' : 'claim_billing_alert_email', {
           p_alert_id: alert.id,
           p_payload: payload,
         })
@@ -119,34 +122,16 @@ export async function deliverBillingNotifications(
         const claim = claimed as Claim
         // Space this small batch to leave capacity for other transactional mail.
         if (index > 0) await new Promise(resolve => setTimeout(resolve, 600))
-        let providerId: string | null = null
-        let sendError: string | null = null
-        try {
-          const response = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'Idempotency-Key': `billing-alert/${alert.id}`,
-            },
-            body: JSON.stringify(claim.payload),
-            signal: AbortSignal.timeout(5000),
-          })
-          if (!response.ok) throw new Error(`Resend HTTP ${response.status}`)
-          const body = await response.json() as { id?: unknown }
-          if (typeof body.id !== 'string' || !body.id) throw new Error('Resend response has no email ID')
-          providerId = body.id
-        } catch (err) {
-          sendError = err instanceof Error ? err.message : 'Email request failed'
-        }
-        const { error: finishError } = await supabase.rpc('finish_billing_alert_email', {
+        const delivery = await provider.send(claim.payload, alert.id)
+        const { error: finishError } = await supabase.rpc(provider.kind === 'smtp' ? 'finish_billing_alert_smtp' : 'finish_billing_alert_email', {
           p_alert_id: alert.id,
           p_claim_token: claim.token,
-          p_provider_id: providerId,
-          p_error: sendError,
+          p_provider_id: delivery.providerId,
+          p_error: delivery.error,
+          ...(provider.kind === 'smtp' ? { p_retry_safe: delivery.retrySafe } : {}),
         })
         if (finishError) throw new Error(`Saving email result failed: ${finishError.message}`)
-        if (providerId) result.sent++
+        if (delivery.providerId) result.sent++
         else result.failed++
       } catch (err) {
         result.failed++
