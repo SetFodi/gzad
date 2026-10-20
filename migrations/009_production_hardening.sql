@@ -194,7 +194,10 @@ where id = 'ad-media';
 create unique index if not exists idx_campaigns_name_unique on public.campaigns (lower(name));
 create unique index if not exists idx_play_stats_campaign_date on public.play_stats (campaign_id, date);
 
--- Stats outlive the campaign they describe.
+-- Stats outlive the campaign they describe. The column was created NOT NULL in
+-- 001, which would make "on delete set null" fail every campaign delete that
+-- has stats, so the constraint has to go first.
+alter table public.play_stats alter column campaign_id drop not null;
 alter table public.play_stats drop constraint if exists play_stats_campaign_id_fkey;
 alter table public.play_stats add constraint play_stats_campaign_id_fkey
   foreign key (campaign_id) references public.campaigns(id) on delete set null;

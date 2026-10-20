@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Car, Plus, X, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Plus, X, Trash2 } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 
 interface Vehicle {
@@ -21,23 +21,46 @@ export default function FleetVehiclesPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
+  const [loadError, setLoadError] = useState(false)
+  const [deleteError, setDeleteError] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const dialog = useRef<HTMLDialogElement>(null)
   const [form, setForm] = useState({ make: '', model: '', year: new Date().getFullYear(), color: '', license_plate: '' })
   const { t } = useTranslations()
   const f = t.fleet.vehicles
+  const common = t.fleet.common
 
-  async function loadVehicles() {
+  const loadVehicles = useCallback(async () => {
+    setLoading(true)
+    setLoadError(false)
     try {
       const res = await fetch('/api/fleet/vehicles')
+      if (!res.ok) throw new Error('Vehicles unavailable')
       const data = await res.json()
-      if (Array.isArray(data)) setVehicles(data)
+      if (!Array.isArray(data)) throw new Error('Invalid vehicle list')
+      setVehicles(data)
     } catch {
-      // ignore
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  useEffect(() => { loadVehicles() }, [])
+  useEffect(() => { loadVehicles() }, [loadVehicles])
+
+  useEffect(() => {
+    if (!showAdd || !dialog.current) return
+    const element = dialog.current
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    element.showModal()
+    return () => {
+      element.close()
+      document.body.style.overflow = previousOverflow
+      trigger?.focus()
+    }
+  }, [showAdd])
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,13 +74,13 @@ export default function FleetVehiclesPage() {
         body: JSON.stringify(form),
       })
       const result = await res.json()
-      if (!res.ok) throw new Error(result.error || 'Failed to add vehicle')
+      if (!res.ok) throw new Error(result.error || common.addFailed)
 
       setShowAdd(false)
       setForm({ make: '', model: '', year: new Date().getFullYear(), color: '', license_plate: '' })
       await loadVehicles()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to add vehicle')
+      setError(err instanceof Error ? err.message : common.addFailed)
     } finally {
       setCreating(false)
     }
@@ -65,16 +88,20 @@ export default function FleetVehiclesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm(f.confirmDelete)) return
-
+    setDeleting(id)
+    setDeleteError(false)
     try {
       const res = await fetch('/api/fleet/vehicles', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       })
-      if (res.ok) await loadVehicles()
+      if (!res.ok) throw new Error('Unable to delete vehicle')
+      await loadVehicles()
     } catch {
-      // ignore
+      setDeleteError(true)
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -89,94 +116,117 @@ export default function FleetVehiclesPage() {
     setForm({ ...form, license_plate: formatted })
   }
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  if (loading) return <div className="portal-loading">{common.loading}</div>
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
         <h1 className="portal-page-title">{f.title}</h1>
-        <button onClick={() => setShowAdd(true)} className="portal-btn-primary">
+        <button type="button" onClick={() => { setError(''); setShowAdd(true) }} className="portal-btn-primary">
           <Plus size={18} /> {f.addVehicle}
         </button>
       </div>
 
-      {showAdd && (
-        <div className="admin-modal-overlay" onClick={() => setShowAdd(false)}>
-          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal-header">
-              <h2>{f.addVehicle}</h2>
-              <button onClick={() => setShowAdd(false)} className="admin-modal-close"><X size={20} /></button>
-            </div>
-            <form onSubmit={handleAdd} className="portal-form">
-              {error && <div className="portal-login-error">{error}</div>}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="portal-input-group">
-                  <label>{f.make}</label>
-                  <input
-                    type="text"
-                    value={form.make}
-                    onChange={(e) => setForm({ ...form, make: e.target.value })}
-                    placeholder={f.makePlaceholder}
-                    required
-                  />
-                </div>
-                <div className="portal-input-group">
-                  <label>{f.model}</label>
-                  <input
-                    type="text"
-                    value={form.model}
-                    onChange={(e) => setForm({ ...form, model: e.target.value })}
-                    placeholder={f.modelPlaceholder}
-                    required
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="portal-input-group">
-                  <label>{f.year}</label>
-                  <input
-                    type="number"
-                    value={form.year}
-                    onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || 2020 })}
-                    min={1990}
-                    max={new Date().getFullYear() + 1}
-                    required
-                  />
-                </div>
-                <div className="portal-input-group">
-                  <label>{f.color}</label>
-                  <input
-                    type="text"
-                    value={form.color}
-                    onChange={(e) => setForm({ ...form, color: e.target.value })}
-                    placeholder={f.colorPlaceholder}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="portal-input-group">
-                <label>{f.licensePlate}</label>
-                <input
-                  type="text"
-                  value={form.license_plate}
-                  onChange={(e) => handlePlateChange(e.target.value)}
-                  placeholder="AA 000 AA"
-                  style={{ fontFamily: 'monospace', letterSpacing: 2, fontSize: 16 }}
-                  required
-                />
-                <span style={{ fontSize: 11, color: 'var(--portal-muted)', marginTop: 4 }}>{f.plateHint}</span>
-              </div>
-              <button type="submit" disabled={creating} className="portal-btn-primary full-width">
-                {creating ? f.adding : f.addVehicle}
-              </button>
-            </form>
-          </div>
+      {loadError && (
+        <div className="portal-alert portal-alert-danger" role="alert">
+          <p>{common.loadFailed}</p>
+          <button type="button" className="portal-btn-secondary" onClick={loadVehicles}>{common.retry}</button>
         </div>
       )}
+      {deleteError && <div className="portal-alert portal-alert-danger" role="alert">{common.deleteFailed}</div>}
 
-      {vehicles.length === 0 ? (
+      {showAdd && (
+        <dialog
+          ref={dialog}
+          className="admin-modal"
+          aria-labelledby="add-vehicle-title"
+          onCancel={event => { event.preventDefault(); if (!creating) setShowAdd(false) }}
+          onClick={event => {
+            const bounds = event.currentTarget.getBoundingClientRect()
+            const outside = event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom
+            if (event.target === event.currentTarget && outside && !creating) setShowAdd(false)
+          }}
+        >
+          <div className="admin-modal-header">
+            <h2 id="add-vehicle-title">{f.addVehicle}</h2>
+            <button type="button" onClick={() => setShowAdd(false)} className="admin-modal-close" aria-label={common.close} disabled={creating}><X size={20} aria-hidden /></button>
+          </div>
+          <form onSubmit={handleAdd} className="portal-form">
+            {error && <div className="portal-login-error" role="alert">{error}</div>}
+            <div className="admin-form-row">
+              <div className="portal-input-group">
+                <label htmlFor="vehicle-make">{f.make}</label>
+                <input
+                  id="vehicle-make"
+                  type="text"
+                  value={form.make}
+                  onChange={(e) => setForm({ ...form, make: e.target.value })}
+                  placeholder={f.makePlaceholder}
+                  required
+                />
+              </div>
+              <div className="portal-input-group">
+                <label htmlFor="vehicle-model">{f.model}</label>
+                <input
+                  id="vehicle-model"
+                  type="text"
+                  value={form.model}
+                  onChange={(e) => setForm({ ...form, model: e.target.value })}
+                  placeholder={f.modelPlaceholder}
+                  required
+                />
+              </div>
+            </div>
+            <div className="admin-form-row">
+              <div className="portal-input-group">
+                <label htmlFor="vehicle-year">{f.year}</label>
+                <input
+                  id="vehicle-year"
+                  type="number"
+                  value={form.year}
+                  onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || 2020 })}
+                  min={1990}
+                  max={new Date().getFullYear() + 1}
+                  required
+                />
+              </div>
+              <div className="portal-input-group">
+                <label htmlFor="vehicle-color">{f.color}</label>
+                <input
+                  id="vehicle-color"
+                  type="text"
+                  value={form.color}
+                  onChange={(e) => setForm({ ...form, color: e.target.value })}
+                  placeholder={f.colorPlaceholder}
+                  required
+                />
+              </div>
+            </div>
+            <div className="portal-input-group">
+              <label htmlFor="vehicle-licensePlate">{f.licensePlate}</label>
+              <input
+                id="vehicle-licensePlate"
+                type="text"
+                value={form.license_plate}
+                onChange={(e) => handlePlateChange(e.target.value)}
+                placeholder="AA 000 AA"
+                pattern="[A-Za-z]{2} [0-9]{3} [A-Za-z]{2}"
+                maxLength={9}
+                aria-describedby="vehicle-plate-hint"
+                style={{ fontFamily: 'monospace', letterSpacing: 2, fontSize: 16 }}
+                required
+              />
+              <span id="vehicle-plate-hint" className="field-hint">{f.plateHint}</span>
+            </div>
+            <button type="submit" disabled={creating} className="portal-btn-primary full-width">
+              {creating ? f.adding : f.addVehicle}
+            </button>
+          </form>
+        </dialog>
+      )}
+
+      {!loadError && (vehicles.length === 0 ? (
         <div className="portal-empty">
-          <Car size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
           <p>{f.noVehicles}</p>
         </div>
       ) : (
@@ -195,29 +245,28 @@ export default function FleetVehiclesPage() {
             <tbody>
               {vehicles.map((v) => (
                 <tr key={v.id}>
-                  <td style={{ fontFamily: 'monospace', letterSpacing: 1, fontWeight: 600 }}>
-                    {v.license_plate}
-                  </td>
+                  <td><span className="plate">{v.license_plate}</span></td>
                   <td>{v.year} {v.make} {v.model}</td>
                   <td>{v.color}</td>
                   <td>
                     {v.device_id ? (
-                      <span style={{ color: 'var(--portal-success)', fontSize: 12 }}>{v.device_id}</span>
+                      <span className="portal-chip" style={{ color: 'var(--portal-success)' }}>{v.device_id}</span>
                     ) : (
-                      <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>{f.notAssigned}</span>
+                      <span className="portal-chip">{f.notAssigned}</span>
                     )}
                   </td>
                   <td>{new Date(v.created_at).toLocaleDateString()}</td>
                   <td>
                     <button
+                      type="button"
                       onClick={() => handleDelete(v.id)}
-                      style={{
-                        background: 'none', border: 'none', color: 'var(--portal-danger)',
-                        cursor: 'pointer', padding: 4, display: 'flex',
-                      }}
+                      className="app-icon-btn danger"
                       title={f.delete}
+                      disabled={deleting !== null}
+                      aria-busy={deleting === v.id}
+                      aria-label={`${f.delete} ${v.license_plate}`}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={16} aria-hidden />
                     </button>
                   </td>
                 </tr>
@@ -225,7 +274,7 @@ export default function FleetVehiclesPage() {
             </tbody>
           </table>
         </div>
-      )}
+      ))}
     </div>
   )
 }

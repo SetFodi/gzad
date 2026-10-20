@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Monitor, Wifi, WifiOff, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock, RotateCcw, HardDrive, MapPin, Search, Signal, Thermometer, Zap, Droplets } from 'lucide-react'
+import { Monitor, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock, RotateCcw, HardDrive, MapPin, Search, Signal, Thermometer, Zap, Droplets } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import StatusBadge from '@/components/app/StatusBadge'
 
 interface Device {
   cardId: string
@@ -26,6 +27,7 @@ interface DeviceHealth {
 export default function DevicesPage() {
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionResult, setActionResult] = useState<{ ok: boolean; msg: string; data?: string } | null>(null)
@@ -41,17 +43,19 @@ export default function DevicesPage() {
     try {
       const res = await fetch('/api/devices')
       const data = await res.json()
-      if (data.devices) {
+      if (!res.ok) throw new Error('Failed to load devices')
+      setLoadError(false)
+      if (Array.isArray(data.devices)) {
         setDevices(data.devices)
         setError(data.realtimeError || '')
       } else if (Array.isArray(data)) {
         setDevices(data)
         setError('')
       } else {
-        setError(data.error || 'Failed to load devices')
+        throw new Error('Invalid device response')
       }
     } catch {
-      setError('Cannot reach server')
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -287,414 +291,294 @@ export default function DevicesPage() {
     }
   }
 
-  const btnStyle = { padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 } as const
+  if (loading) return <div className="portal-loading">Loading…</div>
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load devices from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadDevices()}>Try again</button>
+      </div>
+    </div>
+  )
+
+  const onlineCount = devices.filter(d => d.online).length
+  const busy = !!actionLoading
+  const when = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
-        <h1 className="portal-page-title">Devices</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div>
+          <h1 className="portal-page-title">Devices</h1>
+          <p className="portal-subtitle">
+            {error ? 'Live status unavailable' : `${onlineCount} of ${devices.length} ${devices.length === 1 ? 'screen' : 'screens'} online`} · refreshes every 10 seconds
+          </p>
+        </div>
+        <div className="admin-header-actions">
           <button
+            type="button"
             onClick={() => { setDeviceHealth({}); fetchHealthData(devices) }}
             disabled={healthLoading}
             className="portal-btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            <Thermometer size={16} /> {healthLoading ? 'Loading...' : 'Health Check'}
+            <Thermometer size={16} aria-hidden /> {healthLoading ? 'Checking…' : 'Health check'}
           </button>
-          <button onClick={loadDevices} className="portal-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <RefreshCw size={16} /> Refresh
+          <button type="button" onClick={loadDevices} className="portal-btn-secondary">
+            <RefreshCw size={16} aria-hidden /> Refresh
           </button>
         </div>
       </div>
 
       {error && (
         <div className="portal-alert portal-alert-warning">
-          {error}. Showing registered devices — online status unavailable until Realtime Server is reachable.
+          <strong>Can&apos;t reach the Realtime Server</strong> ({error}). Showing registered screens; live status and controls come back once it&apos;s reachable.
         </div>
       )}
 
       {actionResult && (
-        <div className={`portal-alert ${actionResult.ok ? 'portal-alert-success' : 'portal-alert-danger'}`}>
-          <div style={{ fontWeight: 600, marginBottom: actionResult.data ? 6 : 0 }}>{actionResult.msg}</div>
-          {actionResult.data && (
-            <pre style={{
-              margin: 0,
-              fontSize: 11,
-              color: 'var(--portal-text-soft)',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-              maxHeight: 200,
-              overflow: 'auto',
-            }}>
-              {actionResult.data}
-            </pre>
-          )}
+        <div className={`portal-alert ${actionResult.ok ? 'portal-alert-success' : 'portal-alert-danger'} alert-dismissible`} role="status">
+          <div>
+            <div style={{ fontWeight: 600 }}>{actionResult.msg}</div>
+            {actionResult.data && <pre className="alert-pre">{actionResult.data}</pre>}
+          </div>
+          <button type="button" className="app-icon-btn" onClick={() => setActionResult(null)} aria-label="Dismiss">×</button>
         </div>
       )}
 
       {devices.length === 0 && !error ? (
         <div className="portal-empty">
-          <Monitor size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-          <p>No devices registered.</p>
-          <p style={{ color: 'var(--portal-muted)', fontSize: 14 }}>
-            Register a device in the <code>devices</code> table or connect a controller to the Realtime Server.
+          <p>No devices registered yet.</p>
+          <p style={{ fontSize: 14 }}>
+            Add one to the <code>devices</code> table, or connect a controller to the Realtime Server.
           </p>
         </div>
       ) : (
-        <div className="campaigns-grid">
+        <div className="device-list">
           {devices.map((d) => {
             const health = deviceHealth[d.cardId]
+            const named = d.name && d.name !== d.cardId
+            const chips: { icon: typeof Sun; label: string; tone?: string }[] = []
+            if (d.online && health) {
+              if (health.screenOn !== undefined) chips.push({ icon: Power, label: health.screenOn ? 'Screen on' : 'Screen off', tone: health.screenOn ? 'var(--portal-success)' : undefined })
+              if (health.temperature !== undefined) chips.push({ icon: Thermometer, label: `${health.temperature.toFixed(1)}°C` })
+              if (health.voltage !== undefined) chips.push({ icon: Zap, label: `${health.voltage.toFixed(1)} V` })
+              if (health.humidity !== undefined) chips.push({ icon: Droplets, label: `${health.humidity.toFixed(0)}%` })
+              if (health.signalStrength !== undefined) chips.push({
+                icon: Signal,
+                label: `${health.signalStrength} dBm${health.signalType ? ` · ${health.signalType}` : ''}`,
+                tone: health.signalStrength > -80 ? 'var(--portal-success)' : health.signalStrength > -100 ? 'var(--portal-warning)' : 'var(--portal-danger)',
+              })
+            }
+
             return (
-              <div key={d.cardId} className="campaign-card" style={{ cursor: 'default' }}>
-                <div className="campaign-card-header">
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Monitor size={18} />
-                    <span>
-                      {d.name && d.name !== d.cardId ? d.name : d.cardId}
-                      {d.name && d.name !== d.cardId && (
-                        <span style={{ fontSize: 12, color: 'var(--portal-muted)', fontWeight: 600, marginLeft: 6 }}>{d.cardId}</span>
-                      )}
-                    </span>
-                  </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {/* Screen Power Indicator */}
-                    {d.online && health && health.screenOn !== undefined && (
-                      <span title={health.screenOn ? 'Screen ON' : 'Screen OFF'} style={{
-                        width: 10, height: 10, borderRadius: '50%', display: 'inline-block',
-                        background: health.screenOn ? 'var(--portal-success)' : 'var(--portal-muted)',
-                        boxShadow: health.screenOn ? '0 0 0 4px rgba(47, 125, 89, 0.12)' : 'none',
-                      }} />
-                    )}
-                    <span className="status-badge" style={{
-                      color: d.online ? 'var(--portal-success)' : 'var(--portal-danger)',
-                      borderColor: d.online ? 'var(--portal-success)' : 'var(--portal-danger)',
-                      display: 'flex', alignItems: 'center', gap: 4,
-                    }}>
-                      {d.online ? <Wifi size={14} /> : <WifiOff size={14} />}
-                      {d.online ? 'Online' : 'Offline'}
+              <article key={d.cardId} className="device-card" data-online={d.online || undefined}>
+                <header className="device-card-head">
+                  <span className="device-presence" aria-hidden />
+                  <div className="cell-stack" style={{ flex: 1 }}>
+                    <h3 className="device-name">
+                      <Monitor size={16} aria-hidden />
+                      {named ? d.name : d.cardId}
+                    </h3>
+                    <span className="cell-sub">
+                      {named && <code>{d.cardId}</code>} {d.online
+                        ? `Connected ${when(d.connectedAt) ?? '—'}`
+                        : d.lastSeen ? `Last seen ${when(d.lastSeen)}` : 'Never connected'}
                     </span>
                   </div>
-                </div>
+                  <StatusBadge status={error ? 'unknown' : d.online ? 'online' : 'offline'}>{error ? 'Unknown' : d.online ? 'Online' : 'Offline'}</StatusBadge>
+                </header>
 
-                <div className="campaign-card-details">
-                  {d.online ? (
-                    <>
-                      <div>
-                        <span className="detail-label">Connected</span>
-                        <span>{d.connectedAt ? new Date(d.connectedAt).toLocaleString() : '—'}</span>
-                      </div>
-                      <div>
-                        <span className="detail-label">Last Seen</span>
-                        <span>{d.lastSeen ? new Date(d.lastSeen).toLocaleString() : '—'}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div>
-                      <span className="detail-label">Last Seen</span>
-                      <span>{d.lastSeen ? new Date(d.lastSeen).toLocaleString() : 'Never connected'}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Offline message */}
-                {!d.online && (
-                  <div style={{
-                    marginTop: 12, padding: '12px 14px', borderRadius: 8,
-                    background: 'rgba(163, 58, 58, 0.07)', border: '1px solid rgba(163, 58, 58, 0.16)',
-                    color: 'var(--portal-text-soft)', fontSize: 13, lineHeight: 1.55,
-                  }}>
-                    Device is powered off or not connected to the Realtime Server. Controls will appear when it comes online.
+                {chips.length > 0 && (
+                  <div className="device-chips">
+                    {chips.map(c => (
+                      <span key={c.label} className="portal-chip" style={c.tone ? { color: c.tone } : undefined}>
+                        <c.icon size={12} aria-hidden /> {c.label}
+                      </span>
+                    ))}
                   </div>
                 )}
 
-                {/* Device Health Stats */}
-                {d.online && health && (health.temperature !== undefined || health.voltage !== undefined || health.signalStrength !== undefined) && (
-                  <div style={{
-                    display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12,
-                    padding: '10px 14px', borderRadius: 8,
-                    background: 'rgba(255, 249, 240, 0.72)', border: '1px solid var(--portal-border)',
-                  }}>
-                    {health.temperature !== undefined && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <Thermometer size={14} style={{ color: 'var(--portal-warning)' }} />
-                        <span style={{ color: 'var(--portal-text)' }}>{health.temperature.toFixed(1)}°C</span>
-                      </div>
-                    )}
-                    {health.voltage !== undefined && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <Zap size={14} style={{ color: 'var(--portal-info)' }} />
-                        <span style={{ color: 'var(--portal-text)' }}>{health.voltage.toFixed(1)}V</span>
-                      </div>
-                    )}
-                    {health.humidity !== undefined && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <Droplets size={14} style={{ color: 'var(--portal-info)' }} />
-                        <span style={{ color: 'var(--portal-text)' }}>{health.humidity.toFixed(0)}%</span>
-                      </div>
-                    )}
-                    {health.signalStrength !== undefined && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <Signal size={14} style={{ color: health.signalStrength > -80 ? 'var(--portal-success)' : health.signalStrength > -100 ? 'var(--portal-warning)' : 'var(--portal-danger)' }} />
-                        <span style={{ color: 'var(--portal-text)' }}>
-                          {health.signalStrength} dBm
-                          {health.signalType ? ` (${health.signalType})` : ''}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {d.online && (
-                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {/* Brightness Control */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Sun size={16} style={{ color: 'var(--portal-warning)', flexShrink: 0 }} />
-                      <input
-                        type="range"
-                        min={1}
-                        max={255}
-                        value={brightness}
-                        onChange={(e) => setBrightness(parseInt(e.target.value))}
-                        style={{ flex: 1 }}
-                      />
-                      <span style={{ color: 'var(--portal-text-soft)', fontSize: 12, width: 30, textAlign: 'right' }}>{brightness}</span>
+                {!d.online ? (
+                  <p className="device-offline">
+                    {error ? 'Live status is unavailable. Controls return when the Realtime Server is reachable.' : 'The screen is off or not connected to the Realtime Server. Controls appear when it comes back online.'}
+                  </p>
+                ) : (
+                  <>
+                    <div className="device-actions">
                       <button
-                        onClick={() => sendAction(d.cardId, 'brightness', { brightness })}
-                        disabled={actionLoading === `${d.cardId}-brightness`}
-                        className="portal-btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: 12 }}
-                      >
-                        Set
-                      </button>
-                    </div>
-
-                    {/* Volume Control */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Volume2 size={16} style={{ color: 'var(--portal-info)', flexShrink: 0 }} />
-                      <input
-                        type="range"
-                        min={0}
-                        max={15}
-                        value={volume}
-                        onChange={(e) => setVolume(parseInt(e.target.value))}
-                        style={{ flex: 1 }}
-                      />
-                      <span style={{ color: 'var(--portal-text-soft)', fontSize: 12, width: 20, textAlign: 'right' }}>{volume}</span>
-                      <button
-                        onClick={() => sendAction(d.cardId, 'volume', { volume })}
-                        disabled={actionLoading === `${d.cardId}-volume`}
-                        className="portal-btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: 12 }}
-                      >
-                        Set
-                      </button>
-                    </div>
-
-                    {/* Row 1: Core Controls */}
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button
+                        type="button"
+                        className="action-btn"
+                        aria-pressed={health?.screenOn === true}
+                        disabled={busy}
                         onClick={async () => {
                           await sendAction(d.cardId, 'screen', { on: true })
                           setDeviceHealth(prev => ({ ...prev, [d.cardId]: { ...prev[d.cardId], screenOn: true } }))
                         }}
-                        disabled={!!actionLoading}
-                        style={{
-                          ...btnStyle,
-                          border: `1px solid ${health?.screenOn === true ? 'rgba(47, 125, 89, 0.14)' : 'var(--portal-border)'}`,
-                          background: health?.screenOn === true ? 'rgba(47, 125, 89, 0.14)' : 'rgba(255, 249, 240, 0.72)',
-                          color: health?.screenOn === true ? 'var(--portal-success)' : 'var(--portal-text)',
-                          cursor: 'pointer', borderRadius: 8, fontWeight: 500,
-                        }}
                       >
-                        <Power size={14} /> Screen On
+                        <Power size={14} aria-hidden /> Screen on
                       </button>
                       <button
+                        type="button"
+                        className="action-btn"
+                        aria-pressed={health?.screenOn === false}
+                        disabled={busy}
                         onClick={async () => {
                           await sendAction(d.cardId, 'screen', { on: false })
                           setDeviceHealth(prev => ({ ...prev, [d.cardId]: { ...prev[d.cardId], screenOn: false } }))
                         }}
-                        disabled={!!actionLoading}
-                        style={{
-                          ...btnStyle,
-                          border: `1px solid ${health?.screenOn === false ? 'rgba(163, 58, 58, 0.14)' : 'var(--portal-border)'}`,
-                          background: health?.screenOn === false ? 'rgba(163, 58, 58, 0.14)' : 'rgba(255, 249, 240, 0.72)',
-                          color: health?.screenOn === false ? 'var(--portal-danger)' : 'var(--portal-text)',
-                          cursor: 'pointer', borderRadius: 8, fontWeight: 500,
-                        }}
                       >
-                        <Power size={14} /> Screen Off
+                        <Power size={14} aria-hidden /> Screen off
                       </button>
-                      <button onClick={() => takeScreenshot(d.cardId)} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
-                        <Camera size={14} /> Screenshot
+                      <button type="button" className="action-btn" onClick={() => takeScreenshot(d.cardId)} disabled={busy}>
+                        <Camera size={14} aria-hidden /> Screenshot
                       </button>
-                      <button onClick={() => sendAction(d.cardId, 'info')} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
-                        <Settings size={14} /> Get Info
+                      <button type="button" className="action-btn" onClick={() => checkPlaying(d.cardId)} disabled={busy}>
+                        <Play size={14} aria-hidden /> Now playing
                       </button>
-                    </div>
-
-                    {/* Row 2: Callbacks & Program */}
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button onClick={() => sendAction(d.cardId, 'setup-callbacks')} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
-                        <Send size={14} /> Setup Callbacks
-                      </button>
-                      <button onClick={() => checkPlaying(d.cardId)} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
-                        <Play size={14} /> Check Playing
-                      </button>
-                      <button onClick={() => getGpsLocation(d.cardId)} disabled={!!actionLoading} className="portal-btn-secondary" style={btnStyle}>
-                        <MapPin size={14} /> Where Is It?
-                      </button>
-                      <button
-                        onClick={() => sendAction(d.cardId, 'clear-program')}
-                        disabled={!!actionLoading}
-                        style={{
-                          ...btnStyle,
-                          border: '1px solid rgba(163, 58, 58, 0.14)', background: 'rgba(163, 58, 58, 0.14)',
-                          color: 'var(--portal-danger)', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
-                        }}
-                      >
-                        <Trash2 size={14} /> Clear Program
+                      <button type="button" className="action-btn" onClick={() => getGpsLocation(d.cardId)} disabled={busy}>
+                        <MapPin size={14} aria-hidden /> Locate
                       </button>
                     </div>
 
-                    {/* Row 3: Query Buttons */}
-                    <div style={{
-                      background: 'rgba(255, 249, 240, 0.72)', border: '1px solid var(--portal-border)',
-                      borderRadius: 8, padding: '10px 14px',
-                    }}>
-                      <div style={{ fontSize: 12, color: 'var(--portal-muted)', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Search size={12} /> Query Device State
+                    <div className="device-sliders">
+                      <div className="device-slider">
+                        <Sun size={16} aria-hidden />
+                        <span className="device-slider-label">Brightness</span>
+                        <input type="range" aria-label="Brightness" min={1} max={255} value={brightness} onChange={(e) => setBrightness(parseInt(e.target.value))} />
+                        <output>{brightness}</output>
+                        <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'brightness', { brightness })} disabled={actionLoading === `${d.cardId}-brightness`}>Set</button>
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        <button onClick={() => sendAction(d.cardId, 'get-brightness')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
-                          Brightness
-                        </button>
-                        <button onClick={() => sendAction(d.cardId, 'is-screen-on')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
-                          Screen Status
-                        </button>
-                        <button onClick={() => sendAction(d.cardId, 'get-disk-space')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
-                          <HardDrive size={12} /> Disk Space
-                        </button>
-                        <button onClick={() => sendAction(d.cardId, 'get-upload-log-url')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
-                          PlayLog Config
-                        </button>
-                        <button onClick={() => sendAction(d.cardId, 'get-sub-gps')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
-                          GPS Config
-                        </button>
-                        <button onClick={() => sendAction(d.cardId, 'get-sim-info')} disabled={!!actionLoading} className="portal-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }}>
-                          <Signal size={12} /> SIM Info
-                        </button>
+                      <div className="device-slider">
+                        <Volume2 size={16} aria-hidden />
+                        <span className="device-slider-label">Volume</span>
+                        <input type="range" aria-label="Volume" min={0} max={15} value={volume} onChange={(e) => setVolume(parseInt(e.target.value))} />
+                        <output>{volume}</output>
+                        <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'volume', { volume })} disabled={actionLoading === `${d.cardId}-volume`}>Set</button>
                       </div>
                     </div>
 
-                    {/* Scheduled Brightness */}
-                    <div style={{
-                      background: 'rgba(255, 249, 240, 0.72)', border: '1px solid var(--portal-border)',
-                      borderRadius: 8, padding: '10px 14px',
-                    }}>
-                      <div style={{ fontSize: 12, color: 'var(--portal-muted)', marginBottom: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Clock size={12} /> Scheduled Brightness
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input
-                          type="time"
-                          value={schedBrightness.time}
-                          onChange={(e) => setSchedBrightness({ ...schedBrightness, time: e.target.value })}
-                          style={{ background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', borderRadius: 6, color: 'var(--portal-text)', padding: '4px 8px', fontSize: 12 }}
-                        />
-                        <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>at</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={255}
-                          value={schedBrightness.value}
-                          onChange={(e) => setSchedBrightness({ ...schedBrightness, value: parseInt(e.target.value) || 1 })}
-                          style={{ background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', borderRadius: 6, color: 'var(--portal-text)', padding: '4px 8px', fontSize: 12, width: 60 }}
-                        />
-                        <button
-                          onClick={() => sendAction(d.cardId, 'scheduled-brightness', {
-                            items: [{ time: schedBrightness.time, brightness: schedBrightness.value }],
-                          })}
-                          disabled={!!actionLoading}
-                          className="portal-btn-secondary"
-                          style={{ padding: '4px 10px', fontSize: 12 }}
-                        >
-                          Set
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Dangerous actions */}
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => cleanStorage(d.cardId)}
-                        disabled={!!actionLoading}
-                        style={{
-                          ...btnStyle,
-                          border: '1px solid rgba(167, 98, 23, 0.14)', background: 'rgba(167, 98, 23, 0.14)',
-                          color: 'var(--portal-warning)', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
-                        }}
-                      >
-                        <HardDrive size={14} /> Clean Storage
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Reboot this device? It will disconnect for ~30 seconds.')) {
-                            sendAction(d.cardId, 'reboot')
-                          }
-                        }}
-                        disabled={!!actionLoading}
-                        style={{
-                          ...btnStyle,
-                          border: '1px solid rgba(163, 58, 58, 0.14)', background: 'rgba(163, 58, 58, 0.14)',
-                          color: 'var(--portal-danger)', cursor: 'pointer', borderRadius: 8, fontWeight: 500,
-                        }}
-                      >
-                        <RotateCcw size={14} /> Reboot Device
-                      </button>
-                    </div>
-
-                    {/* Screenshot Preview */}
-                    {screenshotUrl && (
-                      <div style={{ marginTop: 4 }}>
-                        <div style={{ fontSize: 12, color: 'var(--portal-muted)', marginBottom: 6 }}>Screenshot:</div>
-                        <img
-                          src={screenshotUrl}
-                          alt="Device screenshot"
-                          style={{ width: '100%', minWidth: 600, borderRadius: 8, border: '1px solid var(--portal-border)' }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Playing Info */}
                     {playingInfo && (
-                      <div style={{
-                        padding: '8px 12px', borderRadius: 8, fontSize: 13,
-                        background: 'rgba(76, 106, 136, 0.14)', color: 'var(--portal-info)',
-                      }}>
-                        Now playing: {playingInfo}
+                      <div className="portal-alert" style={{ margin: 0 }}>
+                        <strong>Now playing:</strong> {playingInfo}
                       </div>
                     )}
-                  </div>
+
+                    {screenshotUrl && (
+                      <figure className="device-screenshot">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={screenshotUrl} alt="What the screen is showing" />
+                        <figcaption className="cell-sub">Live screenshot</figcaption>
+                      </figure>
+                    )}
+
+                    <details className="device-more">
+                      <summary>Advanced</summary>
+                      <div className="device-more-body">
+                        <div className="device-group">
+                          <p className="device-group-title">Setup</p>
+                          <div className="device-actions">
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'setup-callbacks')} disabled={busy}>
+                              <Send size={14} aria-hidden /> Set up callbacks
+                            </button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'info')} disabled={busy}>
+                              <Settings size={14} aria-hidden /> Device info
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="device-group">
+                          <p className="device-group-title"><Search size={12} aria-hidden /> Read device state</p>
+                          <div className="device-actions">
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-brightness')} disabled={busy}>Brightness</button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'is-screen-on')} disabled={busy}>Screen status</button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-disk-space')} disabled={busy}>
+                              <HardDrive size={12} aria-hidden /> Disk space
+                            </button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-upload-log-url')} disabled={busy}>Play-log config</button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-sub-gps')} disabled={busy}>GPS config</button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-sim-info')} disabled={busy}>
+                              <Signal size={12} aria-hidden /> SIM info
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="device-group">
+                          <p className="device-group-title"><Clock size={12} aria-hidden /> Scheduled brightness</p>
+                          <div className="device-actions">
+                            <input
+                              type="time"
+                              className="input-sm"
+                              value={schedBrightness.time}
+                              onChange={(e) => setSchedBrightness({ ...schedBrightness, time: e.target.value })}
+                              aria-label="Time"
+                            />
+                            <span className="cell-sub">set brightness to</span>
+                            <input
+                              type="number"
+                              className="input-sm"
+                              min={1}
+                              max={255}
+                              value={schedBrightness.value}
+                              onChange={(e) => setSchedBrightness({ ...schedBrightness, value: parseInt(e.target.value) || 1 })}
+                              aria-label="Brightness"
+                              style={{ width: 80 }}
+                            />
+                            <button
+                              type="button"
+                              className="action-btn"
+                              onClick={() => sendAction(d.cardId, 'scheduled-brightness', {
+                                items: [{ time: schedBrightness.time, brightness: schedBrightness.value }],
+                              })}
+                              disabled={busy}
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="device-group device-danger">
+                          <p className="device-group-title">Danger zone</p>
+                          <div className="device-actions">
+                            <button
+                              type="button"
+                              className="action-btn reject"
+                              onClick={() => {
+                                if (confirm('Clear the program on this screen? It stops showing ads until playlists are pushed again.')) {
+                                  sendAction(d.cardId, 'clear-program')
+                                }
+                              }}
+                              disabled={busy}
+                            >
+                              <Trash2 size={14} aria-hidden /> Clear program
+                            </button>
+                            <button type="button" className="action-btn reject" onClick={() => cleanStorage(d.cardId)} disabled={busy}>
+                              <HardDrive size={14} aria-hidden /> Clean storage
+                            </button>
+                            <button
+                              type="button"
+                              className="action-btn reject"
+                              onClick={() => {
+                                if (confirm('Reboot this device? It will disconnect for about 30 seconds.')) {
+                                  sendAction(d.cardId, 'reboot')
+                                }
+                              }}
+                              disabled={busy}
+                            >
+                              <RotateCcw size={14} aria-hidden /> Reboot
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </details>
+                  </>
                 )}
-              </div>
+              </article>
             )
           })}
         </div>
       )}
-
-      <div className="portal-panel" style={{ marginTop: '2rem' }}>
-        <h2>Setup Guide</h2>
-        <div style={{ color: 'var(--portal-text-soft)', fontSize: 14, lineHeight: 1.8 }}>
-          <p><strong>1.</strong> Deploy the Realtime Server on a VPS (see <code>realtime-server/</code> folder)</p>
-          <p><strong>2.</strong> Set the controller&apos;s server URL to your VPS address using LEDOK tool</p>
-          <p><strong>3.</strong> Add <code>REALTIME_SERVER_URL</code> and <code>REALTIME_SERVER_SECRET</code> to your Vercel env vars</p>
-          <p><strong>4.</strong> Click &quot;Setup Callbacks&quot; to configure automatic play log &amp; GPS forwarding</p>
-          <p><strong>5.</strong> Push ads directly from the Campaigns page</p>
-        </div>
-      </div>
     </div>
   )
 }

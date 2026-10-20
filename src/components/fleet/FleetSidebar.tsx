@@ -1,88 +1,27 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
-import Link from 'next/link'
-import { LayoutDashboard, Car, BarChart3, LogOut, Menu, X, Globe } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { BarChart3, Car, LayoutDashboard } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
+import AppSidebar from '@/components/app/AppSidebar'
 
 export default function FleetSidebar() {
-  const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const { lang, setLang, t } = useTranslations()
-
-  const navItems = [
-    { href: '/fleet', label: t.fleet.sidebar.overview, icon: LayoutDashboard },
-    { href: '/fleet/vehicles', label: t.fleet.sidebar.vehicles, icon: Car },
-    { href: '/fleet/stats', label: t.fleet.sidebar.stats, icon: BarChart3 },
-  ]
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/portal/login')
-  }
+  const { t } = useTranslations()
+  const s = t.fleet.sidebar
 
   return (
-    <>
-      <button
-        className="sidebar-mobile-toggle"
-        onClick={() => setMobileOpen(!mobileOpen)}
-      >
-        {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
-      <aside className={`portal-sidebar ${mobileOpen ? 'open' : ''}`}>
-        <div className="sidebar-logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="8" width="18" height="10" rx="2" fill="#F1E2D1" />
-            <rect x="5" y="10" width="14" height="6" rx="1" fill="#810B38" />
-          </svg>
-          <span className="sidebar-logo-text">Gzad Fleet</span>
-        </div>
-
-        <div className="sidebar-nav">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href ||
-              (item.href !== '/fleet' && pathname.startsWith(item.href))
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={`nav-item ${isActive ? 'active' : ''}`}
-              >
-                <item.icon size={20} />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-        </div>
-
-        <div className="sidebar-footer">
-          <button
-            onClick={() => setLang(lang === 'en' ? 'ge' : 'en')}
-            className="nav-item"
-          >
-            <Globe size={20} />
-            <span>{lang === 'en' ? 'ქართული' : 'English'}</span>
-          </button>
-          <button onClick={handleLogout} className="sidebar-logout">
-            <LogOut size={20} />
-            <span>{t.fleet.sidebar.signOut}</span>
-          </button>
-        </div>
-      </aside>
-
-      {mobileOpen && (
-        <div
-          onClick={() => setMobileOpen(false)}
-          className="sidebar-overlay"
-        />
-      )}
-    </>
+    <AppSidebar
+      area="Fleet"
+      sections={[
+        {
+          items: [
+            { href: '/fleet', label: s.overview, icon: LayoutDashboard, exact: true },
+            { href: '/fleet/vehicles', label: s.vehicles, icon: Car },
+            { href: '/fleet/stats', label: s.stats, icon: BarChart3 },
+          ],
+        },
+      ]}
+      language
+      signOutLabel={s.signOut}
+    />
   )
 }

@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Car, Monitor, X, Link2, Unlink } from 'lucide-react'
+import { Monitor, X, Link2, Unlink } from 'lucide-react'
+import AppDialog from '@/components/app/AppDialog'
+
+const initials = (name: string) =>
+  name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?'
 
 interface FleetUser {
   id: string
@@ -32,6 +36,7 @@ export default function AdminFleetUsersPage() {
   const [fleetUsers, setFleetUsers] = useState<FleetUser[]>([])
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [assignModal, setAssignModal] = useState<{ vehicleId: string; currentDeviceId: string | null } | null>(null)
   const [selectedDevice, setSelectedDevice] = useState('')
   const [assigning, setAssigning] = useState(false)
@@ -39,36 +44,45 @@ export default function AdminFleetUsersPage() {
   const supabase = createClient()
 
   const loadData = useCallback(async () => {
-    // Load fleet users with their vehicles
-    const { data: users } = await supabase
-      .from('clients')
-      .select('id, email, contact_name, phone, created_at')
-      .eq('role', 'fleet')
-      .order('created_at', { ascending: false })
+    setLoading(true)
+    setLoadError(false)
+    try {
+      // Load fleet users with their vehicles
+      const { data: users, error: usersError } = await supabase
+        .from('clients')
+        .select('id, email, contact_name, phone, created_at')
+        .eq('role', 'fleet')
+        .order('created_at', { ascending: false })
 
-    if (users) {
-      const withVehicles = await Promise.all(
-        users.map(async (u) => {
-          const { data: vehicles } = await supabase
-            .from('fleet_vehicles')
-            .select('id, make, model, year, color, license_plate, device_id')
-            .eq('fleet_user_id', u.id)
-            .order('created_at', { ascending: false })
-          return { ...u, vehicles: vehicles || [] }
-        })
-      )
-      setFleetUsers(withVehicles)
+      if (usersError) throw usersError
+      if (users) {
+        const withVehicles = await Promise.all(
+          users.map(async (u) => {
+            const { data: vehicles, error: vehiclesError } = await supabase
+              .from('fleet_vehicles')
+              .select('id, make, model, year, color, license_plate, device_id')
+              .eq('fleet_user_id', u.id)
+              .order('created_at', { ascending: false })
+            if (vehiclesError) throw vehiclesError
+            return { ...u, vehicles: vehicles || [] }
+          })
+        )
+        setFleetUsers(withVehicles)
+      }
+
+      // Load all devices for assignment dropdown
+      const { data: devs, error: devicesError } = await supabase
+        .from('devices')
+        .select('id, name')
+        .order('id')
+
+      if (devicesError) throw devicesError
+      if (devs) setDevices(devs)
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
     }
-
-    // Load all devices for assignment dropdown
-    const { data: devs } = await supabase
-      .from('devices')
-      .select('id, name')
-      .order('id')
-
-    if (devs) setDevices(devs)
-
-    setLoading(false)
   }, [supabase])
 
   useEffect(() => { loadData() }, [loadData])
@@ -121,158 +135,127 @@ export default function AdminFleetUsersPage() {
     }
   }
 
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load this page from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadData()}>Try again</button>
+      </div>
+    </div>
+  )
+
   if (loading) return <div className="portal-loading">Loading...</div>
+
+  const vehicleCount = fleetUsers.reduce((sum, u) => sum + u.vehicles.length, 0)
+  const withLed = fleetUsers.reduce((sum, u) => sum + u.vehicles.filter(v => v.device_id).length, 0)
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
-        <h1 className="portal-page-title">Fleet Users</h1>
-        <span style={{ color: 'var(--portal-muted)', fontSize: 14 }}>
-          {fleetUsers.length} driver{fleetUsers.length !== 1 ? 's' : ''} registered
-        </span>
+        <div>
+          <h1 className="portal-page-title">Fleet users</h1>
+          <p className="portal-subtitle">
+            {fleetUsers.length} {fleetUsers.length === 1 ? 'driver' : 'drivers'} · {vehicleCount} {vehicleCount === 1 ? 'vehicle' : 'vehicles'} · {withLed} with a screen
+          </p>
+        </div>
       </div>
 
-      {/* Assign Device Modal */}
       {assignModal && (
-        <div className="admin-modal-overlay" onClick={() => setAssignModal(null)}>
-          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+        <AppDialog labelledBy="assign-title" onClose={() => setAssignModal(null)}>
             <div className="admin-modal-header">
-              <h2>Assign LED to Vehicle</h2>
-              <button onClick={() => setAssignModal(null)} className="admin-modal-close"><X size={20} /></button>
+              <h2 id="assign-title">Assign a screen</h2>
+              <button type="button" onClick={() => setAssignModal(null)} className="admin-modal-close" aria-label="Close"><X size={20} /></button>
             </div>
             <div className="portal-form">
-              {error && <div className="portal-login-error">{error}</div>}
+              {error && <div className="portal-login-error" role="alert">{error}</div>}
               <div className="portal-input-group">
-                <label>Select Device</label>
+                <label htmlFor="assign-device">Screen</label>
                 <select
+                  id="assign-device"
                   value={selectedDevice}
                   onChange={(e) => setSelectedDevice(e.target.value)}
                 >
-                  <option value="">-- No device --</option>
+                  <option value="">No screen</option>
                   {devices.map((d) => (
                     <option
                       key={d.id}
                       value={d.id}
                       disabled={assignedDeviceIds.has(d.id) && d.id !== assignModal.currentDeviceId}
                     >
-                      {d.name || d.id}{assignedDeviceIds.has(d.id) && d.id !== assignModal.currentDeviceId ? ' (assigned)' : ''}
+                      {d.name || d.id}{assignedDeviceIds.has(d.id) && d.id !== assignModal.currentDeviceId ? ' (in another car)' : ''}
                     </option>
                   ))}
                 </select>
+                <span className="field-hint">A screen can be in one car at a time.</span>
               </div>
-              <button
-                onClick={handleAssign}
-                disabled={assigning}
-                className="portal-btn-primary full-width"
-              >
-                {assigning ? 'Assigning...' : 'Assign Device'}
+              <button type="button" onClick={handleAssign} disabled={assigning} className="portal-btn-primary full-width">
+                {assigning ? 'Saving…' : 'Save'}
               </button>
             </div>
-          </div>
-        </div>
+        </AppDialog>
       )}
 
       {fleetUsers.length === 0 ? (
         <div className="portal-empty">
-          <Car size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-          <p>No fleet users registered yet.</p>
-          <p style={{ color: 'var(--portal-muted)', fontSize: 14 }}>
-            Fleet users can sign up at <code>/portal/fleet-signup</code>
-          </p>
+          <p>No drivers have signed up yet.</p>
+          <p style={{ fontSize: 14 }}>Drivers sign up at <code>/portal/fleet-signup?role=fleet</code>.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="group-grid">
           {fleetUsers.map((u) => (
-            <div key={u.id} className="campaign-card" style={{ cursor: 'default' }}>
-              <div className="campaign-card-header">
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Car size={18} />
-                  <span>{u.contact_name}</span>
-                </h3>
-                <span style={{ color: 'var(--portal-muted)', fontSize: 13 }}>
-                  {u.vehicles.length} vehicle{u.vehicles.length !== 1 ? 's' : ''}
+            <article key={u.id} className="group-card">
+              <header className="group-card-head">
+                <span className="app-avatar" aria-hidden>{initials(u.contact_name)}</span>
+                <div className="cell-stack" style={{ flex: 1 }}>
+                  <span className="group-card-name">{u.contact_name}</span>
+                  <span className="cell-sub">{[u.email, u.phone].filter(Boolean).join(' · ')}</span>
+                </div>
+                <span className="cell-sub cell-nowrap">
+                  Joined {new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
-              </div>
+              </header>
 
-              <div className="campaign-card-details">
-                <div>
-                  <span className="detail-label">Email</span>
-                  <span>{u.email}</span>
-                </div>
-                <div>
-                  <span className="detail-label">Phone</span>
-                  <span>{u.phone || '—'}</span>
-                </div>
-                <div>
-                  <span className="detail-label">Joined</span>
-                  <span>{new Date(u.created_at).toLocaleDateString()}</span>
-                </div>
-              </div>
-
-              {u.vehicles.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <table className="portal-table" style={{ fontSize: 13 }}>
-                    <thead>
-                      <tr>
-                        <th>Plate</th>
-                        <th>Vehicle</th>
-                        <th>Color</th>
-                        <th>LED</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {u.vehicles.map((v) => (
-                        <tr key={v.id}>
-                          <td style={{ fontFamily: 'monospace', fontWeight: 600, letterSpacing: 1 }}>
-                            {v.license_plate}
-                          </td>
-                          <td>{v.year} {v.make} {v.model}</td>
-                          <td>{v.color}</td>
-                          <td>
-                            {v.device_id ? (
-                              <span style={{ color: 'var(--portal-success)', fontSize: 12 }}>
-                                <Monitor size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-                                {v.device_id}
-                              </span>
-                            ) : (
-                              <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>None</span>
-                            )}
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: 4 }}>
-                              <button
-                                onClick={() => {
-                                  setSelectedDevice(v.device_id || '')
-                                  setAssignModal({ vehicleId: v.id, currentDeviceId: v.device_id })
-                                  setError('')
-                                }}
-                                className="portal-btn-secondary"
-                                style={{ padding: '4px 8px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
-                              >
-                                <Link2 size={12} /> {v.device_id ? 'Change' : 'Assign'}
-                              </button>
-                              {v.device_id && (
-                                <button
-                                  onClick={() => handleUnassign(v.id)}
-                                  style={{
-                                    padding: '4px 8px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4,
-                                    border: '1px solid rgba(163, 58, 58, 0.14)', background: 'rgba(163, 58, 58, 0.14)',
-                                    color: 'var(--portal-danger)', cursor: 'pointer', borderRadius: 8,
-                                  }}
-                                >
-                                  <Unlink size={12} /> Unassign
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              {u.vehicles.length === 0 ? (
+                <p className="cell-sub" style={{ margin: 0 }}>No vehicles added yet.</p>
+              ) : (
+                <ul className="vehicle-list">
+                  {u.vehicles.map((v) => (
+                    <li key={v.id} className="vehicle-row">
+                      <span className="plate">{v.license_plate}</span>
+                      <div className="cell-stack" style={{ flex: 1 }}>
+                        <span>{v.year} {v.make} {v.model}</span>
+                        <span className="cell-sub">{v.color}</span>
+                      </div>
+                      {v.device_id ? (
+                        <span className="portal-chip" style={{ color: 'var(--portal-success)' }}>
+                          <Monitor size={12} aria-hidden /> {v.device_id}
+                        </span>
+                      ) : (
+                        <span className="portal-chip">No screen</span>
+                      )}
+                      <div className="device-actions">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDevice(v.device_id || '')
+                            setAssignModal({ vehicleId: v.id, currentDeviceId: v.device_id })
+                            setError('')
+                          }}
+                          className="action-btn"
+                        >
+                          <Link2 size={13} aria-hidden /> {v.device_id ? 'Change' : 'Assign'}
+                        </button>
+                        {v.device_id && (
+                          <button type="button" onClick={() => handleUnassign(v.id)} className="action-btn reject">
+                            <Unlink size={13} aria-hidden /> Remove
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </div>
+            </article>
           ))}
         </div>
       )}

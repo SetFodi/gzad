@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { ArrowLeft, Megaphone, ChevronDown, ChevronRight, Plus, Send, Wifi, WifiOff } from 'lucide-react'
+import { ArrowLeft, Monitor, Send } from 'lucide-react'
+import StatusBadge from '@/components/app/StatusBadge'
 
 interface DeviceGroup {
   id: string
@@ -39,70 +40,84 @@ export default function GroupDetailPage() {
   const [devices, setDevices] = useState<DeviceRow[]>([])
   const [campaigns, setCampaigns] = useState<CampaignRow[]>([])
   const [unassignedCampaigns, setUnassignedCampaigns] = useState<{ id: string; name: string }[]>([])
-  const [expandedDevice, setExpandedDevice] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [assigning, setAssigning] = useState(false)
-  const [onlineDeviceIds, setOnlineDeviceIds] = useState<Set<string>>(new Set())
+  const [onlineDeviceIds, setOnlineDeviceIds] = useState<Set<string> | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const supabase = createClient()
 
   const load = async () => {
-    const [groupRes, devicesRes, campaignsRes, unassignedRes] = await Promise.all([
-      supabase.from('device_groups').select('*').eq('id', groupId).single(),
-      supabase.from('devices').select('id, name, last_lat, last_lng').eq('group_id', groupId),
-      supabase.from('campaigns').select('id, name, status, start_date, end_date, device_group_id, clients(company_name)').eq('device_group_id', groupId).order('created_at', { ascending: false }),
-      supabase.from('campaigns').select('id, name').is('device_group_id', null).eq('status', 'active'),
-    ])
-
-    setGroup(groupRes.data)
-    setDevices(devicesRes.data || [])
-    setUnassignedCampaigns(unassignedRes.data || [])
-
-    // Get approved media counts + first media thumbnail per campaign
-    const campaignList = campaignsRes.data || []
-    if (campaignList.length > 0) {
-      const ids = campaignList.map(c => c.id)
-      const [{ data: mediaData }, { data: allFirstMedia }] = await Promise.all([
-        supabase.from('ad_media').select('campaign_id').in('campaign_id', ids).eq('status', 'approved'),
-        supabase.from('ad_media').select('campaign_id, file_url, file_type').in('campaign_id', ids).order('uploaded_at', { ascending: true }),
+    setLoading(true)
+    setLoadError(false)
+    try {
+      const [groupRes, devicesRes, campaignsRes, unassignedRes] = await Promise.all([
+        supabase.from('device_groups').select('*').eq('id', groupId).maybeSingle(),
+        supabase.from('devices').select('id, name, last_lat, last_lng').eq('group_id', groupId),
+        supabase.from('campaigns').select('id, name, status, start_date, end_date, device_group_id, clients(company_name)').eq('device_group_id', groupId).order('created_at', { ascending: false }),
+        supabase.from('campaigns').select('id, name').is('device_group_id', null).eq('status', 'active'),
       ])
 
-      const counts: Record<string, number> = {}
-      for (const m of mediaData || []) {
-        counts[m.campaign_id] = (counts[m.campaign_id] || 0) + 1
-      }
+      const failedRead = [groupRes, devicesRes, campaignsRes, unassignedRes].find(result => result.error)
+      if (failedRead) throw failedRead.error
 
-      // Get first media per campaign
-      const firstMediaMap: Record<string, { file_url: string; file_type: string }> = {}
-      for (const m of allFirstMedia || []) {
-        if (!firstMediaMap[m.campaign_id]) {
-          firstMediaMap[m.campaign_id] = m
+      setGroup(groupRes.data)
+      setDevices(devicesRes.data || [])
+      setUnassignedCampaigns(unassignedRes.data || [])
+
+      // Get approved media counts + first media thumbnail per campaign
+      const campaignList = campaignsRes.data || []
+      if (campaignList.length > 0) {
+        const ids = campaignList.map(c => c.id)
+        const [mediaRes, firstMediaRes] = await Promise.all([
+          supabase.from('ad_media').select('campaign_id').in('campaign_id', ids).eq('status', 'approved'),
+          supabase.from('ad_media').select('campaign_id, file_url, file_type').in('campaign_id', ids).order('uploaded_at', { ascending: true }),
+        ])
+
+        if (mediaRes.error || firstMediaRes.error) throw mediaRes.error || firstMediaRes.error
+        const mediaData = mediaRes.data
+        const allFirstMedia = firstMediaRes.data
+
+        const counts: Record<string, number> = {}
+        for (const m of mediaData || []) {
+          counts[m.campaign_id] = (counts[m.campaign_id] || 0) + 1
         }
+
+        // Get first media per campaign
+        const firstMediaMap: Record<string, { file_url: string; file_type: string }> = {}
+        for (const m of allFirstMedia || []) {
+          if (!firstMediaMap[m.campaign_id]) {
+            firstMediaMap[m.campaign_id] = m
+          }
+        }
+
+        setCampaigns(campaignList.map(c => ({
+          ...c,
+          clients: Array.isArray(c.clients) ? c.clients[0] || null : c.clients,
+          approved_count: counts[c.id] || 0,
+          first_media_url: firstMediaMap[c.id]?.file_url,
+          first_media_type: firstMediaMap[c.id]?.file_type,
+        })) as CampaignRow[])
+      } else {
+        setCampaigns([])
       }
-
-      setCampaigns(campaignList.map(c => ({
-        ...c,
-        clients: Array.isArray(c.clients) ? c.clients[0] || null : c.clients,
-        approved_count: counts[c.id] || 0,
-        first_media_url: firstMediaMap[c.id]?.file_url,
-        first_media_type: firstMediaMap[c.id]?.file_type,
-      })) as CampaignRow[])
-    } else {
-      setCampaigns([])
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   const loadOnlineDevices = useCallback(async () => {
     try {
       const res = await fetch('/api/devices')
       const data = await res.json()
+      if (!res.ok || data.realtimeError) throw new Error('Live status unavailable')
       const list = Array.isArray(data) ? data : data.devices || []
       setOnlineDeviceIds(new Set(list.filter((d: { online: boolean }) => d.online).map((d: { cardId: string }) => d.cardId)))
     } catch {
-      // Realtime server not running
+      setOnlineDeviceIds(null)
     }
   }, [])
 
@@ -208,261 +223,130 @@ export default function GroupDetailPage() {
     await syncGroupToDevices()
   }
 
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load this page from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+      </div>
+    </div>
+  )
+
   if (loading) return <div className="portal-loading">Loading...</div>
   if (!group) return <div className="portal-loading">Group not found</div>
 
-  const statusColor = (s: string) =>
-    s === 'active' ? 'var(--portal-success)' : s === 'completed' ? 'var(--portal-info)' : s === 'paused' ? 'var(--portal-warning)' : 'var(--portal-muted)'
+  const onlineCount = onlineDeviceIds ? devices.filter(d => onlineDeviceIds.has(d.id)).length : null
 
   return (
     <div className="portal-page">
       <Link href="/admin/groups" className="portal-back-link">
-        <ArrowLeft size={16} /> Back to Groups
+        <ArrowLeft size={16} /> Groups
       </Link>
 
       <div className="portal-page-header">
         <div>
           <h1 className="portal-page-title">{group.name}</h1>
           <p className="portal-subtitle">
-            {devices.length} device{devices.length !== 1 ? 's' : ''} ({devices.filter(d => onlineDeviceIds.has(d.id)).length} online) · {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
+            {devices.length} {devices.length === 1 ? 'screen' : 'screens'} ({onlineCount === null ? 'live status unavailable' : `${onlineCount} online`}) · {campaigns.length} {campaigns.length === 1 ? 'campaign' : 'campaigns'}
           </p>
         </div>
-        <button
-          onClick={syncGroupToDevices}
-          disabled={syncing}
-          className="portal-btn-primary"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: syncing ? 0.6 : 1 }}
-        >
-          <Send size={16} />
-          {syncing ? 'Pushing...' : 'Push Ads to Devices'}
+        <button type="button" onClick={syncGroupToDevices} disabled={syncing} className="portal-btn-primary">
+          <Send size={16} aria-hidden />
+          {syncing ? 'Pushing…' : 'Push ads to screens'}
         </button>
       </div>
 
       {syncResult && (
-        <div style={{
-          marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 13,
-          background: syncResult.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
-          border: `1px solid ${syncResult.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)'}`,
-          color: syncResult.ok ? 'var(--portal-success)' : 'var(--portal-danger)',
-        }}>
+        <div className={`portal-alert ${syncResult.ok ? 'portal-alert-success' : 'portal-alert-danger'}`} role="status">
           {syncResult.msg}
         </div>
       )}
 
-      {/* Campaigns assigned to this group */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--portal-text)', margin: 0 }}>
-            Campaigns in this Group
-          </h2>
+      <section className="portal-section" style={{ marginTop: 8 }}>
+        <div className="section-head">
+          <h2>Campaigns</h2>
           {unassignedCampaigns.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <select
-                id="assign-campaign"
-                defaultValue=""
-                onChange={(e) => {
-                  if (e.target.value) {
-                    assignCampaign(e.target.value)
-                    e.target.value = ''
-                  }
-                }}
-                disabled={assigning}
-                style={{
-                  background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', borderRadius: 8,
-                  color: 'var(--portal-text)', padding: '8px 12px', fontSize: 13,
-                }}
-              >
-                <option value="">
-                  {assigning ? 'Assigning...' : 'Assign campaign...'}
-                </option>
-                {unassignedCampaigns.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <Plus size={16} style={{ color: 'var(--portal-muted)' }} />
-            </div>
+            <select
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  assignCampaign(e.target.value)
+                  e.target.value = ''
+                }
+              }}
+              disabled={assigning}
+              aria-label="Add a campaign to this group"
+              style={{ width: 'auto', minHeight: 36 }}
+            >
+              <option value="">{assigning ? 'Adding…' : '+ Add campaign…'}</option>
+              {unassignedCampaigns.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           )}
         </div>
 
         {campaigns.length === 0 ? (
-          <div style={{
-            background: 'rgba(167, 98, 23, 0.14)',
-            border: '1px solid rgba(167, 98, 23, 0.14)',
-            borderRadius: 12, padding: '16px 20px',
-          }}>
-            <p style={{ color: 'var(--portal-warning)', fontSize: 13, margin: 0 }}>
-              No campaigns assigned to this group yet. Assign one above, or go to a campaign&apos;s detail page → Edit Details → set Device Group.
-            </p>
+          <div className="portal-alert portal-alert-warning" style={{ margin: 0 }}>
+            No campaigns in this group yet, so its screens only play house ads. Add one above.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {campaigns.map(c => (
-              <div key={c.id} style={{
-                background: 'var(--portal-surface)', border: '1px solid var(--portal-border)',
-                borderRadius: 10, padding: '14px 18px',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                flexWrap: 'wrap', gap: 10,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {c.first_media_url ? (
-                    c.first_media_type?.startsWith('video') ? (
-                      <video
-                        src={c.first_media_url}
-                        muted
-                        style={{ width: 56, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--portal-border)', background: '#000', flexShrink: 0 }}
-                      />
-                    ) : (
-                      <img
-                        src={c.first_media_url}
-                        alt=""
-                        style={{ width: 56, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--portal-border)', background: '#000', flexShrink: 0 }}
-                      />
-                    )
-                  ) : (
-                    <Megaphone size={16} style={{ color: statusColor(c.status), flexShrink: 0 }} />
-                  )}
-                  <div>
-                    <Link
-                      href={`/admin/campaigns/${c.id}`}
-                      style={{ color: 'var(--portal-text)', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
-                    >
-                      {c.name}
-                    </Link>
-                    <div style={{ fontSize: 12, color: 'var(--portal-muted)', marginTop: 2 }}>
-                      {c.clients?.company_name || 'No client'} · {c.approved_count} approved file{c.approved_count !== 1 ? 's' : ''}
-                      {c.start_date && c.end_date && (
-                        <span> · {c.start_date} to {c.end_date}</span>
+          <div className="campaigns-table-wrapper">
+            <ul className="recent-list">
+              {campaigns.map(c => (
+                <li key={c.id} className="recent-row group-campaign-row" style={{ cursor: 'default' }}>
+                  <div className="cell-media" style={{ flex: 1 }}>
+                    <div className="cell-thumb">
+                      {c.first_media_url && (
+                        c.first_media_type?.startsWith('video')
+                          ? <video src={c.first_media_url} muted playsInline preload="metadata" />
+                          // eslint-disable-next-line @next/next/no-img-element
+                          : <img src={c.first_media_url} alt="" loading="lazy" />
                       )}
+                    </div>
+                    <div className="cell-stack">
+                      <Link href={`/admin/campaigns/${c.id}`} className="table-link">{c.name}</Link>
+                      <span className="cell-sub">
+                        {c.clients?.company_name || 'No client'} · {c.approved_count} approved {c.approved_count === 1 ? 'file' : 'files'}
+                        {c.start_date && c.end_date && ` · ${c.start_date} → ${c.end_date}`}
+                      </span>
                     </div>
                   </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, color: statusColor(c.status),
-                    background: `${statusColor(c.status)}15`,
-                    border: `1px solid ${statusColor(c.status)}30`,
-                    borderRadius: 6, padding: '3px 10px', textTransform: 'uppercase',
-                  }}>
-                    {c.status}
-                  </span>
-                  <button
-                    onClick={() => unassignCampaign(c.id)}
-                    style={{
-                      background: 'none', border: '1px solid rgba(163, 58, 58, 0.14)',
-                      borderRadius: 6, color: 'var(--portal-danger)', cursor: 'pointer',
-                      padding: '4px 10px', fontSize: 11, fontWeight: 500,
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+                  <StatusBadge status={c.status} />
+                  <button type="button" className="action-btn" onClick={() => unassignCampaign(c.id)}>Remove</button>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Devices in this group */}
-      <div>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--portal-text)', marginBottom: 14 }}>
-          Devices in this Group
-        </h2>
-
+      <section className="portal-section">
+        <h2>Screens</h2>
         {devices.length === 0 ? (
-          <div style={{
-            background: 'rgba(167, 98, 23, 0.14)',
-            border: '1px solid rgba(167, 98, 23, 0.14)',
-            borderRadius: 12, padding: '16px 20px',
-          }}>
-            <p style={{ color: 'var(--portal-warning)', fontSize: 13, margin: 0 }}>
-              No devices in this group. Go to <Link href="/admin/groups" style={{ color: 'var(--portal-info)' }}>Groups</Link> to assign devices.
-            </p>
+          <div className="portal-alert portal-alert-warning" style={{ margin: 0 }}>
+            No screens in this group. Assign them on the <Link href="/admin/groups" className="section-link">Groups</Link> page.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {devices.map(d => {
-              const isExpanded = expandedDevice === d.id
-              return (
-                <div key={d.id} style={{
-                  background: 'var(--portal-surface)', border: '1px solid var(--portal-border)',
-                  borderRadius: 10, overflow: 'hidden',
-                }}>
-                  <button
-                    onClick={() => setExpandedDevice(isExpanded ? null : d.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                      padding: '14px 18px', background: 'none', border: 'none',
-                      cursor: 'pointer', textAlign: 'left',
-                    }}
-                  >
-                    {isExpanded ? <ChevronDown size={16} style={{ color: 'var(--portal-success)' }} /> : <ChevronRight size={16} style={{ color: 'var(--portal-muted)' }} />}
-                    {onlineDeviceIds.has(d.id) ? <Wifi size={14} style={{ color: 'var(--portal-success)' }} /> : <WifiOff size={14} style={{ color: 'var(--portal-muted)' }} />}
-                    <span style={{ color: onlineDeviceIds.has(d.id) ? 'var(--portal-success)' : 'var(--portal-muted)', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>{d.id}</span>
-                    {d.name && <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>({d.name})</span>}
-                    <span style={{ color: onlineDeviceIds.has(d.id) ? 'var(--portal-success)' : 'var(--portal-muted)', fontSize: 12, marginLeft: 'auto' }}>
-                      {onlineDeviceIds.has(d.id) ? 'online' : 'offline'}
-                    </span>
-                  </button>
-
-                  {isExpanded && (
-                    <div style={{ padding: '0 18px 14px 44px', borderTop: '1px solid var(--portal-border)' }}>
-                      {campaigns.length === 0 ? (
-                        <p style={{ color: 'var(--portal-muted)', fontSize: 13, margin: '12px 0 0' }}>
-                          No campaigns targeting this group yet.
-                        </p>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-                          {campaigns.map(c => (
-                            <Link
-                              key={c.id}
-                              href={`/admin/campaigns/${c.id}`}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: 10,
-                                padding: '10px 14px', borderRadius: 8,
-                                background: 'rgba(47, 125, 89, 0.14)',
-                                border: '1px solid rgba(47, 125, 89, 0.14)',
-                                textDecoration: 'none',
-                              }}
-                            >
-                              {c.first_media_url ? (
-                                c.first_media_type?.startsWith('video') ? (
-                                  <video
-                                    src={c.first_media_url}
-                                    muted
-                                    style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--portal-border)', background: '#000', flexShrink: 0 }}
-                                  />
-                                ) : (
-                                  <img
-                                    src={c.first_media_url}
-                                    alt=""
-                                    style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--portal-border)', background: '#000', flexShrink: 0 }}
-                                  />
-                                )
-                              ) : (
-                                <Megaphone size={14} style={{ color: statusColor(c.status), flexShrink: 0 }} />
-                              )}
-                              <div style={{ flex: 1 }}>
-                                <div style={{ color: 'var(--portal-text)', fontSize: 13, fontWeight: 500 }}>{c.name}</div>
-                                <div style={{ color: 'var(--portal-muted)', fontSize: 11, marginTop: 2 }}>
-                                  {c.clients?.company_name} · {c.approved_count} file{c.approved_count !== 1 ? 's' : ''} · {c.status}
-                                </div>
-                              </div>
-                              <span style={{
-                                width: 8, height: 8, borderRadius: '50%',
-                                background: statusColor(c.status), flexShrink: 0,
-                              }} />
-                            </Link>
-                          ))}
-                        </div>
-                      )}
+          <div className="campaigns-table-wrapper">
+            <ul className="recent-list">
+              {devices.map(d => {
+                const online = onlineDeviceIds?.has(d.id) ?? null
+                return (
+                  <li key={d.id} className="recent-row" style={{ cursor: 'default' }}>
+                    <span className="device-presence" data-online={online || undefined} aria-hidden />
+                    <div className="cell-stack" style={{ flex: 1 }}>
+                      <span className="recent-name"><Monitor size={14} aria-hidden style={{ verticalAlign: -2, marginRight: 6, color: 'var(--portal-faint)' }} />{d.name || d.id}</span>
+                      {d.name && <span className="cell-sub"><code>{d.id}</code></span>}
                     </div>
-                  )}
-                </div>
-              )
-            })}
+                    <StatusBadge status={online === null ? 'unknown' : online ? 'online' : 'offline'}>{online === null ? 'Unknown' : online ? 'Online' : 'Offline'}</StatusBadge>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }

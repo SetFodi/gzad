@@ -1,5 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { AUTH_DEVICE_COOKIE } from '@/lib/auth/trust'
+import { sessionApproved } from '@/lib/auth/session'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -25,7 +27,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user: nativeUser } } = await supabase.auth.getUser()
+  const user = nativeUser && await sessionApproved(supabase, nativeUser, request.cookies.get(AUTH_DEVICE_COOKIE)?.value, request.headers) ? nativeUser : null
 
   // Protect /portal/dashboard routes
   if (request.nextUrl.pathname.startsWith('/portal/dashboard') && !user) {

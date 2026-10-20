@@ -44,43 +44,52 @@ export default function LogsPage() {
   const [gpsLogs, setGpsLogs] = useState<GpsLog[]>([])
   const [deviceRecords, setDeviceRecords] = useState<DeviceRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [counts, setCounts] = useState({ play: 0, gps: 0, devices: 0 })
   const [now, setNow] = useState(() => Date.now())
   const supabase = createClient()
 
   const load = async () => {
     setLoading(true)
+    setLoadError(false)
+    try {
+      // Load all three in parallel
+      const [playRes, gpsRes, devRes, playCount, gpsCount, devCount] = await Promise.all([
+        supabase
+          .from('play_logs')
+          .select('*')
+          .order('received_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('gps_logs')
+          .select('*')
+          .order('recorded_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('devices')
+          .select('*')
+          .order('last_seen_at', { ascending: false }),
+        supabase.from('play_logs').select('*', { count: 'exact', head: true }),
+        supabase.from('gps_logs').select('*', { count: 'exact', head: true }),
+        supabase.from('devices').select('*', { count: 'exact', head: true }),
+      ])
 
-    // Load all three in parallel
-    const [playRes, gpsRes, devRes, playCount, gpsCount, devCount] = await Promise.all([
-      supabase
-        .from('play_logs')
-        .select('*')
-        .order('received_at', { ascending: false })
-        .limit(100),
-      supabase
-        .from('gps_logs')
-        .select('*')
-        .order('recorded_at', { ascending: false })
-        .limit(100),
-      supabase
-        .from('devices')
-        .select('*')
-        .order('last_seen_at', { ascending: false }),
-      supabase.from('play_logs').select('*', { count: 'exact', head: true }),
-      supabase.from('gps_logs').select('*', { count: 'exact', head: true }),
-      supabase.from('devices').select('*', { count: 'exact', head: true }),
-    ])
+      const failedRead = [playRes, gpsRes, devRes, playCount, gpsCount, devCount].find(result => result.error)
+      if (failedRead) throw failedRead.error
 
-    setPlayLogs(playRes.data || [])
-    setGpsLogs(gpsRes.data || [])
-    setDeviceRecords(devRes.data || [])
-    setCounts({
-      play: playCount.count || 0,
-      gps: gpsCount.count || 0,
-      devices: devCount.count || 0,
-    })
-    setLoading(false)
+      setPlayLogs(playRes.data || [])
+      setGpsLogs(gpsRes.data || [])
+      setDeviceRecords(devRes.data || [])
+      setCounts({
+        play: playCount.count || 0,
+        gps: gpsCount.count || 0,
+        devices: devCount.count || 0,
+      })
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- load() is async: state is set once the query resolves, not during render
@@ -93,118 +102,89 @@ export default function LogsPage() {
     return () => clearInterval(id)
   }, [])
 
-  const tabStyle = (t: Tab) => ({
-    padding: '8px 16px',
-    fontSize: 14,
-    fontWeight: 500,
-    cursor: 'pointer' as const,
-    borderRadius: 8,
-    border: 'none',
-    background: tab === t ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
-    color: tab === t ? 'var(--portal-info)' : 'var(--portal-muted)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-  })
+  const at = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'
+  const mapLink = (lat: number | string, lng: number | string, label: string) => (
+    <a href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noopener noreferrer" className="section-link">{label}</a>
+  )
 
-  const thStyle = {
-    textAlign: 'left' as const,
-    padding: '8px 12px',
-    fontSize: 12,
-    fontWeight: 600,
-    color: 'var(--portal-muted)',
-    borderBottom: '1px solid var(--portal-border)',
-    whiteSpace: 'nowrap' as const,
-  }
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load this page from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+      </div>
+    </div>
+  )
 
-  const tdStyle = {
-    padding: '8px 12px',
-    fontSize: 13,
-    color: 'var(--portal-text-soft)',
-    borderBottom: '1px solid #0f0f0f',
-    whiteSpace: 'nowrap' as const,
-  }
+  const tabs: { key: Tab; label: string; icon: typeof Play; count: number }[] = [
+    { key: 'playlogs', label: 'Plays', icon: Play, count: counts.play },
+    { key: 'gps', label: 'GPS', icon: MapPin, count: counts.gps },
+    { key: 'devices', label: 'Devices', icon: Monitor, count: counts.devices },
+  ]
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
-        <h1 className="portal-page-title">Logs</h1>
-        <button onClick={load} className="portal-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <RefreshCw size={16} /> Refresh
+        <div>
+          <h1 className="portal-page-title">Logs</h1>
+          <p className="portal-subtitle">The latest 100 reports per tab, straight from the controllers. Times are Tbilisi time.</p>
+        </div>
+        <button type="button" onClick={load} className="portal-btn-secondary">
+          <RefreshCw size={16} aria-hidden /> Refresh
         </button>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-        <button onClick={() => setTab('playlogs')} style={tabStyle('playlogs')}>
-          <Play size={16} /> Play Logs ({counts.play})
-        </button>
-        <button onClick={() => setTab('gps')} style={tabStyle('gps')}>
-          <MapPin size={16} /> GPS Logs ({counts.gps})
-        </button>
-        <button onClick={() => setTab('devices')} style={tabStyle('devices')}>
-          <Monitor size={16} /> Devices ({counts.devices})
-        </button>
+      <div className="table-toolbar">
+        <div className="segmented" role="tablist" aria-label="Log type">
+          {tabs.map(t => (
+            <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}>
+              <t.icon size={14} aria-hidden style={{ verticalAlign: -2, marginRight: 6 }} />
+              {t.label} <span className="cell-sub">{t.count}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
-        <div className="portal-loading">Loading...</div>
+        <div className="portal-loading">Loading…</div>
       ) : (
-        <div style={{
-          background: 'var(--portal-surface)',
-          border: '1px solid var(--portal-border)',
-          borderRadius: 12,
-          overflow: 'auto',
-        }}>
-          {/* Play Logs Tab */}
+        <div className="campaigns-table-wrapper">
           {tab === 'playlogs' && (
             playLogs.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--portal-muted)' }}>
-                <Play size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
-                <p>No play logs yet.</p>
-                <p style={{ fontSize: 13 }}>Logs will appear once the controller starts reporting plays via callbacks.</p>
+              <div className="portal-empty portal-empty-sm" style={{ boxShadow: 'none' }}>
+                <p>No plays reported yet. They appear once a controller starts sending play callbacks.</p>
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table className="portal-table">
                 <thead>
                   <tr>
-                    <th style={thStyle}>Program</th>
-                    <th style={thStyle}>Device</th>
-                    <th style={thStyle}>Duration</th>
-                    <th style={thStyle}>Location</th>
-                    <th style={thStyle}>Played At</th>
-                    <th style={thStyle}>Received</th>
+                    <th>Program</th>
+                    <th>Device</th>
+                    <th>Length</th>
+                    <th>Location</th>
+                    <th>Played</th>
+                    <th>Received</th>
                   </tr>
                 </thead>
                 <tbody>
                   {playLogs.map((log) => (
                     <tr key={log.id}>
-                      <td style={tdStyle}>
-                        <span style={{ color: log.campaign_id ? 'var(--portal-success)' : 'var(--portal-muted)' }}>
-                          {log.program_name}
-                        </span>
-                        {!log.campaign_id && (
-                          <span style={{ fontSize: 11, color: 'var(--portal-muted)', marginLeft: 6 }}>unmatched</span>
-                        )}
+                      <td>
+                        <div className="cell-stack">
+                          <span style={{ fontWeight: 500 }}>{log.program_name}</span>
+                          {!log.campaign_id && <span className="cell-sub" style={{ color: 'var(--portal-warning)' }}>No matching campaign</span>}
+                        </div>
                       </td>
-                      <td style={{ ...tdStyle, fontSize: 12, fontFamily: 'monospace' }}>{log.device_id}</td>
-                      <td style={tdStyle}>{log.duration_seconds}s</td>
-                      <td style={tdStyle}>
-                        {log.lat && log.lng && !(log.lat === 0 && log.lng === 0) ? (
-                          <a
-                            href={`https://www.google.com/maps?q=${log.lat},${log.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: 'var(--portal-info)', textDecoration: 'none', fontSize: 12 }}
-                          >
-                            {Number(log.lat).toFixed(4)}, {Number(log.lng).toFixed(4)}
-                          </a>
-                        ) : (
-                          <span style={{ color: 'var(--portal-muted)' }}>—</span>
-                        )}
+                      <td><code>{log.device_id}</code></td>
+                      <td>{log.duration_seconds}s</td>
+                      <td>
+                        {log.lat && log.lng && !(log.lat === 0 && log.lng === 0)
+                          ? mapLink(log.lat, log.lng, `${Number(log.lat).toFixed(4)}, ${Number(log.lng).toFixed(4)}`)
+                          : <span className="cell-sub">—</span>}
                       </td>
-                      <td style={tdStyle}>{new Date(log.began_at).toLocaleString()}</td>
-                      <td style={{ ...tdStyle, color: 'var(--portal-muted)' }}>{log.received_at ? new Date(log.received_at).toLocaleString() : '—'}</td>
+                      <td className="cell-nowrap">{at(log.began_at)}</td>
+                      <td className="cell-nowrap cell-sub">{at(log.received_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -212,44 +192,28 @@ export default function LogsPage() {
             )
           )}
 
-          {/* GPS Logs Tab */}
           {tab === 'gps' && (
             gpsLogs.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--portal-muted)' }}>
-                <MapPin size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
-                <p>No GPS logs yet.</p>
-                <p style={{ fontSize: 13 }}>GPS data will appear once the controller starts reporting via callbacks.</p>
+              <div className="portal-empty portal-empty-sm" style={{ boxShadow: 'none' }}>
+                <p>No GPS reports yet. They appear once a controller starts sending GPS callbacks.</p>
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table className="portal-table">
                 <thead>
                   <tr>
-                    <th style={thStyle}>Device</th>
-                    <th style={thStyle}>Latitude</th>
-                    <th style={thStyle}>Longitude</th>
-                    <th style={thStyle}>Speed</th>
-                    <th style={thStyle}>Map</th>
-                    <th style={thStyle}>Recorded</th>
+                    <th>Device</th>
+                    <th>Position</th>
+                    <th>Speed</th>
+                    <th>Recorded</th>
                   </tr>
                 </thead>
                 <tbody>
                   {gpsLogs.map((log) => (
                     <tr key={log.id}>
-                      <td style={{ ...tdStyle, fontSize: 12, fontFamily: 'monospace' }}>{log.device_serial}</td>
-                      <td style={tdStyle}>{Number(log.lat).toFixed(6)}</td>
-                      <td style={tdStyle}>{Number(log.lng).toFixed(6)}</td>
-                      <td style={tdStyle}>{Number(log.speed).toFixed(1)} km/h</td>
-                      <td style={tdStyle}>
-                        <a
-                          href={`https://www.google.com/maps?q=${log.lat},${log.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: 'var(--portal-info)', textDecoration: 'none', fontSize: 12 }}
-                        >
-                          Open
-                        </a>
-                      </td>
-                      <td style={{ ...tdStyle, color: 'var(--portal-muted)' }}>{log.recorded_at ? new Date(log.recorded_at).toLocaleString() : '—'}</td>
+                      <td><code>{log.device_serial}</code></td>
+                      <td>{mapLink(log.lat, log.lng, `${Number(log.lat).toFixed(5)}, ${Number(log.lng).toFixed(5)}`)}</td>
+                      <td>{Number(log.speed).toFixed(1)} km/h</td>
+                      <td className="cell-nowrap cell-sub">{at(log.recorded_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -257,66 +221,51 @@ export default function LogsPage() {
             )
           )}
 
-          {/* Devices Tab */}
           {tab === 'devices' && (
             deviceRecords.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--portal-muted)' }}>
-                <Monitor size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
-                <p>No devices registered yet.</p>
-                <p style={{ fontSize: 13 }}>Devices appear here when callbacks report data.</p>
+              <div className="portal-empty portal-empty-sm" style={{ boxShadow: 'none' }}>
+                <p>No devices registered yet. A device appears here when it first reports in.</p>
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table className="portal-table">
                 <thead>
                   <tr>
-                    <th style={thStyle}>Device ID</th>
-                    <th style={thStyle}>Name</th>
-                    <th style={thStyle}>Last Seen</th>
-                    <th style={thStyle}>Last Position</th>
-                    <th style={thStyle}>Registered</th>
+                    <th>Device</th>
+                    <th>Last seen</th>
+                    <th>Last position</th>
+                    <th>Registered</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {deviceRecords.map((dev) => (
-                    <tr key={dev.id}>
-                      <td style={{ ...tdStyle, fontSize: 12, fontFamily: 'monospace' }}>{dev.id}</td>
-                      <td style={tdStyle}>{dev.name || '—'}</td>
-                      <td style={tdStyle}>
-                        <span style={{
-                          color: dev.last_seen_at && (now - new Date(dev.last_seen_at).getTime()) < 300000
-                            ? 'var(--portal-success)'
-                            : 'var(--portal-muted)',
-                        }}>
-                          {dev.last_seen_at ? new Date(dev.last_seen_at).toLocaleString() : '—'}
-                        </span>
-                      </td>
-                      <td style={tdStyle}>
-                        {dev.last_lat && dev.last_lng ? (
-                          <a
-                            href={`https://www.google.com/maps?q=${dev.last_lat},${dev.last_lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: 'var(--portal-info)', textDecoration: 'none', fontSize: 12 }}
-                          >
-                            {Number(dev.last_lat).toFixed(4)}, {Number(dev.last_lng).toFixed(4)}
-                          </a>
-                        ) : (
-                          <span style={{ color: 'var(--portal-muted)' }}>—</span>
-                        )}
-                      </td>
-                      <td style={{ ...tdStyle, color: 'var(--portal-muted)' }}>{dev.created_at ? new Date(dev.created_at).toLocaleString() : '—'}</td>
-                    </tr>
-                  ))}
+                  {deviceRecords.map((dev) => {
+                    const recent = !!dev.last_seen_at && (now - new Date(dev.last_seen_at).getTime()) < 300000
+                    return (
+                      <tr key={dev.id}>
+                        <td>
+                          <div className="cell-stack">
+                            <span style={{ fontWeight: 500 }}>{dev.name || dev.id}</span>
+                            {dev.name && <span className="cell-sub"><code>{dev.id}</code></span>}
+                          </div>
+                        </td>
+                        <td className="cell-nowrap">
+                          <span className="device-presence" data-online={recent || undefined} aria-hidden style={{ display: 'inline-block', marginRight: 8, verticalAlign: 1 }} />
+                          {at(dev.last_seen_at)}
+                        </td>
+                        <td>
+                          {dev.last_lat && dev.last_lng
+                            ? mapLink(dev.last_lat, dev.last_lng, `${Number(dev.last_lat).toFixed(4)}, ${Number(dev.last_lng).toFixed(4)}`)
+                            : <span className="cell-sub">—</span>}
+                        </td>
+                        <td className="cell-nowrap cell-sub">{at(dev.created_at)}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             )
           )}
         </div>
       )}
-
-      <div style={{ marginTop: 12, color: 'var(--portal-muted)', fontSize: 12 }}>
-        Showing latest 100 entries per tab. Data comes from controller callbacks.
-      </div>
     </div>
   )
 }

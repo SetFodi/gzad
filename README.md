@@ -4,6 +4,10 @@ Mobile digital advertising on Tbilisi's taxi fleet. Advertisers buy airtime on
 LED screens mounted on partner vehicles; the screens report what they played and
 where, and clients are billed hourly from a prepaid balance.
 
+The application includes the landing page, advertiser portal, fleet portal,
+admin tools, authentication, and billing. See [deployment instructions](docs/deployment.md)
+for database prerequisites and features that require separate activation.
+
 ## Architecture
 
 ```
@@ -27,6 +31,7 @@ Advertiser / Fleet owner / Admin
   cannot disagree.
 - **`src/lib/device-sync.ts`** — turns slots into a program and pushes it.
 - **`src/lib/billing.ts`** — pure pricing maths (unit tested).
+- **`src/lib/metering.ts`** — billing candidate calculation and atomic posting.
 - **`realtime-server/`** — Express + WebSocket bridge to the controllers.
 - **`migrations/`** — ordered SQL, applied by hand in the Supabase SQL editor.
 
@@ -37,6 +42,10 @@ npm install
 cp .env.example .env.local   # fill in the Supabase values
 npm run dev
 ```
+
+Open `/` for the landing, `/portal/login` to sign in, `/portal/dashboard` for
+advertisers, `/admin` for staff, and `/fleet` for fleet partners. Local
+development uses the backend configured in `.env.local`.
 
 The Realtime Server is optional locally; without it, device pages show a
 "cannot reach Realtime Server" notice and everything else works.
@@ -62,11 +71,16 @@ hour, charged once no matter how many times it looped.
 cost = base_rate(slot_duration) × district_multiplier(tier) × time_multiplier(hour)
 ```
 
-`/api/billing/calculate` charges every whole hour that isn't in `billing_logs`
-yet, so a missed run is picked up by the next one instead of losing the revenue.
-It is safe to call repeatedly — a unique index on
-`(campaign_id, device_id, period_start)` means only newly inserted rows are
-deducted from a balance.
+`/api/billing/calculate` uses campaign status history and reported plays to
+calculate missing billing periods, then posts new charges atomically. Repeated
+runs and late plays are covered by the SQL scenarios and pipeline test.
+Whole-hour billing remains the default. A future `BILLING_METERED_FROM` value
+switches later periods to ten-minute blocks, with overlap protection against
+previous charges. Daily caps, a balance ledger, and usage views are included.
+
+The billing route requires migration `010` even in hourly mode. Retention only
+runs when `BILLING_RETENTION=on`. Deploying the application does not apply
+migrations or activate metered billing, retention, or email notifications.
 
 Two things trigger it:
 
@@ -86,18 +100,15 @@ again.
 
 ## Deploying
 
-**App** — push to `master`; Vercel builds and deploys.
+Follow the [deployment instructions](docs/deployment.md) before pushing to
+`master`, which is connected to Vercel. Database migrations and the Realtime
+Server are deployed separately. The [migration reference](migrations/README.md)
+lists database files and local SQL checks.
 
-**Realtime Server** — there is no pipeline; copy and restart:
-
-```bash
-scp realtime-server/server.js root@167.71.50.3:/opt/gzad-realtime/server.js
-ssh root@167.71.50.3 'pm2 restart gzad-realtime'
-```
-
-**Database** — see [migrations/README.md](migrations/README.md). Migrations are
-applied by hand and are idempotent. `008` and `009` are not yet applied to
-production.
+The initial release keeps email verification, billing email, metered billing,
+and retention disabled. Confirmed accounts retain password sign-in. SMTP,
+code templates, and the authentication database gate must be prepared together
+before conditional email-code verification is enabled.
 
 ## Operations
 
@@ -112,9 +123,10 @@ group, its status is `active`, today is inside its start/end dates, it has
 approved media, and it isn't sixth in line — only 5 slots exist per device. The
 admin **Slots** page shows all of this per device.
 
-**Billing looks wrong.** `billing_logs` is the audit trail — one row per
-slot-hour with the rate and multipliers that produced it. `balance_transactions`
-records every movement of credit and who made it.
+**Billing looks wrong.** `billing_logs` contains period charges and pricing
+details. `balance_transactions` records credit movements. Migration `010` adds
+usage summaries, daily caps, and a dry-run path for comparing calculations
+before posting. See the migration README for the exact rollout order.
 
 **Rotating secrets.** `CALLBACK_SECRET` and `REALTIME_SERVER_SECRET` must be
 changed in both Vercel and the VPS `.env` together, then `pm2 restart

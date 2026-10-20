@@ -1,16 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import {
-  LayoutGrid,
-  Image as ImageIcon,
-  Film,
-  AlertTriangle,
-  Megaphone,
-  Wifi,
-  WifiOff,
-} from 'lucide-react'
+import Link from 'next/link'
+import { AlertTriangle, Megaphone, RefreshCw } from 'lucide-react'
+import ProgressRing from '@/components/app/ProgressRing'
+import StatusBadge from '@/components/app/StatusBadge'
 
 interface SlotEntry {
   index: number
@@ -76,76 +70,32 @@ function formatRelative(iso: string | null): string {
   return `${d}d ago`
 }
 
-function SlotCell({ slot }: { slot: SlotEntry }) {
-  const isCustomer = slot.type === 'customer'
-  const isHouse = slot.type === 'house'
-
-  const baseStyle: React.CSSProperties = {
-    border: '1px solid var(--portal-primary-soft)',
-    background: isCustomer
-      ? 'rgba(241, 226, 209, 0.5)'
-      : isHouse
-        ? 'rgba(167, 98, 23, 0.08)'
-        : 'rgba(163, 58, 58, 0.05)',
-    borderColor: isCustomer
-      ? 'var(--portal-primary)'
-      : isHouse
-        ? 'var(--portal-warning)'
-        : 'var(--portal-danger)',
-    borderRadius: 8,
-    padding: '8px 10px',
-    minWidth: 130,
-    maxWidth: 170,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-    overflow: 'hidden',
-  }
-
-  const labelColor = isCustomer
-    ? 'var(--portal-primary)'
-    : isHouse
-      ? 'var(--portal-warning)'
-      : 'var(--portal-danger)'
-
+/** One slot of a screen's loop, sized by how long it plays. */
+function LoopSlot({ slot }: { slot: SlotEntry }) {
+  const label = slot.type === 'customer' ? (slot.campaignName ?? 'Unnamed') : slot.type === 'house' ? 'Gzad house ad' : 'Empty'
   return (
-    <div style={baseStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', color: labelColor, textTransform: 'uppercase' }}>
-          {isCustomer ? 'Customer' : isHouse ? 'House' : 'Empty'}
-        </span>
-        <span style={{
-          fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
-          padding: '2px 6px', borderRadius: 4,
-          background: 'rgba(84, 26, 26, 0.08)', color: 'var(--portal-primary-deep)',
-        }}>
-          {slot.durationSeconds}s
-        </span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        {isCustomer ? (
+    <div className="loop-slot" data-type={slot.type} style={{ flexGrow: Math.max(slot.durationSeconds, 1) }} title={`Slot ${slot.index + 1}: ${label}, ${slot.durationSeconds}s`}>
+      <div className="loop-slot-media">
+        {slot.type === 'customer' && slot.mediaUrl ? (
           slot.mediaType === 'video'
-            ? <Film size={13} style={{ color: 'var(--portal-primary)', flexShrink: 0 }} />
-            : <ImageIcon size={13} style={{ color: 'var(--portal-primary)', flexShrink: 0 }} />
-        ) : isHouse ? (
-          <Megaphone size={13} style={{ color: 'var(--portal-warning)', flexShrink: 0 }} />
-        ) : (
-          <AlertTriangle size={13} style={{ color: 'var(--portal-danger)', flexShrink: 0 }} />
-        )}
-        <span style={{
-          fontSize: 13, fontWeight: 500,
-          color: 'var(--portal-primary-deep)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }} title={slot.campaignName || (isHouse ? 'Gzad house ad' : 'Unassigned')}>
-          {isCustomer ? (slot.campaignName ?? 'Unnamed') : isHouse ? 'Gzad house ad' : 'Unassigned'}
-        </span>
+            ? <video src={slot.mediaUrl} muted playsInline preload="metadata" />
+            // eslint-disable-next-line @next/next/no-img-element
+            : <img src={slot.mediaUrl} alt="" loading="lazy" />
+        ) : slot.type === 'house' ? (
+          <span className="loop-slot-house"><span className="app-brand-mark" aria-hidden /> gzad</span>
+        ) : slot.type === 'empty' ? (
+          <AlertTriangle size={14} aria-hidden />
+        ) : null}
+      </div>
+      <div className="loop-slot-meta">
+        <span className="loop-slot-name">{label}</span>
+        <span className="loop-slot-dur">{slot.durationSeconds}s</span>
       </div>
     </div>
   )
 }
 
 export default function SlotsPage() {
-  const router = useRouter()
   const [data, setData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -161,10 +111,11 @@ export default function SlotsPage() {
         setData(null)
       } else {
         setData(json)
-        setError(json.realtimeError ? `Live status: ${json.realtimeError}` : '')
+        setError(json.realtimeError ? `Can't reach the Realtime Server (${json.realtimeError}), so online status may be out of date.` : '')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
+      setData(null)
     } finally {
       setLoading(false)
     }
@@ -198,212 +149,131 @@ export default function SlotsPage() {
     return <div className="portal-loading">Loading slot view…</div>
   }
 
+  if (!data && error) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load slot data from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadSlots()}>Try again</button>
+      </div>
+    </div>
+  )
+
+  const perDevice = data?.slotsPerDevice ?? 5
+  const filters: { key: StatusFilter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'online', label: 'Online' },
+    { key: 'offline', label: 'Offline' },
+    { key: 'partial', label: 'Partly sold' },
+    { key: 'full', label: 'Sold out' },
+    { key: 'issues', label: 'Issues' },
+  ]
+
   return (
     <div className="portal-page">
-      <div className="portal-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <LayoutGrid size={22} style={{ color: 'var(--portal-primary)' }} />
-            Slot Tracker
-          </h1>
-          <p style={{ margin: '6px 0 0', color: 'var(--portal-muted)', fontSize: 13 }}>
-            {data?.slotsPerDevice ?? 5} slots per LED · auto-refreshing every 10s
+          <h1 className="portal-page-title">Slots</h1>
+          <p className="portal-subtitle">
+            Every screen plays a loop of {perDevice} slots. Paid slots show the client&apos;s ad; the rest fill with Gzad house ads. Refreshes every 10 seconds.
           </p>
         </div>
-        <button
-          onClick={loadSlots}
-          className="portal-btn-secondary"
-          aria-label="Refresh now"
-        >
-          Refresh
+        <button type="button" onClick={loadSlots} className="portal-btn-secondary">
+          <RefreshCw size={16} aria-hidden /> Refresh
         </button>
       </div>
 
-      {error && (
-        <div style={{
-          margin: '12px 0',
-          padding: '10px 14px',
-          background: 'var(--portal-warning-soft)',
-          border: '1px solid var(--portal-warning)',
-          borderRadius: 8,
-          color: 'var(--portal-warning)',
-          fontSize: 13,
-        }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="portal-alert portal-alert-warning">{error}</div>}
 
-      {/* KPI Tiles */}
       {data && (
-        <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
-          <div className="stat-card">
-            <div className="stat-card-icon" style={{ color: 'var(--portal-success)' }}>
-              <Wifi size={24} />
-            </div>
+        <div className="stats-grid">
+          <div className="stat-card ring-card">
+            <ProgressRing value={data.summary.totalCustomerSlots} max={data.summary.totalSlots} />
             <div className="stat-card-info">
-              <span className="stat-card-value">{data.summary.totalOnline} / {data.summary.totalDevices}</span>
-              <span className="stat-card-label">Devices Online</span>
+              <span className="stat-card-value">{data.summary.totalCustomerSlots}<span className="stat-card-of"> of {data.summary.totalSlots}</span></span>
+              <span className="stat-card-label">Paid slots sold</span>
+            </div>
+          </div>
+          <div className="stat-card ring-card">
+            <ProgressRing value={data.summary.totalOnline} max={data.summary.totalDevices} tone="#34c759" />
+            <div className="stat-card-info">
+              <span className="stat-card-value">{data.realtimeError ? '—' : data.summary.totalOnline}<span className="stat-card-of"> of {data.summary.totalDevices}</span></span>
+              <span className="stat-card-label">Screens online</span>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ color: 'var(--portal-primary)' }}>
+            <div className="stat-card-icon" style={{ color: 'var(--portal-muted)' }}>
               <Megaphone size={24} />
             </div>
             <div className="stat-card-info">
-              <span className="stat-card-value">{data.summary.totalCustomerSlots} / {data.summary.totalSlots}</span>
-              <span className="stat-card-label">Customer Slots Filled</span>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-card-icon" style={{ color: 'var(--portal-warning)' }}>
-              <LayoutGrid size={24} />
-            </div>
-            <div className="stat-card-info">
               <span className="stat-card-value">{data.summary.totalHouseSlots}</span>
-              <span className="stat-card-label">House Fill Slots</span>
+              <span className="stat-card-label">Filled with house ads</span>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ color: 'var(--portal-danger)' }}>
+            <div className="stat-card-icon" style={{ color: data.summary.totalConfigIssues ? 'var(--portal-danger)' : 'var(--portal-success)' }}>
               <AlertTriangle size={24} />
             </div>
             <div className="stat-card-info">
               <span className="stat-card-value">{data.summary.totalConfigIssues}</span>
-              <span className="stat-card-label">Config Issues</span>
+              <span className="stat-card-label">Setup issues</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--portal-muted)' }}>
-          Group
+      <div className="table-toolbar" style={{ marginTop: 28 }}>
+        <div className="segmented" role="group" aria-label="Filter screens">
+          {filters.map(opt => (
+            <button key={opt.key} type="button" aria-pressed={statusFilter === opt.key} onClick={() => setStatusFilter(opt.key)}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="admin-header-actions">
           <select
             value={groupFilter}
             onChange={e => setGroupFilter(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              border: '1px solid var(--portal-primary-soft)',
-              borderRadius: 6,
-              background: 'white',
-              color: 'var(--portal-primary-deep)',
-              fontSize: 13,
-            }}
+            aria-label="Group"
+            style={{ width: 'auto', minHeight: 36 }}
           >
             <option value="all">All groups</option>
-            <option value="__none__">No group assigned</option>
+            <option value="__none__">No group</option>
             {data?.groups.map(g => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
           </select>
-        </label>
-
-        <div style={{ display: 'inline-flex', gap: 0, border: '1px solid var(--portal-primary-soft)', borderRadius: 6, overflow: 'hidden' }}>
-          {([
-            { key: 'all', label: 'All' },
-            { key: 'online', label: 'Online' },
-            { key: 'offline', label: 'Offline' },
-            { key: 'partial', label: 'Partial' },
-            { key: 'full', label: 'Full' },
-            { key: 'issues', label: 'Issues' },
-          ] as { key: StatusFilter; label: string }[]).map(opt => {
-            const active = statusFilter === opt.key
-            return (
-              <button
-                key={opt.key}
-                onClick={() => setStatusFilter(opt.key)}
-                style={{
-                  padding: '6px 14px',
-                  background: active ? 'var(--portal-primary)' : 'transparent',
-                  color: active ? '#F1E2D1' : 'var(--portal-primary-deep)',
-                  border: 'none',
-                  borderLeft: '1px solid var(--portal-primary-soft)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                }}
-              >
-                {opt.label}
-              </button>
-            )
-          })}
+          <span className="cell-sub">{filteredDevices.length} of {data?.devices.length ?? 0} screens</span>
         </div>
-
-        <span style={{ fontSize: 13, color: 'var(--portal-muted)' }}>
-          Showing {filteredDevices.length} of {data?.devices.length ?? 0} devices
-        </span>
       </div>
 
-      {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
-        <table className="portal-table" style={{ minWidth: 1100 }}>
-          <thead>
-            <tr>
-              <th style={{ width: 220 }}>Device</th>
-              <th style={{ width: 110 }}>Status</th>
-              <th>Slot 1</th>
-              <th>Slot 2</th>
-              <th>Slot 3</th>
-              <th>Slot 4</th>
-              <th>Slot 5</th>
-              <th style={{ width: 110, textAlign: 'right' }}>Cycle</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredDevices.length === 0 ? (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--portal-muted)' }}>
-                  No devices match these filters.
-                </td>
-              </tr>
-            ) : (
-              filteredDevices.map(d => (
-                <tr
-                  key={d.cardId}
-                  onClick={() => router.push(`/admin/devices`)}
-                  style={{ cursor: 'pointer' }}
-                  title="Open Devices page"
-                >
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{ fontWeight: 500, color: 'var(--portal-primary-deep)' }}>
-                        {d.name || d.cardId}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'var(--portal-muted)' }}>
-                        {d.groupName ? `${d.groupName}` : (d.configIssue === 'no_group' ? <span style={{ color: 'var(--portal-danger)' }}>No group</span> : '—')}
-                        {' · '}{formatRelative(d.lastSeen)}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '4px 8px', borderRadius: 4,
-                      background: d.online ? 'var(--portal-success-soft)' : 'rgba(84, 26, 26, 0.05)',
-                      color: d.online ? 'var(--portal-success)' : 'var(--portal-muted)',
-                      fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase',
-                    }}>
-                      {d.online ? <Wifi size={12} /> : <WifiOff size={12} />}
-                      {d.online ? 'Online' : 'Offline'}
-                    </span>
-                  </td>
-                  {d.slots.map(s => (
-                    <td key={s.index} style={{ padding: 6 }}>
-                      <SlotCell slot={s} />
-                    </td>
-                  ))}
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--portal-primary-deep)' }}>
-                    {d.cycleSeconds}s
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {filteredDevices.length === 0 ? (
+        <div className="portal-empty portal-empty-sm"><p>No screens match these filters.</p></div>
+      ) : (
+        <div className="loop-list">
+          {filteredDevices.map(d => (
+            <article key={d.cardId} className="loop-row">
+              <div className="loop-row-head">
+                <span className="device-presence" data-online={d.online || undefined} aria-hidden />
+                <div className="cell-stack" style={{ flex: 1 }}>
+                  <Link href="/admin/devices" className="table-link">{d.name || d.cardId}</Link>
+                  <span className="cell-sub">
+                    {d.groupName ?? (d.configIssue === 'no_group' ? <span style={{ color: 'var(--portal-danger)' }}>No group</span> : '—')}
+                    {' · '}seen {formatRelative(d.lastSeen)}
+                  </span>
+                </div>
+                <span className="cell-sub cell-nowrap">{d.customerSlotCount} of {perDevice} sold · {d.cycleSeconds}s loop</span>
+                <StatusBadge status={data?.realtimeError ? 'unknown' : d.online ? 'online' : 'offline'}>{data?.realtimeError ? 'Unknown' : d.online ? 'Online' : 'Offline'}</StatusBadge>
+              </div>
+              <div className="loop-strip">
+                {d.slots.map(slot => <LoopSlot key={slot.index} slot={slot} />)}
+              </div>
+              {d.configIssue === 'no_campaigns' && (
+                <p className="cell-sub" style={{ margin: 0, color: 'var(--portal-warning)' }}>No active campaigns in this screen&apos;s group, so it only plays house ads.</p>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

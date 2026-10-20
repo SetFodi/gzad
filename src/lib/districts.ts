@@ -157,8 +157,12 @@ export function isPointInDistrict(lat: number, lng: number, districtName: string
   return pointInPolygon(lat, lng, district.polygon)
 }
 
-export function getDistrictsForPoint(lat: number, lng: number): string[] {
-  return TBILISI_DISTRICTS
+export function getDistrictsForPoint(
+  lat: number,
+  lng: number,
+  districts: Pick<District, 'name' | 'polygon'>[] = TBILISI_DISTRICTS,
+): string[] {
+  return districts
     .filter(d => pointInPolygon(lat, lng, d.polygon))
     .map(d => d.name)
 }

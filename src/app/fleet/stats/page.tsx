@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { createClient } from '@/lib/supabase/client'
+import HourRange from '@/components/app/HourRange'
 import { BarChart3, Play, Clock, Monitor, Megaphone, X, MapPin, ChevronDown } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 
@@ -40,79 +40,6 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-function formatHour(h: number): string {
-  return `${h.toString().padStart(2, '0')}:00`
-}
-
-// ─── Dual-handle range slider ────────────────────────────────────────────────
-function RangeSlider({ min, max, value, onChange }: {
-  min: number; max: number
-  value: [number, number]
-  onChange: (v: [number, number]) => void
-}) {
-  const trackRef = useRef<HTMLDivElement>(null)
-  const draggingRef = useRef<'low' | 'high' | null>(null)
-
-  function pctFromEvent(e: React.MouseEvent | MouseEvent) {
-    const rect = trackRef.current!.getBoundingClientRect()
-    return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-  }
-  function valFromPct(pct: number) {
-    return Math.round(min + pct * (max - min))
-  }
-
-  function onMouseDown(handle: 'low' | 'high') {
-    return (e: React.MouseEvent) => {
-      e.preventDefault()
-      draggingRef.current = handle
-      const onMove = (ev: MouseEvent) => {
-        const v = valFromPct(pctFromEvent(ev))
-        if (draggingRef.current === 'low') {
-          onChange([Math.min(v, value[1]), value[1]])
-        } else {
-          onChange([value[0], Math.max(v, value[0])])
-        }
-      }
-      const onUp = () => {
-        draggingRef.current = null
-        window.removeEventListener('mousemove', onMove)
-        window.removeEventListener('mouseup', onUp)
-      }
-      window.addEventListener('mousemove', onMove)
-      window.addEventListener('mouseup', onUp)
-    }
-  }
-
-  const lowPct = ((value[0] - min) / (max - min)) * 100
-  const highPct = ((value[1] - min) / (max - min)) * 100
-
-  return (
-    <div style={{ position: 'relative', height: 36, userSelect: 'none' }}>
-      <div ref={trackRef} style={{
-        position: 'absolute', top: 14, left: 0, right: 0, height: 8,
-        background: 'var(--portal-border)', borderRadius: 4,
-      }}>
-        <div style={{
-          position: 'absolute', top: 0, left: `${lowPct}%`, width: `${highPct - lowPct}%`,
-          height: '100%', background: 'var(--portal-info)', borderRadius: 4,
-        }} />
-      </div>
-      <div onMouseDown={onMouseDown('low')} style={{
-        position: 'absolute', top: 8, left: `${lowPct}%`, transform: 'translateX(-50%)',
-        width: 20, height: 20, borderRadius: '50%', background: '#fff',
-        border: '2px solid var(--portal-info)', cursor: 'grab', zIndex: 2,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-      }} />
-      <div onMouseDown={onMouseDown('high')} style={{
-        position: 'absolute', top: 8, left: `${highPct}%`, transform: 'translateX(-50%)',
-        width: 20, height: 20, borderRadius: '50%', background: '#fff',
-        border: '2px solid var(--portal-info)', cursor: 'grab', zIndex: 2,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-      }} />
-    </div>
-  )
-}
-
 // ─── Dropdown select ─────────────────────────────────────────────────────────
 function FilterSelect({ label, value, options, onChange }: {
   label: string
@@ -122,9 +49,10 @@ function FilterSelect({ label, value, options, onChange }: {
 }) {
   return (
     <div style={{ position: 'relative', minWidth: 150 }}>
-      <label style={{ fontSize: 11, color: 'var(--portal-muted)', display: 'block', marginBottom: 4 }}>{label}</label>
+      <span style={{ fontSize: 11, color: 'var(--portal-muted)', display: 'block', marginBottom: 4 }}>{label}</span>
       <div style={{ position: 'relative' }}>
         <select
+          aria-label={label}
           value={value}
           onChange={e => onChange(e.target.value)}
           style={{
@@ -147,14 +75,17 @@ function FilterSelect({ label, value, options, onChange }: {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function FleetStatsPage() {
-  const supabase = createClient()
   const { t } = useTranslations()
   const ft = t.fleet.stats
+  const common = t.fleet.common
 
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [myDeviceIds, setMyDeviceIds] = useState<string[]>([])
   const [allLogs, setAllLogs] = useState<PlayLog[]>([])
   const [dailyTrend, setDailyTrend] = useState<DailyTrend[]>([])
+  const chart = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<'campaigns' | 'devices' | 'daily' | 'map'>('campaigns')
 
   // Date range selection
@@ -162,85 +93,67 @@ export default function FleetStatsPage() {
   const [selEnd, setSelEnd] = useState<number | null>(null)
   const [dragging, setDragging] = useState(false)
   const dragStart = useRef<number | null>(null)
+  const dragMoved = useRef(false)
+  const selectionAnchor = useRef<number | null>(null)
 
   // Map filters
   const [mapCampaign, setMapCampaign] = useState('all')
   const [mapDevice, setMapDevice] = useState('all')
   const [hourRange, setHourRange] = useState<[number, number]>([0, 23])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/immutability -- load() is async: state is set once the query resolves, not during render
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const controller = new AbortController()
+    async function load() {
+      setLoading(true)
+      setLoadError(false)
+      try {
+        const response = await fetch('/api/fleet/stats?detail=1', { signal: controller.signal })
+        if (!response.ok) throw new Error('Fleet statistics unavailable')
+        const data = await response.json()
+        if (!Array.isArray(data.vehicles) || !Array.isArray(data.logs)) throw new Error('Invalid fleet statistics')
 
-  async function load() {
-    setLoading(true)
-
-    // Get current user's fleet vehicles with assigned devices
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { data: client } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .single()
-
-    if (!client) return
-
-    const { data: vehicles } = await supabase
-      .from('fleet_vehicles')
-      .select('device_id')
-      .eq('fleet_user_id', client.id)
-      .not('device_id', 'is', null)
-
-    const deviceIds = (vehicles || []).map(v => v.device_id!).filter(Boolean)
-    setMyDeviceIds(deviceIds)
-
-    if (deviceIds.length === 0) {
-      setLoading(false)
-      return
+        const deviceIds: string[] = data.vehicles.map((vehicle: { device_id: string | null }) => vehicle.device_id).filter(Boolean)
+        const fetched: PlayLog[] = data.logs.map((log: PlayLog) => ({
+          ...log,
+          program_name: log.program_name || 'unknown',
+          lat: Number(log.lat) || 0,
+          lng: Number(log.lng) || 0,
+        }))
+        const dailyMap = new Map<string, { plays: number; duration: number }>()
+        for (const log of fetched) {
+          const date = toTbilisiDate(log.began_at)
+          const day = dailyMap.get(date) || { plays: 0, duration: 0 }
+          day.plays++
+          day.duration += log.duration_seconds || 0
+          dailyMap.set(date, day)
+        }
+        const trend: DailyTrend[] = []
+        const date = new Date()
+        date.setDate(date.getDate() - 30)
+        const today = new Date()
+        while (date <= today) {
+          const key = toTbilisiDate(date.toISOString())
+          trend.push({ date: key, plays: dailyMap.get(key)?.plays || 0, duration: dailyMap.get(key)?.duration || 0 })
+          date.setDate(date.getDate() + 1)
+        }
+        if (!controller.signal.aborted) {
+          setMyDeviceIds(deviceIds)
+          setAllLogs(fetched)
+          setDailyTrend(trend)
+        }
+      } catch {
+        if (!controller.signal.aborted) setLoadError(true)
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
     }
+    load()
+    return () => controller.abort()
+  }, [attempt])
 
-    // Fetch play_logs for these devices (last 30 days)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    let allFetched: PlayLog[] = []
-    let page = 0
-    const PAGE_SIZE = 1000
-    while (true) {
-      const { data: batch } = await supabase
-        .from('play_logs')
-        .select('campaign_id, program_name, device_id, began_at, duration_seconds, lat, lng')
-        .in('device_id', deviceIds)
-        .gte('began_at', thirtyDaysAgo.toISOString())
-        .order('began_at', { ascending: true })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-      if (!batch || batch.length === 0) break
-      allFetched = allFetched.concat(batch)
-      if (batch.length < PAGE_SIZE) break
-      page++
-    }
-    setAllLogs(allFetched)
-
-    // Build daily trend
-    const dailyMap: Record<string, { plays: number; duration: number }> = {}
-    for (const log of allFetched) {
-      const date = toTbilisiDate(log.began_at)
-      if (!dailyMap[date]) dailyMap[date] = { plays: 0, duration: 0 }
-      dailyMap[date].plays++
-      dailyMap[date].duration += log.duration_seconds || 0
-    }
-    const trend: DailyTrend[] = []
-    const d = new Date(thirtyDaysAgo)
-    const today = new Date()
-    while (d <= today) {
-      const dateStr = toTbilisiDate(d.toISOString())
-      trend.push({ date: dateStr, plays: dailyMap[dateStr]?.plays || 0, duration: dailyMap[dateStr]?.duration || 0 })
-      d.setDate(d.getDate() + 1)
-    }
-    setDailyTrend(trend)
-
-    setLoading(false)
-  }
+  useEffect(() => {
+    if (chart.current) chart.current.scrollLeft = chart.current.scrollWidth
+  }, [dailyTrend])
 
   // Filter logs by selected date range
   const filteredLogs = useCallback(() => {
@@ -312,15 +225,16 @@ export default function FleetStatsPage() {
 
   const campaignNames = Object.keys(campaignPlays).sort((a, b) => campaignPlays[b].plays - campaignPlays[a].plays)
 
-  // Bar interaction handlers
+  // Click/tap a first and last day, or drag with a mouse.
   const handleBarMouseDown = (index: number) => {
     dragStart.current = index
     setDragging(true)
-    setSelStart(index)
-    setSelEnd(index)
+    dragMoved.current = false
   }
   const handleBarMouseEnter = (index: number) => {
     if (dragging && dragStart.current !== null) {
+      dragMoved.current = index !== dragStart.current
+      selectionAnchor.current = null
       setSelStart(dragStart.current)
       setSelEnd(index)
     }
@@ -329,14 +243,36 @@ export default function FleetStatsPage() {
     setDragging(false)
     dragStart.current = null
   }
+  const handleBarClick = (index: number, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (dragMoved.current && event.detail > 0) return
+    if ((event.shiftKey && selStart !== null) || selectionAnchor.current !== null) {
+      setSelStart(selectionAnchor.current ?? selStart)
+      setSelEnd(index)
+      selectionAnchor.current = null
+    } else {
+      setSelStart(index)
+      setSelEnd(index)
+      selectionAnchor.current = index
+    }
+  }
   const clearSelection = () => {
+    selectionAnchor.current = null
+    dragMoved.current = false
     setSelStart(null)
     setSelEnd(null)
     setDragging(false)
     dragStart.current = null
   }
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  if (loading) return <div className="portal-loading">{common.loading}</div>
+
+  if (loadError) return (
+    <div className="portal-page">
+      <h1 className="portal-page-title">{ft.title}</h1>
+      <div className="portal-alert portal-alert-danger" role="alert">{common.loadFailed}</div>
+      <button type="button" className="portal-btn-secondary" onClick={() => setAttempt(value => value + 1)}>{common.retry}</button>
+    </div>
+  )
 
   if (myDeviceIds.length === 0) {
     return (
@@ -361,7 +297,7 @@ export default function FleetStatsPage() {
       {/* Overview Cards */}
       <div className="stats-grid" style={{ marginBottom: '2rem' }}>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(76, 106, 136, 0.14)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-info-soft)' }}>
             <Play size={24} color="var(--portal-info)" />
           </div>
           <div className="stat-card-info">
@@ -370,7 +306,7 @@ export default function FleetStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(47, 125, 89, 0.14)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-success-soft)' }}>
             <Clock size={24} color="var(--portal-success)" />
           </div>
           <div className="stat-card-info">
@@ -379,7 +315,7 @@ export default function FleetStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(167, 98, 23, 0.14)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-warning-soft)' }}>
             <Monitor size={24} color="var(--portal-warning)" />
           </div>
           <div className="stat-card-info">
@@ -388,7 +324,7 @@ export default function FleetStatsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(185, 133, 71, 0.13)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-fill)' }}>
             <Megaphone size={24} color="var(--portal-brass)" />
           </div>
           <div className="stat-card-info">
@@ -400,63 +336,61 @@ export default function FleetStatsPage() {
 
       {/* Selectable Daily Chart */}
       <div className="portal-section" style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h2 style={{ margin: 0 }}>{ft.last30Days}</h2>
-          {hasSelection && (
+        <div className="section-head">
+          <h2>{ft.last30Days}</h2>
+          {hasSelection ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'var(--portal-info)', fontWeight: 500 }}>{selLabel}</span>
-              <button onClick={clearSelection} style={{
-                display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-                borderRadius: 6, fontSize: 12, border: '1px solid rgba(76, 106, 136, 0.14)',
-                background: 'rgba(76, 106, 136, 0.14)', color: 'var(--portal-info)', cursor: 'pointer',
-              }}>
-                <X size={12} /> {ft.clear}
+              <span style={{ fontSize: 13, color: 'var(--portal-text-soft)', fontWeight: 500 }}>{selLabel}</span>
+              <button type="button" onClick={clearSelection} className="action-btn">
+                <X size={12} aria-hidden /> {ft.clear}
               </button>
             </div>
-          )}
+          ) : <span className="field-hint">{ft.selectHint}</span>}
         </div>
         <div
-          style={{
-            display: 'flex', alignItems: 'flex-end', gap: '2px', height: '100px',
-            padding: '1rem', background: 'var(--portal-surface)', borderRadius: '0.75rem',
-            border: '1px solid var(--portal-border)', userSelect: 'none',
-          }}
+          ref={chart}
+          className="play-chart"
+          role="group"
+          aria-label={ft.selectHint}
           onMouseLeave={() => { if (dragging) handleBarMouseUp() }}
         >
           {dailyTrend.map((d, i) => {
             const isSelected = hasSelection && i >= selMin && i <= selMax
             const isInactive = hasSelection && !isSelected
             return (
-              <div
+              <button
                 key={d.date}
-                title={`${d.date}: ${d.plays} plays, ${formatDuration(d.duration)}`}
+                type="button"
+                className="play-chart-day"
+                title={`${d.date}: ${d.plays} ${ft.plays}, ${formatDuration(d.duration)}`}
+                aria-label={`${d.date}: ${d.plays} ${ft.plays}, ${formatDuration(d.duration)}`}
+                aria-pressed={isSelected}
                 onMouseDown={() => handleBarMouseDown(i)}
                 onMouseEnter={() => handleBarMouseEnter(i)}
-                style={{
-                  flex: 1,
+                onClick={event => handleBarClick(i, event)}
+              >
+                <span className="play-chart-bar" aria-hidden style={{
                   height: `${Math.max((d.plays / maxDailyPlays) * 100, 2)}%`,
                   background: isSelected
-                    ? 'var(--portal-info)'
+                    ? 'var(--portal-primary)'
                     : isInactive
-                      ? 'rgba(76, 106, 136, 0.14)'
-                      : d.plays > 0 ? 'rgba(76, 106, 136, 0.14)' : 'rgba(76, 106, 136, 0.14)',
+                      ? 'var(--portal-primary-soft)'
+                      : d.plays > 0 ? 'var(--portal-chart)' : 'var(--portal-fill)',
                   borderRadius: '2px 2px 0 0',
-                  minWidth: '3px',
-                  cursor: 'pointer',
                   transition: 'background 0.15s',
-                }}
-              />
+                }} />
+              </button>
             )
           })}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: 'var(--portal-muted)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '-6px 4px 0', fontSize: 12, color: 'var(--portal-muted)' }}>
           <span>{dailyTrend[0]?.date}</span>
           <span>{dailyTrend[dailyTrend.length - 1]?.date}</span>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="segmented" role="tablist" aria-label="Breakdown" style={{ marginTop: 28, marginBottom: 4, maxWidth: 620 }}>
         {([
           { key: 'campaigns', label: ft.tabCampaigns, icon: Megaphone },
           { key: 'devices', label: ft.tabDevices, icon: Monitor },
@@ -465,17 +399,12 @@ export default function FleetStatsPage() {
         ] as const).map(tab => (
           <button
             key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
-            style={{
-              padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid',
-              borderColor: activeTab === tab.key ? 'var(--portal-info)' : 'var(--portal-border)',
-              background: activeTab === tab.key ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
-              color: activeTab === tab.key ? 'var(--portal-info)' : 'var(--portal-muted)',
-              cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-            }}
           >
-            <tab.icon size={16} />
+            <tab.icon size={14} aria-hidden style={{ verticalAlign: -2, marginRight: 6 }} />
             {tab.label}
           </button>
         ))}
@@ -598,10 +527,7 @@ export default function FleetStatsPage() {
               <FilterSelect label={ft.device} value={mapDevice} options={deviceOptions} onChange={setMapDevice} />
 
               <div style={{ flex: 1, minWidth: 200 }}>
-                <label style={{ fontSize: 11, color: 'var(--portal-muted)', display: 'block', marginBottom: 4 }}>
-                  {ft.timeOfDay}: {formatHour(hourRange[0])} — {formatHour(hourRange[1])}
-                </label>
-                <RangeSlider min={0} max={23} value={hourRange} onChange={setHourRange} />
+                <HourRange start={hourRange[0]} end={hourRange[1]} onChange={setHourRange} label={ft.timeOfDay} fromLabel={ft.startHour} toLabel={ft.endHour} />
               </div>
             </div>
 

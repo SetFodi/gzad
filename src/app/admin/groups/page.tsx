@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, X, Trash2, Monitor, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
+import AppDialog from '@/components/app/AppDialog'
 
 interface DeviceGroup {
   id: string
@@ -23,6 +24,7 @@ export default function GroupsPage() {
   const [groups, setGroups] = useState<DeviceGroup[]>([])
   const [unassigned, setUnassigned] = useState<DeviceOption[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -30,38 +32,47 @@ export default function GroupsPage() {
   const supabase = createClient()
 
   const load = async () => {
-    // Load groups
-    const { data: groupData } = await supabase
-      .from('device_groups')
-      .select('*')
-      .order('created_at', { ascending: true })
+    setLoading(true)
+    setLoadError(false)
+    try {
+      // Load groups
+      const { data: groupData, error: groupsError } = await supabase
+        .from('device_groups')
+        .select('*')
+        .order('created_at', { ascending: true })
 
-    // Load all devices
-    const { data: deviceData } = await supabase
-      .from('devices')
-      .select('id, name, group_id')
+      // Load all devices
+      const { data: deviceData, error: devicesError } = await supabase
+        .from('devices')
+        .select('id, name, group_id')
 
-    // Load campaign counts per group
-    const { data: campaignData } = await supabase
-      .from('campaigns')
-      .select('device_group_id')
-      .not('device_group_id', 'is', null)
+      // Load campaign counts per group
+      const { data: campaignData, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('device_group_id')
+        .not('device_group_id', 'is', null)
 
-    const campaignCounts: Record<string, number> = {}
-    for (const c of campaignData || []) {
-      campaignCounts[c.device_group_id] = (campaignCounts[c.device_group_id] || 0) + 1
+      if (groupsError || devicesError || campaignsError) throw groupsError || devicesError || campaignsError
+
+      const campaignCounts: Record<string, number> = {}
+      for (const c of campaignData || []) {
+        campaignCounts[c.device_group_id] = (campaignCounts[c.device_group_id] || 0) + 1
+      }
+
+      const devices = deviceData || []
+      const enriched = (groupData || []).map(g => ({
+        ...g,
+        devices: devices.filter(d => d.group_id === g.id),
+        campaign_count: campaignCounts[g.id] || 0,
+      }))
+
+      setGroups(enriched)
+      setUnassigned(devices.filter(d => !d.group_id))
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
     }
-
-    const devices = deviceData || []
-    const enriched = (groupData || []).map(g => ({
-      ...g,
-      devices: devices.filter(d => d.group_id === g.id),
-      campaign_count: campaignCounts[g.id] || 0,
-    }))
-
-    setGroups(enriched)
-    setUnassigned(devices.filter(d => !d.group_id))
-    setLoading(false)
   }
 
   // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/immutability -- load() is async: state is set once the query resolves, not during render
@@ -160,136 +171,135 @@ export default function GroupsPage() {
     }
   }
 
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load this page from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+      </div>
+    </div>
+  )
+
   if (loading) return <div className="portal-loading">Loading...</div>
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
-        <h1 className="portal-page-title">Device Groups</h1>
-        <button
-          onClick={() => { setShowCreate(!showCreate); setError('') }}
-          className="portal-btn-primary"
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          {showCreate ? <X size={16} /> : <Plus size={16} />}
-          {showCreate ? 'Cancel' : 'New Group'}
+        <div>
+          <h1 className="portal-page-title">Groups</h1>
+          <p className="portal-subtitle">A group is a set of screens that play the same campaigns. Assign each screen to one group.</p>
+        </div>
+        <button type="button" onClick={() => { setShowCreate(true); setError('') }} className="portal-btn-primary">
+          <Plus size={16} aria-hidden /> New group
         </button>
       </div>
 
       {showCreate && (
-        <div className="portal-panel" style={{ marginBottom: 24 }}>
-          <h3 style={{ marginBottom: 12, fontSize: 15 }}>Create Group</h3>
-          {error && (
-            <div className="portal-alert portal-alert-danger" style={{ marginBottom: 12 }}>
-              {error}
+        <AppDialog labelledBy="new-group-title" onClose={() => setShowCreate(false)}>
+            <div className="admin-modal-header">
+              <h2 id="new-group-title">New group</h2>
+              <button type="button" onClick={() => setShowCreate(false)} className="admin-modal-close" aria-label="Close"><X size={20} /></button>
             </div>
-          )}
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-            <div className="portal-input-group" style={{ flex: 1 }}>
-              <label>Group Name</label>
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. Fleet A, Downtown Taxis"
-                onKeyDown={(e) => e.key === 'Enter' && createGroup()}
-              />
-            </div>
-            <button onClick={createGroup} disabled={creating} className="portal-btn-primary" style={{ height: 40 }}>
-              {creating ? 'Creating...' : 'Create'}
-            </button>
-          </div>
-        </div>
+            <form className="portal-form" onSubmit={(e) => { e.preventDefault(); createGroup() }}>
+              {error && <div className="portal-login-error" role="alert">{error}</div>}
+              <div className="portal-input-group">
+                <label htmlFor="group-name">Name</label>
+                <input
+                  id="group-name"
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. Vake taxis, Airport line"
+                  autoFocus
+                />
+              </div>
+              <button type="submit" disabled={creating} className="portal-btn-primary full-width">
+                {creating ? 'Creating…' : 'Create group'}
+              </button>
+            </form>
+        </AppDialog>
       )}
 
-      {/* Unassigned devices */}
       {unassigned.length > 0 && (
-        <div className="portal-panel" style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--portal-warning)', marginBottom: 10 }}>
-            Unassigned Devices ({unassigned.length})
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="portal-alert portal-alert-warning">
+          <strong>{unassigned.length} {unassigned.length === 1 ? 'screen is' : 'screens are'} not in a group</strong> and won&apos;t get any campaigns until assigned.
+          <div className="chip-row" style={{ marginTop: 10 }}>
             {unassigned.map(d => (
-              <div key={d.id} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: 'rgba(255, 249, 240, 0.72)', border: '1px solid var(--portal-border)', borderRadius: 8,
-                padding: '8px 12px', fontSize: 13,
-              }}>
-                <Monitor size={14} style={{ color: 'var(--portal-primary)' }} />
-                <span style={{ color: 'var(--portal-text)', fontFamily: 'monospace', fontSize: 12, fontWeight: 700 }}>{d.id}</span>
+              <span key={d.id} className="device-chip">
+                <Monitor size={13} aria-hidden />
+                <code>{d.id}</code>
                 {groups.length > 0 && (
                   <select
+                    className="chip-select"
                     onChange={(e) => assignDevice(d.id, e.target.value || null)}
                     defaultValue=""
+                    aria-label={`Assign ${d.id} to a group`}
                   >
-                    <option value="">Assign to...</option>
+                    <option value="">Assign to…</option>
                     {groups.map(g => (
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
                 )}
-              </div>
+              </span>
             ))}
           </div>
         </div>
       )}
 
-      {/* Groups */}
       {groups.length === 0 ? (
         <div className="portal-empty">
-          <p>No groups yet. Create one to organize your devices.</p>
+          <p>No groups yet. Create one, then assign screens to it.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="group-grid">
           {groups.map(g => (
-            <div key={g.id} className="campaign-card" style={{ cursor: 'default' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Link href={`/admin/groups/${g.id}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                  <div>
-                    <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--portal-text)', margin: 0 }}>{g.name}</h3>
-                    <span style={{ fontSize: 13, color: 'var(--portal-muted)' }}>
-                      {g.devices.length} device{g.devices.length !== 1 ? 's' : ''} · {g.campaign_count} campaign{g.campaign_count !== 1 ? 's' : ''}
+            <article key={g.id} className="group-card">
+              <header className="group-card-head">
+                <Link href={`/admin/groups/${g.id}`} className="group-card-title">
+                  <span className="cell-stack">
+                    <span className="group-card-name">{g.name}</span>
+                    <span className="cell-sub">
+                      {g.devices.length} {g.devices.length === 1 ? 'screen' : 'screens'} · {g.campaign_count} {g.campaign_count === 1 ? 'campaign' : 'campaigns'}
                     </span>
-                  </div>
-                  <ChevronRight size={18} style={{ color: 'var(--portal-muted)', marginLeft: 'auto' }} />
+                  </span>
+                  <ChevronRight size={18} aria-hidden className="attention-go" />
                 </Link>
                 <button
+                  type="button"
                   onClick={() => deleteGroup(g.id)}
-                  className="action-btn reject"
+                  className="app-icon-btn danger"
+                  aria-label={`Delete ${g.name}`}
+                  title="Delete group"
                 >
-                  <Trash2 size={12} /> Delete
+                  <Trash2 size={16} aria-hidden />
                 </button>
-              </div>
+              </header>
 
               {g.devices.length === 0 ? (
-                <div style={{ color: 'var(--portal-muted)', fontSize: 14, padding: '10px 0' }}>
-                  No devices in this group. Assign devices from the unassigned list above.
-                </div>
+                <p className="cell-sub" style={{ margin: 0 }}>
+                  {unassigned.length > 0 ? 'No screens yet. Assign one from the list above.' : 'No screens yet. Move one here from another group.'}
+                </p>
               ) : (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="chip-row">
                   {g.devices.map(d => (
-                    <div key={d.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      background: 'var(--portal-primary-soft)', border: '1px solid var(--portal-border)',
-                      borderRadius: 8, padding: '6px 10px', fontSize: 12,
-                    }}>
-                      <Monitor size={12} style={{ color: 'var(--portal-primary)' }} />
-                      <span style={{ color: 'var(--portal-primary)', fontFamily: 'monospace', fontWeight: 700 }}>{d.id}</span>
+                    <span key={d.id} className="device-chip">
+                      <Monitor size={13} aria-hidden />
+                      <code>{d.id}</code>
                       <button
+                        type="button"
                         onClick={() => assignDevice(d.id, null)}
-                        style={{
-                          background: 'none', border: 'none', color: 'var(--portal-muted)',
-                          cursor: 'pointer', padding: 2, display: 'flex',
-                        }}
+                        className="chip-remove"
+                        aria-label={`Remove ${d.id} from ${g.name}`}
                         title="Remove from group"
                       >
-                        <X size={12} />
+                        <X size={12} aria-hidden />
                       </button>
-                    </div>
+                    </span>
                   ))}
                 </div>
               )}
-            </div>
+            </article>
           ))}
         </div>
       )}

@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { BarChart3, Play, Clock, Monitor, Megaphone, FolderOpen, X, MapPin, ChevronDown } from 'lucide-react'
+import StatusBadge from '@/components/app/StatusBadge'
+import HourRange from '@/components/app/HourRange'
 
 const StatsMapView = dynamic(() => import('@/components/admin/StatsMapView'), { ssr: false })
 
@@ -64,84 +66,6 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-function formatHour(h: number): string {
-  return `${h.toString().padStart(2, '0')}:00`
-}
-
-// ─── Dual-handle range slider ────────────────────────────────────────────────
-function RangeSlider({ min, max, value, onChange }: {
-  min: number; max: number
-  value: [number, number]
-  onChange: (v: [number, number]) => void
-}) {
-  const trackRef = useRef<HTMLDivElement>(null)
-  const draggingRef = useRef<'low' | 'high' | null>(null)
-
-  function pctFromEvent(e: React.MouseEvent | MouseEvent) {
-    const rect = trackRef.current!.getBoundingClientRect()
-    return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-  }
-  function valFromPct(pct: number) {
-    return Math.round(min + pct * (max - min))
-  }
-
-  function onMouseDown(handle: 'low' | 'high') {
-    return (e: React.MouseEvent) => {
-      e.preventDefault()
-      draggingRef.current = handle
-
-      const onMove = (ev: MouseEvent) => {
-        const v = valFromPct(pctFromEvent(ev))
-        if (draggingRef.current === 'low') {
-          onChange([Math.min(v, value[1]), value[1]])
-        } else {
-          onChange([value[0], Math.max(v, value[0])])
-        }
-      }
-      const onUp = () => {
-        draggingRef.current = null
-        window.removeEventListener('mousemove', onMove)
-        window.removeEventListener('mouseup', onUp)
-      }
-      window.addEventListener('mousemove', onMove)
-      window.addEventListener('mouseup', onUp)
-    }
-  }
-
-  const lowPct = ((value[0] - min) / (max - min)) * 100
-  const highPct = ((value[1] - min) / (max - min)) * 100
-
-  return (
-    <div style={{ position: 'relative', height: 36, userSelect: 'none' }}>
-      {/* Track */}
-      <div ref={trackRef} style={{
-        position: 'absolute', top: 14, left: 0, right: 0, height: 8,
-        background: 'var(--border)', borderRadius: 4,
-      }}>
-        {/* Active range */}
-        <div style={{
-          position: 'absolute', top: 0, left: `${lowPct}%`, width: `${highPct - lowPct}%`,
-          height: '100%', background: 'var(--portal-info)', borderRadius: 4,
-        }} />
-      </div>
-      {/* Low handle */}
-      <div onMouseDown={onMouseDown('low')} style={{
-        position: 'absolute', top: 8, left: `${lowPct}%`, transform: 'translateX(-50%)',
-        width: 20, height: 20, borderRadius: '50%', background: '#fff',
-        border: '2px solid var(--portal-info)', cursor: 'grab', zIndex: 2,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-      }} />
-      {/* High handle */}
-      <div onMouseDown={onMouseDown('high')} style={{
-        position: 'absolute', top: 8, left: `${highPct}%`, transform: 'translateX(-50%)',
-        width: 20, height: 20, borderRadius: '50%', background: '#fff',
-        border: '2px solid var(--portal-info)', cursor: 'grab', zIndex: 2,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-      }} />
-    </div>
-  )
-}
-
 // ─── Dropdown select ─────────────────────────────────────────────────────────
 function FilterSelect({ label, value, options, onChange }: {
   label: string
@@ -154,13 +78,14 @@ function FilterSelect({ label, value, options, onChange }: {
       <label style={{ fontSize: 11, color: 'var(--muted-foreground)', display: 'block', marginBottom: 4 }}>{label}</label>
       <div style={{ position: 'relative' }}>
         <select
+          aria-label={label}
           value={value}
           onChange={e => onChange(e.target.value)}
           style={{
             width: '100%', padding: '6px 28px 6px 10px', fontSize: 13,
             background: 'var(--card)', color: 'var(--foreground)',
             border: '1px solid var(--border)', borderRadius: 8,
-            appearance: 'none', cursor: 'pointer', outline: 'none',
+            appearance: 'none', cursor: 'pointer',
           }}
         >
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -178,6 +103,7 @@ function FilterSelect({ label, value, options, onChange }: {
 export default function AdminStatsPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [allLogs, setAllLogs] = useState<PlayLog[]>([])
   const [dailyTrend, setDailyTrend] = useState<DailyTrend[]>([])
   const [liveCampaigns, setLiveCampaigns] = useState<CampaignInfo[]>([])
@@ -193,6 +119,13 @@ export default function AdminStatsPage() {
   const [selEnd, setSelEnd] = useState<number | null>(null)
   const [dragging, setDragging] = useState(false)
   const dragStart = useRef<number | null>(null)
+  const dragMoved = useRef(false)
+  const selectionAnchor = useRef<number | null>(null)
+  const chartRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!loading && chartRef.current) chartRef.current.scrollLeft = chartRef.current.scrollWidth
+  }, [dailyTrend, loading])
 
   // Map filters
   const [mapCampaign, setMapCampaign] = useState('all')
@@ -200,108 +133,117 @@ export default function AdminStatsPage() {
   const [mapDevice, setMapDevice] = useState('all')
   const [hourRange, setHourRange] = useState<[number, number]>([0, 23])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/immutability -- load() is async: state is set once the query resolves, not during render
-  useEffect(() => { load() }, [])
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
+    setLoadError(false)
+    try {
+      const [
+        { count: devCount, error: devError },
+        { count: campCount, error: campError },
+        { count: activeCount, error: activeError },
+      ] = await Promise.all([
+        supabase.from('devices').select('*', { count: 'exact', head: true }),
+        supabase.from('campaigns').select('*', { count: 'exact', head: true }),
+        supabase.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      ])
+      if (devError || campError || activeError) throw devError || campError || activeError
+      setTotalDevices(devCount || 0)
+      setTotalCampaigns(campCount || 0)
+      setActiveCampaigns(activeCount || 0)
 
-    const [
-      { count: devCount },
-      { count: campCount },
-      { count: activeCount },
-    ] = await Promise.all([
-      supabase.from('devices').select('*', { count: 'exact', head: true }),
-      supabase.from('campaigns').select('*', { count: 'exact', head: true }),
-      supabase.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-    ])
-    setTotalDevices(devCount || 0)
-    setTotalCampaigns(campCount || 0)
-    setActiveCampaigns(activeCount || 0)
+      // Fetch ALL play_logs with needed fields (including lat/lng for map)
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      let allFetched: PlayLog[] = []
+      let page = 0
+      const PAGE_SIZE = 1000
+      while (true) {
+        const { data: batch, error } = await supabase
+          .from('play_logs')
+          .select('campaign_id, program_name, device_id, began_at, duration_seconds, lat, lng')
+          .gte('began_at', thirtyDaysAgo.toISOString())
+          .order('began_at', { ascending: true })
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+        if (error) throw error
+        if (!batch || batch.length === 0) break
+        allFetched = allFetched.concat(batch)
+        if (batch.length < PAGE_SIZE) break
+        page++
+      }
+      setAllLogs(allFetched)
 
-    // Fetch ALL play_logs with needed fields (including lat/lng for map)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    let allFetched: PlayLog[] = []
-    let page = 0
-    const PAGE_SIZE = 1000
-    while (true) {
-      const { data: batch } = await supabase
-        .from('play_logs')
-        .select('campaign_id, program_name, device_id, began_at, duration_seconds, lat, lng')
-        .gte('began_at', thirtyDaysAgo.toISOString())
-        .order('began_at', { ascending: true })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-      if (!batch || batch.length === 0) break
-      allFetched = allFetched.concat(batch)
-      if (batch.length < PAGE_SIZE) break
-      page++
+      // Build daily trend
+      const dailyMap: Record<string, { plays: number; duration: number }> = {}
+      for (const log of allFetched) {
+        const date = toTbilisiDate(log.began_at)
+        if (!dailyMap[date]) dailyMap[date] = { plays: 0, duration: 0 }
+        dailyMap[date].plays++
+        dailyMap[date].duration += log.duration_seconds || 0
+      }
+      const trend: DailyTrend[] = []
+      const d = new Date(thirtyDaysAgo)
+      const today = new Date()
+      while (d <= today) {
+        const dateStr = toTbilisiDate(d.toISOString())
+        trend.push({ date: dateStr, plays: dailyMap[dateStr]?.plays || 0, duration: dailyMap[dateStr]?.duration || 0 })
+        d.setDate(d.getDate() + 1)
+      }
+      setDailyTrend(trend)
+
+      // Campaign info
+      const { data: campData, error: campaignError } = await supabase
+        .from('campaigns')
+        .select('id, name, status, device_group_id, clients(company_name), device_groups(name)')
+        .order('created_at', { ascending: false })
+      if (campaignError) throw campaignError
+      const { data: mediaData, error: mediaError } = await supabase.from('ad_media').select('campaign_id')
+      if (mediaError) throw mediaError
+      const mediaCounts: Record<string, number> = {}
+      for (const m of mediaData || []) mediaCounts[m.campaign_id] = (mediaCounts[m.campaign_id] || 0) + 1
+
+      const campaigns: CampaignInfo[] = (campData || []).map((c: Record<string, unknown>) => ({
+        id: c.id as string,
+        name: c.name as string,
+        status: c.status as string,
+        clientName: (c.clients as { company_name: string } | null)?.company_name || '—',
+        groupName: (c.device_groups as { name: string } | null)?.name || '—',
+        groupId: (c.device_group_id as string) || null,
+        mediaCount: mediaCounts[c.id as string] || 0,
+      }))
+      setLiveCampaigns(campaigns)
+
+      // Device info
+      const { data: devData, error: deviceError } = await supabase
+        .from('devices')
+        .select('id, last_seen_at, group_id, device_groups(name)')
+        .order('last_seen_at', { ascending: false })
+      if (deviceError) throw deviceError
+      setDevices((devData || []).map((d: Record<string, unknown>) => ({
+        id: d.id as string,
+        groupName: (d.device_groups as { name: string } | null)?.name || '—',
+        groupId: (d.group_id as string) || null,
+        lastSeen: (d.last_seen_at as string) || '—',
+      })))
+
+      // Group info
+      const { data: grpData, error: groupError } = await supabase.from('device_groups').select('id, name')
+      const { data: devList, error: deviceListError } = await supabase.from('devices').select('id, group_id')
+      const { data: campList, error: campaignListError } = await supabase.from('campaigns').select('id, device_group_id')
+      if (groupError || deviceListError || campaignListError) throw groupError || deviceListError || campaignListError
+      setGroups((grpData || []).map(g => ({
+        id: g.id,
+        name: g.name,
+        deviceIds: (devList || []).filter(d => d.group_id === g.id).map(d => d.id),
+        campaignCount: (campList || []).filter(c => c.device_group_id === g.id).length,
+      })))
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
     }
-    setAllLogs(allFetched)
+  }, [supabase])
 
-    // Build daily trend
-    const dailyMap: Record<string, { plays: number; duration: number }> = {}
-    for (const log of allFetched) {
-      const date = toTbilisiDate(log.began_at)
-      if (!dailyMap[date]) dailyMap[date] = { plays: 0, duration: 0 }
-      dailyMap[date].plays++
-      dailyMap[date].duration += log.duration_seconds || 0
-    }
-    const trend: DailyTrend[] = []
-    const d = new Date(thirtyDaysAgo)
-    const today = new Date()
-    while (d <= today) {
-      const dateStr = toTbilisiDate(d.toISOString())
-      trend.push({ date: dateStr, plays: dailyMap[dateStr]?.plays || 0, duration: dailyMap[dateStr]?.duration || 0 })
-      d.setDate(d.getDate() + 1)
-    }
-    setDailyTrend(trend)
-
-    // Campaign info
-    const { data: campData } = await supabase
-      .from('campaigns')
-      .select('id, name, status, device_group_id, clients(company_name), device_groups(name)')
-      .order('created_at', { ascending: false })
-    const { data: mediaData } = await supabase.from('ad_media').select('campaign_id')
-    const mediaCounts: Record<string, number> = {}
-    for (const m of mediaData || []) mediaCounts[m.campaign_id] = (mediaCounts[m.campaign_id] || 0) + 1
-
-    const campaigns: CampaignInfo[] = (campData || []).map((c: Record<string, unknown>) => ({
-      id: c.id as string,
-      name: c.name as string,
-      status: c.status as string,
-      clientName: (c.clients as { company_name: string } | null)?.company_name || '—',
-      groupName: (c.device_groups as { name: string } | null)?.name || '—',
-      groupId: (c.device_group_id as string) || null,
-      mediaCount: mediaCounts[c.id as string] || 0,
-    }))
-    setLiveCampaigns(campaigns)
-
-    // Device info
-    const { data: devData } = await supabase
-      .from('devices')
-      .select('id, last_seen_at, group_id, device_groups(name)')
-      .order('last_seen_at', { ascending: false })
-    setDevices((devData || []).map((d: Record<string, unknown>) => ({
-      id: d.id as string,
-      groupName: (d.device_groups as { name: string } | null)?.name || '—',
-      groupId: (d.group_id as string) || null,
-      lastSeen: (d.last_seen_at as string) || '—',
-    })))
-
-    // Group info
-    const { data: grpData } = await supabase.from('device_groups').select('id, name')
-    const { data: devList } = await supabase.from('devices').select('id, group_id')
-    const { data: campList } = await supabase.from('campaigns').select('id, device_group_id')
-    setGroups((grpData || []).map(g => ({
-      id: g.id,
-      name: g.name,
-      deviceIds: (devList || []).filter(d => d.group_id === g.id).map(d => d.id),
-      campaignCount: (campList || []).filter(c => c.device_group_id === g.id).length,
-    })))
-
-    setLoading(false)
-  }
+  useEffect(() => { void load() }, [load])
 
   // Filter logs by selected date range
   const filteredLogs = useCallback(() => {
@@ -430,11 +372,12 @@ export default function AdminStatsPage() {
   const handleBarMouseDown = (index: number) => {
     dragStart.current = index
     setDragging(true)
-    setSelStart(index)
-    setSelEnd(index)
+    dragMoved.current = false
   }
   const handleBarMouseEnter = (index: number) => {
     if (dragging && dragStart.current !== null) {
+      dragMoved.current = index !== dragStart.current
+      selectionAnchor.current = null
       setSelStart(dragStart.current)
       setSelEnd(index)
     }
@@ -443,7 +386,21 @@ export default function AdminStatsPage() {
     setDragging(false)
     dragStart.current = null
   }
+  const handleBarClick = (index: number, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (dragMoved.current && event.detail > 0) return
+    if ((event.shiftKey && selStart !== null) || selectionAnchor.current !== null) {
+      setSelStart(selectionAnchor.current ?? selStart)
+      setSelEnd(index)
+      selectionAnchor.current = null
+    } else {
+      setSelStart(index)
+      setSelEnd(index)
+      selectionAnchor.current = index
+    }
+  }
   const clearSelection = () => {
+    selectionAnchor.current = null
+    dragMoved.current = false
     setSelStart(null)
     setSelEnd(null)
     setDragging(false)
@@ -451,6 +408,14 @@ export default function AdminStatsPage() {
   }
 
   if (loading) return <div className="portal-loading">Loading...</div>
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load this page. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+      </div>
+    </div>
+  )
 
   const maxDailyPlays = Math.max(...dailyTrend.map(d => d.plays), 1)
   const selMin = hasSelection ? Math.min(selStart!, selEnd!) : -1
@@ -458,127 +423,124 @@ export default function AdminStatsPage() {
 
   return (
     <div className="portal-page" onMouseUp={handleBarMouseUp}>
-      <h1 className="portal-page-title">Play Statistics</h1>
+      <div className="portal-page-header">
+        <div>
+          <h1 className="portal-page-title">Stats</h1>
+          <p className="portal-subtitle">Plays from the last 30 days. Select a first and last day, or drag across the chart.</p>
+        </div>
+      </div>
 
       {/* Overview Cards */}
       <div className="stats-grid" style={{ marginBottom: '2rem' }}>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(76, 106, 136, 0.14)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-info-soft)' }}>
             <Play size={24} color="var(--portal-info)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalPlays.toLocaleString()}</span>
-            <span className="stat-card-label">Total Plays</span>
+            <span className="stat-card-label">Plays, 30 days</span>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(47, 125, 89, 0.12)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-success-soft)' }}>
             <Clock size={24} color="var(--portal-success)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatDuration(totalDuration)}</span>
-            <span className="stat-card-label">Total Screen Time</span>
+            <span className="stat-card-label">Screen time</span>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(167, 98, 23, 0.14)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-warning-soft)' }}>
             <Monitor size={24} color="var(--portal-warning)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalDevices}</span>
-            <span className="stat-card-label">Total Devices</span>
+            <span className="stat-card-label">Screens</span>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(185, 133, 71, 0.13)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-fill)' }}>
             <Megaphone size={24} color="var(--portal-brass)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{activeCampaigns} / {totalCampaigns}</span>
-            <span className="stat-card-label">Active / Total Campaigns</span>
+            <span className="stat-card-label">Active campaigns</span>
           </div>
         </div>
       </div>
 
       {/* Selectable Daily Chart */}
       <div className="portal-section" style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h2 style={{ margin: 0 }}>Last 30 Days</h2>
+        <div className="section-head">
+          <h2>Last 30 days</h2>
           {hasSelection && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'var(--portal-info)', fontWeight: 500 }}>{selLabel}</span>
-              <button onClick={clearSelection} style={{
-                display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-                borderRadius: 6, fontSize: 12, border: '1px solid rgba(76, 106, 136, 0.14)',
-                background: 'rgba(76, 106, 136, 0.14)', color: 'var(--portal-info)', cursor: 'pointer',
-              }}>
-                <X size={12} /> Clear
+              <span style={{ fontSize: 13, color: 'var(--portal-text-soft)', fontWeight: 500 }}>{selLabel}</span>
+              <button type="button" onClick={clearSelection} className="action-btn">
+                <X size={12} aria-hidden /> Clear
               </button>
             </div>
           )}
         </div>
         <div
-          style={{
-            display: 'flex', alignItems: 'flex-end', gap: '2px', height: '100px',
-            padding: '1rem', background: 'var(--card)', borderRadius: '0.75rem',
-            border: '1px solid var(--border)', userSelect: 'none',
-          }}
+          className="play-chart"
+          ref={chartRef}
+          role="group"
+          aria-label="Daily plays, select a first and last day"
           onMouseLeave={() => { if (dragging) handleBarMouseUp() }}
         >
           {dailyTrend.map((d, i) => {
             const isSelected = hasSelection && i >= selMin && i <= selMax
             const isInactive = hasSelection && !isSelected
             return (
-              <div
+              <button
                 key={d.date}
+                type="button"
+                className="play-chart-day"
+                aria-label={`${d.date}: ${d.plays} plays, ${formatDuration(d.duration)}`}
+                aria-pressed={isSelected}
                 title={`${d.date}: ${d.plays} plays, ${formatDuration(d.duration)}`}
                 onMouseDown={() => handleBarMouseDown(i)}
                 onMouseEnter={() => handleBarMouseEnter(i)}
-                style={{
-                  flex: 1,
+                onClick={event => handleBarClick(i, event)}
+              >
+                <span className="play-chart-bar" style={{
                   height: `${Math.max((d.plays / maxDailyPlays) * 100, 2)}%`,
                   background: isSelected
-                    ? 'var(--portal-info)'
+                    ? 'var(--portal-primary)'
                     : isInactive
-                      ? 'rgba(76, 106, 136, 0.14)'
-                      : d.plays > 0 ? 'rgba(76, 106, 136, 0.14)' : 'rgba(76, 106, 136, 0.14)',
-                  borderRadius: '2px 2px 0 0',
-                  minWidth: '3px',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s',
-                }}
-              />
+                      ? 'var(--portal-primary-soft)'
+                      : d.plays > 0 ? 'var(--portal-primary)' : 'var(--portal-fill)',
+                  opacity: !hasSelection && d.plays > 0 ? 0.55 : 1,
+                }} />
+              </button>
             )
           })}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: 'var(--portal-muted)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '-6px 4px 0', fontSize: 12, color: 'var(--portal-muted)' }}>
           <span>{dailyTrend[0]?.date}</span>
           <span>{dailyTrend[dailyTrend.length - 1]?.date}</span>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="segmented" role="tablist" aria-label="Breakdown" style={{ marginTop: 28, marginBottom: 4, maxWidth: 720 }}>
         {([
           { key: 'campaigns', label: 'Campaigns', icon: Megaphone },
           { key: 'devices', label: 'Devices', icon: Monitor },
           { key: 'groups', label: 'Groups', icon: FolderOpen },
-          { key: 'daily', label: 'Daily Breakdown', icon: BarChart3 },
-          { key: 'map', label: 'Play Locations', icon: MapPin },
+          { key: 'daily', label: 'By day', icon: BarChart3 },
+          { key: 'map', label: 'Map', icon: MapPin },
         ] as const).map(tab => (
           <button
             key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
-            style={{
-              padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid',
-              borderColor: activeTab === tab.key ? 'var(--portal-info)' : 'var(--border)',
-              background: activeTab === tab.key ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
-              color: activeTab === tab.key ? 'var(--portal-info)' : 'var(--muted-foreground)',
-              cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-            }}
           >
-            <tab.icon size={16} />
+            <tab.icon size={14} aria-hidden style={{ verticalAlign: -2, marginRight: 6 }} />
             {tab.label}
           </button>
         ))}
@@ -588,7 +550,7 @@ export default function AdminStatsPage() {
       <div className="portal-section">
         {activeTab === 'campaigns' && (
           <>
-            <h2>Per-Campaign Stats {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>By campaign {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -616,10 +578,7 @@ export default function AdminStatsPage() {
                         <td>{c.clientName}</td>
                         <td>{c.groupName}</td>
                         <td>
-                          <span className="status-badge" style={{
-                            color: c.status === 'active' ? 'var(--portal-success)' : c.status === 'pending_review' ? 'var(--portal-warning)' : c.status === 'deleted' ? 'var(--portal-danger)' : 'var(--portal-muted)',
-                            borderColor: c.status === 'active' ? 'var(--portal-success)' : c.status === 'pending_review' ? 'var(--portal-warning)' : c.status === 'deleted' ? 'var(--portal-danger)' : 'var(--portal-muted)',
-                          }}>{c.status.replace('_', ' ')}</span>
+                          <StatusBadge status={c.status} />
                         </td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cp?.plays || 0).toLocaleString()}</td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatDuration(cp?.duration || 0)}</td>
@@ -636,7 +595,7 @@ export default function AdminStatsPage() {
 
         {activeTab === 'devices' && (
           <>
-            <h2>Per-Device Stats {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>By device {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -667,7 +626,7 @@ export default function AdminStatsPage() {
 
         {activeTab === 'groups' && (
           <>
-            <h2>Per-Group Stats {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>By group {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -725,10 +684,7 @@ export default function AdminStatsPage() {
               <FilterSelect label="Device" value={mapDevice} options={deviceOptions} onChange={setMapDevice} />
 
               <div style={{ flex: 1, minWidth: 200 }}>
-                <label style={{ fontSize: 11, color: 'var(--muted-foreground)', display: 'block', marginBottom: 4 }}>
-                  Time of day: {formatHour(hourRange[0])} — {formatHour(hourRange[1])}
-                </label>
-                <RangeSlider min={0} max={23} value={hourRange} onChange={setHourRange} />
+                <HourRange start={hourRange[0]} end={hourRange[1]} onChange={setHourRange} label="Time of day" />
               </div>
             </div>
 

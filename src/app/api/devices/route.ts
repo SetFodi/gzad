@@ -27,10 +27,14 @@ export async function GET() {
   }
 
   // Fetch registered devices from Supabase
-  const { data: registeredDevices } = await supabase
+  const { data: registeredDevices, error: registeredError } = await supabase
     .from('devices')
     .select('id, name, last_seen_at, last_lat, last_lng, created_at')
     .order('created_at', { ascending: true })
+
+  if (registeredError) {
+    return NextResponse.json({ error: 'Could not load registered devices' }, { status: 500 })
+  }
 
   // Try to fetch live devices from Realtime Server
   let liveDevices: Array<{

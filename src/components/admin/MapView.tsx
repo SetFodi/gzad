@@ -10,7 +10,7 @@ interface GpsPoint {
   device_serial: string
   lat: number
   lng: number
-  speed: number
+  speed: number | null
   recorded_at: string
 }
 
@@ -87,7 +87,7 @@ export default function MapView({ positions, allPoints, showDistricts = false }:
           <Popup>
             <div style={{ color: '#050505', fontSize: 13 }}>
               <strong>{p.device_serial}</strong><br />
-              Speed: {p.speed} km/h<br />
+              Speed: {p.speed === null ? 'Not recorded' : `${p.speed} km/h`}<br />
               Last update: {new Date(p.recorded_at).toLocaleString()}
             </div>
           </Popup>

@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { ArrowLeft, Check, X, Download, Send, Monitor, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { SLOTS_PER_DEVICE } from '@/lib/slots'
+import StatusBadge from '@/components/app/StatusBadge'
 
 const CAMPAIGN_STATUSES = [
   { value: 'draft', label: 'Draft' },
@@ -13,6 +14,7 @@ const CAMPAIGN_STATUSES = [
   { value: 'active', label: 'Active' },
   { value: 'paused', label: 'Paused' },
   { value: 'paused_billing', label: 'Paused — no balance' },
+  { value: 'paused_cap', label: 'Paused — daily cap (resumes at midnight)' },
   { value: 'completed', label: 'Completed' },
 ]
 
@@ -26,6 +28,7 @@ interface Campaign {
   taxi_count: number
   monthly_price: number
   device_group_id: string | null
+  daily_cap?: number | null
   clients: { company_name: string; id: string } | null
 }
 
@@ -48,6 +51,7 @@ export default function AdminCampaignDetailPage() {
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [media, setMedia] = useState<Media[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState('')
   const [pushing, setPushing] = useState(false)
@@ -60,34 +64,61 @@ export default function AdminCampaignDetailPage() {
     daily_hours: 1,
     taxi_count: 1,
     monthly_price: 0,
+    daily_cap: '',
   })
+  // daily_cap arrives with migration 010; until then the field stays hidden and
+  // is left out of saves.
+  const [hasDailyCap, setHasDailyCap] = useState(false)
+  const [spentToday, setSpentToday] = useState<number | null>(null)
   const supabase = createClient()
 
   async function load() {
-    const id = params.id as string
+    setLoading(true)
+    setLoadError(false)
+    try {
+      const id = params.id as string
 
-    const [campaignRes, mediaRes, groupsRes] = await Promise.all([
-      supabase.from('campaigns').select('*, clients(company_name, id)').eq('id', id).single(),
-      supabase.from('ad_media').select('*').eq('campaign_id', id).order('uploaded_at', { ascending: false }),
-      supabase.from('device_groups').select('id, name').order('name'),
-    ])
+      const [campaignRes, mediaRes, groupsRes] = await Promise.all([
+        supabase.from('campaigns').select('*, clients(company_name, id)').eq('id', id).maybeSingle(),
+        supabase.from('ad_media').select('*').eq('campaign_id', id).order('uploaded_at', { ascending: false }),
+        supabase.from('device_groups').select('id, name').order('name'),
+      ])
 
-    setCampaign(campaignRes.data)
-    setGroups(groupsRes.data || [])
-    if (campaignRes.data?.device_group_id && !selectedGroup) {
-      setSelectedGroup(campaignRes.data.device_group_id)
+      const failedRead = [campaignRes, mediaRes, groupsRes].find(result => result.error)
+      if (failedRead) throw failedRead.error
+
+      setCampaign(campaignRes.data)
+      setGroups(groupsRes.data || [])
+      if (campaignRes.data?.device_group_id && !selectedGroup) {
+        setSelectedGroup(campaignRes.data.device_group_id)
+      }
+      if (campaignRes.data) {
+        setForm({
+          start_date: campaignRes.data.start_date || '',
+          end_date: campaignRes.data.end_date || '',
+          daily_hours: campaignRes.data.daily_hours,
+          taxi_count: campaignRes.data.taxi_count,
+          monthly_price: campaignRes.data.monthly_price || 0,
+          daily_cap: campaignRes.data.daily_cap != null ? String(campaignRes.data.daily_cap) : '',
+        })
+        setHasDailyCap('daily_cap' in campaignRes.data)
+      }
+      if (campaignRes.data && 'daily_cap' in campaignRes.data) {
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tbilisi' })
+        const { data: spend, error: spendError } = await supabase
+          .from('billing_daily_totals')
+          .select('total_cost')
+          .eq('campaign_id', id)
+          .eq('day', today)
+        if (spendError) throw spendError
+        setSpentToday((spend || []).reduce((sum, r) => sum + Number(r.total_cost), 0))
+      }
+      setMedia(mediaRes.data || [])
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
     }
-    if (campaignRes.data) {
-      setForm({
-        start_date: campaignRes.data.start_date || '',
-        end_date: campaignRes.data.end_date || '',
-        daily_hours: campaignRes.data.daily_hours,
-        taxi_count: campaignRes.data.taxi_count,
-        monthly_price: campaignRes.data.monthly_price || 0,
-      })
-    }
-    setMedia(mediaRes.data || [])
-    setLoading(false)
   }
 
   useEffect(() => { load() }, [params.id])
@@ -161,7 +192,16 @@ export default function AdminCampaignDetailPage() {
   }
 
   const saveCampaign = async () => {
-    await supabase.from('campaigns').update(form).eq('id', params.id as string)
+    const { daily_cap, ...rest } = form
+    const cap = daily_cap.trim() === '' ? null : Number(daily_cap)
+    if (cap !== null && !(cap > 0)) {
+      alert('Daily cap must be a positive amount, or empty for no cap.')
+      return
+    }
+    await supabase
+      .from('campaigns')
+      .update(hasDailyCap ? { ...rest, daily_cap: cap } : rest)
+      .eq('id', params.id as string)
     setEditMode(false)
     await load()
     await resync('Campaign')
@@ -291,19 +331,31 @@ export default function AdminCampaignDetailPage() {
     }
   }
 
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load this page from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+      </div>
+    </div>
+  )
+
   if (loading) return <div className="portal-loading">Loading...</div>
   if (!campaign) return <div className="portal-loading">Campaign not found</div>
 
   return (
     <div className="portal-page">
       <Link href="/admin/campaigns" className="portal-back-link">
-        <ArrowLeft size={16} /> Back to Campaigns
+        <ArrowLeft size={16} /> Campaigns
       </Link>
 
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">{campaign.name}</h1>
-          <p className="portal-subtitle">{campaign.clients?.company_name}</p>
+          <div className="title-row">
+            <h1 className="portal-page-title">{campaign.name}</h1>
+            <StatusBadge status={campaign.status} />
+          </div>
+          <p className="portal-subtitle">{campaign.clients?.company_name || 'No client'}</p>
         </div>
         <div className="admin-header-actions">
           <select
@@ -311,96 +363,68 @@ export default function AdminCampaignDetailPage() {
             onChange={(e) => updateStatus(e.target.value)}
             disabled={syncing}
             title="Changing status re-pushes the playlist to this campaign's devices"
-            style={{ padding: '8px 12px', borderRadius: 8, fontSize: 13 }}
+            aria-label="Status"
+            style={{ width: 'auto', minHeight: 38 }}
           >
             {CAMPAIGN_STATUSES.map(s => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
-          <button onClick={() => setEditMode(!editMode)} className="portal-btn-primary">
-            {editMode ? 'Cancel' : 'Edit Details'}
+          <button type="button" onClick={() => setEditMode(!editMode)} className="portal-btn-secondary">
+            {editMode ? 'Cancel' : 'Edit details'}
           </button>
         </div>
       </div>
 
-      {/* Push to Group */}
-      <div style={{
-        background: 'rgba(47, 125, 89, 0.14)',
-        border: '1px solid rgba(47, 125, 89, 0.14)',
-        borderRadius: '12px',
-        padding: '16px 20px',
-        marginBottom: '24px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Monitor size={18} style={{ color: 'var(--portal-success)' }} />
-          <span style={{ fontWeight: 600, color: 'var(--portal-success)', fontSize: 15 }}>Push to Group</span>
-          <span style={{ color: 'var(--portal-muted)', fontSize: 12, marginLeft: 4 }}>
-            ({media.filter(m => m.status === 'approved').length} approved file{media.filter(m => m.status === 'approved').length !== 1 ? 's' : ''})
-          </span>
+      <section className="push-card">
+        <div className="push-card-text">
+          <h2><Monitor size={17} aria-hidden /> Push to screens</h2>
+          <p className="cell-sub">
+            Sends the {media.filter(m => m.status === 'approved').length} approved {media.filter(m => m.status === 'approved').length === 1 ? 'file' : 'files'} to every online screen in a group.
+          </p>
         </div>
-
         {groups.length === 0 ? (
-          <p style={{ color: 'var(--portal-muted)', fontSize: 13, margin: 0 }}>
-            No groups created yet. Go to <Link href="/admin/groups" style={{ color: 'var(--portal-info)' }}>Groups</Link> to create one and assign devices.
+          <p className="cell-sub" style={{ margin: 0 }}>
+            No groups yet. <Link href="/admin/groups" className="section-link">Create one</Link> and assign screens first.
           </p>
         ) : (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <select
-                value={selectedGroup}
-                onChange={(e) => setSelectedGroup(e.target.value)}
-                style={{
-                  background: 'var(--portal-surface)',
-                  border: '1px solid var(--portal-border)',
-                  borderRadius: 8,
-                  color: 'var(--portal-text)',
-                  padding: '8px 12px',
-                  fontSize: 14,
-                  minWidth: 200,
-                }}
-              >
-                <option value="">Select a group...</option>
-                {groups.map(g => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={pushToGroup}
-                disabled={pushing || !selectedGroup || !media.some(m => m.status === 'approved')}
-                className="portal-btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: (pushing || !selectedGroup) ? 0.6 : 1 }}
-              >
-                <Send size={16} />
-                {pushing ? 'Pushing...' : 'Push to Group'}
-              </button>
-            </div>
-
-            {!selectedGroup && (
-              <span style={{ color: 'var(--portal-warning)', fontSize: 12, display: 'block', marginTop: 10 }}>Select a group to push to</span>
-            )}
-            {selectedGroup && !media.some(m => m.status === 'approved') && (
-              <span style={{ color: 'var(--portal-warning)', fontSize: 12, display: 'block', marginTop: 10 }}>Approve a media file first</span>
-            )}
-          </>
+          <div className="push-card-controls">
+            <select
+              value={selectedGroup}
+              onChange={(e) => setSelectedGroup(e.target.value)}
+              aria-label="Group"
+              style={{ width: 'auto', minWidth: 200, minHeight: 38 }}
+            >
+              <option value="">Select a group…</option>
+              {groups.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={pushToGroup}
+              disabled={pushing || !selectedGroup || !media.some(m => m.status === 'approved')}
+              className="portal-btn-primary"
+              title={!selectedGroup ? 'Select a group first' : !media.some(m => m.status === 'approved') ? 'Approve a media file first' : undefined}
+            >
+              <Send size={16} aria-hidden />
+              {pushing ? 'Pushing…' : 'Push'}
+            </button>
+          </div>
         )}
-
+        {selectedGroup && !media.some(m => m.status === 'approved') && (
+          <p className="cell-sub" style={{ margin: 0, color: 'var(--portal-warning)' }}>Approve a media file first.</p>
+        )}
         {pushResult && (
-          <div style={{
-            marginTop: 10,
-            padding: '8px 12px',
-            borderRadius: 8,
-            fontSize: 13,
-            background: pushResult.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
-            color: pushResult.ok ? 'var(--portal-success)' : 'var(--portal-danger)',
-          }}>
+          <div className={`portal-alert ${pushResult.ok ? 'portal-alert-success' : 'portal-alert-danger'}`} role="status" style={{ margin: 0, flexBasis: '100%' }}>
             {pushResult.msg}
           </div>
         )}
-      </div>
+      </section>
 
       {editMode ? (
-        <div className="portal-section">
-          <h2>Campaign Details</h2>
+        <div className="portal-section push-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+          <h2>Campaign details</h2>
           <div className="admin-edit-form">
             <div className="admin-form-row">
               <div className="portal-input-group">
@@ -425,111 +449,94 @@ export default function AdminCampaignDetailPage() {
                 <label>Monthly Price (GEL)</label>
                 <input type="number" value={form.monthly_price} onChange={(e) => setForm({ ...form, monthly_price: parseFloat(e.target.value) })} min={0} />
               </div>
+              {hasDailyCap && (
+                <div className="portal-input-group">
+                  <label>Daily Cap (GEL)</label>
+                  <input
+                    type="number"
+                    value={form.daily_cap}
+                    placeholder="No cap"
+                    onChange={(e) => setForm({ ...form, daily_cap: e.target.value })}
+                    min={0.01}
+                    step={0.01}
+                  />
+                </div>
+              )}
             </div>
-            <button onClick={saveCampaign} className="portal-btn-primary">Save Changes</button>
+            <div><button type="button" onClick={saveCampaign} className="portal-btn-primary">Save changes</button></div>
           </div>
         </div>
       ) : (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-card-info">
-              <span className="stat-card-value">{campaign.start_date || '—'}</span>
-              <span className="stat-card-label">Start Date</span>
-            </div>
+        <dl className="detail-grid">
+          <div>
+            <dt>Dates</dt>
+            <dd>{campaign.start_date || campaign.end_date ? `${campaign.start_date || '…'} → ${campaign.end_date || '…'}` : 'No end date'}</dd>
           </div>
-          <div className="stat-card">
-            <div className="stat-card-info">
-              <span className="stat-card-value">{campaign.end_date || '—'}</span>
-              <span className="stat-card-label">End Date</span>
-            </div>
+          <div>
+            <dt>Coverage</dt>
+            <dd>{campaign.daily_hours} h a day on {campaign.taxi_count} {campaign.taxi_count === 1 ? 'taxi' : 'taxis'}</dd>
           </div>
-          <div className="stat-card">
-            <div className="stat-card-info">
-              <span className="stat-card-value">{campaign.daily_hours}h / {campaign.taxi_count} taxis</span>
-              <span className="stat-card-label">Coverage</span>
-            </div>
+          <div>
+            <dt>Monthly price</dt>
+            <dd>{campaign.monthly_price ? `₾${campaign.monthly_price}` : '—'}</dd>
           </div>
-          <div className="stat-card">
-            <div className="stat-card-info">
-              <span className="stat-card-value">{campaign.monthly_price ? `${campaign.monthly_price} GEL` : '—'}</span>
-              <span className="stat-card-label">Monthly Price</span>
+          {hasDailyCap && (
+            <div>
+              <dt>Daily cap</dt>
+              <dd>
+                {campaign.daily_cap ? `₾${Number(campaign.daily_cap).toFixed(2)}` : 'No cap'}
+                {spentToday !== null && <span className="cell-sub"> · ₾{spentToday.toFixed(2)} spent today</span>}
+              </dd>
             </div>
+          )}
+          <div>
+            <dt>Group</dt>
+            <dd>{groups.find(g => g.id === campaign.device_group_id)?.name || 'All screens'}</dd>
           </div>
-          <div className="stat-card">
-            <div className="stat-card-info">
-              <span className="stat-card-value">{groups.find(g => g.id === campaign.device_group_id)?.name || 'All devices'}</span>
-              <span className="stat-card-label">Device Group</span>
-            </div>
-          </div>
-        </div>
+        </dl>
       )}
 
       {/* Media Upload + Review */}
       <div className="portal-section">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-          <h2 style={{ margin: 0 }}>Ad Media ({media.length})</h2>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="section-head">
+          <h2>Media <span className="cell-sub">{media.length}</span></h2>
+          <div className="admin-header-actions">
             {media.some(m => m.status === 'pending_review') && (
-              <button
-                onClick={approveAllMedia}
-                className="portal-btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}
-              >
-                <Check size={16} />
-                Approve All ({media.filter(m => m.status === 'pending_review').length})
+              <button type="button" onClick={approveAllMedia} className="portal-btn-primary">
+                <Check size={16} aria-hidden />
+                Approve all ({media.filter(m => m.status === 'pending_review').length})
               </button>
             )}
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 16px',
-                borderRadius: 8,
-                border: '1px solid var(--portal-border)',
-                background: 'rgba(255, 249, 240, 0.72)',
-                color: 'var(--portal-text)',
-                cursor: uploadingMedia ? 'wait' : 'pointer',
-                fontSize: 14,
-                fontWeight: 500,
-                opacity: uploadingMedia ? 0.6 : 1,
-              }}
-            >
-              <Upload size={16} />
-              {uploadingMedia ? 'Uploading...' : 'Upload Media'}
+            <label className="portal-btn-secondary" aria-disabled={uploadingMedia || undefined} style={{ cursor: uploadingMedia ? 'wait' : 'pointer' }}>
+              <Upload size={16} aria-hidden />
+              {uploadingMedia ? 'Uploading…' : 'Upload media'}
               <input
                 type="file"
                 multiple
                 accept="image/*,video/mp4"
                 onChange={handleAdminUpload}
                 disabled={uploadingMedia}
-                style={{ display: 'none' }}
+                className="file-input"
               />
             </label>
           </div>
         </div>
 
         {uploadMsg && (
-          <div style={{
-            marginBottom: 12,
-            padding: '8px 12px',
-            borderRadius: 8,
-            fontSize: 13,
-            background: uploadMsg.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
-            color: uploadMsg.ok ? 'var(--portal-success)' : 'var(--portal-danger)',
-          }}>
+          <div className={`portal-alert ${uploadMsg.ok ? 'portal-alert-success' : 'portal-alert-danger'}`} role="status" style={{ margin: 0 }}>
             {uploadMsg.msg}
           </div>
         )}
 
         {media.length === 0 ? (
-          <p className="portal-empty-text">No media uploaded yet. Use the button above to add files.</p>
+          <div className="portal-empty portal-empty-sm"><p>No media yet. Upload the client&apos;s files with the button above.</p></div>
         ) : (
           <div className="admin-media-review">
             {media.map((m) => (
               <div key={m.id} className="admin-media-card">
                 <div className="admin-media-preview">
                   {m.file_type.startsWith('image') ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.file_url} alt={m.file_name} />
                   ) : (
                     <video src={m.file_url} controls />
@@ -537,69 +544,36 @@ export default function AdminCampaignDetailPage() {
                 </div>
                 <div className="admin-media-info">
                   <span className="admin-media-name">{m.file_name}</span>
-                  <span className="status-badge" style={{
-                    color: m.status === 'approved' ? 'var(--portal-success)' : m.status === 'rejected' ? 'var(--portal-danger)' : 'var(--portal-warning)',
-                    borderColor: m.status === 'approved' ? 'var(--portal-success)' : m.status === 'rejected' ? 'var(--portal-danger)' : 'var(--portal-warning)',
-                  }}>
-                    {m.status.replace('_', ' ')}
-                  </span>
+                  <StatusBadge status={m.status} />
                 </div>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
-                  <span style={{ fontSize: 12, color: 'var(--portal-muted)' }}>Duration:</span>
-                  {[10, 20, 30].map(sec => {
-                    const active = (m.display_duration_seconds || 10) === sec
-                    return (
+                <div className="admin-media-actions" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                  <div className="segmented" role="group" aria-label="Duration on screen">
+                    {[10, 20, 30].map(sec => (
                       <button
                         key={sec}
+                        type="button"
+                        aria-pressed={(m.display_duration_seconds || 10) === sec}
                         onClick={() => updateMediaDuration(m.id, sec)}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: 6,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          background: active ? 'rgba(47, 125, 89, 0.14)' : 'rgba(255, 249, 240, 0.72)',
-                          border: `1px solid ${active ? 'rgba(47, 125, 89, 0.14)' : 'var(--portal-border)'}`,
-                          color: active ? 'var(--portal-success)' : 'var(--portal-muted)',
-                        }}
                       >
-                        {sec}s
+                        {sec} s
                       </button>
-                    )
-                  })}
-                </div>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {/* Download button */}
-                  <button
-                    onClick={() => downloadFile(m.file_url, m.file_name)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--portal-border)',
-                      background: 'rgba(255, 249, 240, 0.72)',
-                      color: 'var(--portal-text-soft)',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <Download size={14} /> Download
-                  </button>
-                  {/* Approve/Reject */}
-                  {m.status === 'pending_review' && (
-                    <>
-                      <button className="action-btn approve" onClick={() => updateMedia(m.id, 'approved')}>
-                        <Check size={16} /> Approve
-                      </button>
-                      <button className="action-btn reject" onClick={() => updateMedia(m.id, 'rejected')}>
-                        <X size={16} /> Reject
-                      </button>
-                    </>
-                  )}
+                    ))}
+                  </div>
+                  <div className="device-actions">
+                    {m.status === 'pending_review' && (
+                      <>
+                        <button type="button" className="action-btn approve" onClick={() => updateMedia(m.id, 'approved')}>
+                          <Check size={14} aria-hidden /> Approve
+                        </button>
+                        <button type="button" className="action-btn reject" onClick={() => updateMedia(m.id, 'rejected')}>
+                          <X size={14} aria-hidden /> Reject
+                        </button>
+                      </>
+                    )}
+                    <button type="button" className="action-btn" onClick={() => downloadFile(m.file_url, m.file_name)} style={{ marginLeft: 'auto' }}>
+                      <Download size={14} aria-hidden /> Download
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

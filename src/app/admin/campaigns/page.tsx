@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, X, Trash2 } from 'lucide-react'
+import { Plus, X, Trash2, Search } from 'lucide-react'
+import StatusBadge from '@/components/app/StatusBadge'
+import AppDialog from '@/components/app/AppDialog'
 
 interface CampaignWithClient {
   id: string
@@ -31,10 +33,31 @@ interface ClientOption {
 
 const NAME_REGEX = /^[a-z0-9][a-z0-9 ]*[a-z0-9]$|^[a-z0-9]$/
 
+const FILTERS = ['all', 'pending_review', 'active', 'paused', 'paused_billing', 'paused_cap', 'completed'] as const
+const FILTER_LABELS: Record<string, string> = {
+  all: 'All',
+  pending_review: 'Pending review',
+  active: 'Active',
+  paused: 'Paused',
+  paused_billing: 'Out of balance',
+  paused_cap: 'Daily cap',
+  completed: 'Completed',
+}
+
+// The overview links here with ?status=…; the first render is the loading
+// state on server and client alike, so reading the URL here can't mismatch.
+function initialFilter() {
+  if (typeof window === 'undefined') return 'all'
+  const status = new URLSearchParams(window.location.search).get('status')
+  return status && (FILTERS as readonly string[]).includes(status) ? status : 'all'
+}
+
 export default function AdminCampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignWithClient[]>([])
-  const [filter, setFilter] = useState<string>('all')
+  const [filter, setFilter] = useState<string>(initialFilter)
+  const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [clients, setClients] = useState<ClientOption[]>([])
   const [creating, setCreating] = useState(false)
@@ -43,7 +66,8 @@ export default function AdminCampaignsPage() {
   const supabase = createClient()
 
   async function loadClients() {
-    const { data } = await supabase.from('clients').select('id, company_name').order('company_name')
+    const { data, error } = await supabase.from('clients').select('id, company_name').order('company_name')
+    if (error) throw error
     setClients(data || [])
   }
 
@@ -89,42 +113,55 @@ export default function AdminCampaignsPage() {
   }
 
   async function loadCampaigns() {
-    let query = supabase
-      .from('campaigns')
-      .select('*, clients(company_name), device_groups(name)')
-      .order('created_at', { ascending: false })
+    setLoading(true)
+    setLoadError(false)
+    try {
+      await loadClients()
+      const { data, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('*, clients(company_name), device_groups(name)')
+        .order('created_at', { ascending: false })
 
-    if (filter !== 'all') {
-      query = query.eq('status', filter)
-    }
+      if (campaignsError) throw campaignsError
+      if (data) {
+        const ids = data.map(c => c.id)
+        const { data: mediaRows, error: mediaError } = ids.length
+          ? await supabase
+            .from('ad_media')
+            .select('campaign_id, status, file_url, file_type')
+            .in('campaign_id', ids)
+            .order('uploaded_at', { ascending: true })
+          : { data: [], error: null }
 
-    const { data } = await query
+        if (mediaError) throw mediaError
+        const media = new Map<string, { count: number; pending: number; url?: string; type?: string }>()
+        for (const m of mediaRows || []) {
+          const entry = media.get(m.campaign_id) ?? { count: 0, pending: 0 }
+          if (entry.count === 0) { entry.url = m.file_url; entry.type = m.file_type }
+          entry.count++
+          if (m.status === 'pending_review') entry.pending++
+          media.set(m.campaign_id, entry)
+        }
 
-    if (data) {
-      const withMedia = await Promise.all(
-        data.map(async (c) => {
-          const [{ count: mediaCount }, { count: pendingMedia }, { data: firstMedia }] = await Promise.all([
-            supabase.from('ad_media').select('*', { count: 'exact', head: true }).eq('campaign_id', c.id),
-            supabase.from('ad_media').select('*', { count: 'exact', head: true }).eq('campaign_id', c.id).eq('status', 'pending_review'),
-            supabase.from('ad_media').select('file_url, file_type').eq('campaign_id', c.id).order('uploaded_at', { ascending: true }).limit(1),
-          ])
-
+        setCampaigns(data.map(c => {
+          const m = media.get(c.id)
           return {
             ...c,
-            media_count: mediaCount || 0,
-            pending_media: pendingMedia || 0,
-            first_media_url: firstMedia?.[0]?.file_url || undefined,
-            first_media_type: firstMedia?.[0]?.file_type || undefined,
+            media_count: m?.count ?? 0,
+            pending_media: m?.pending ?? 0,
+            first_media_url: m?.url,
+            first_media_type: m?.type,
           }
-        })
-      )
-      setCampaigns(withMedia)
+        }))
+      }
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
-  useEffect(() => { loadCampaigns() }, [filter])
-  useEffect(() => { loadClients() }, [])
+  useEffect(() => { loadCampaigns() }, [])
 
   const updateStatus = async (campaignId: string, newStatus: string) => {
     const campaign = campaigns.find(c => c.id === campaignId)
@@ -216,180 +253,195 @@ export default function AdminCampaignsPage() {
     }
   }
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'var(--portal-success)'
-      case 'pending_review': return 'var(--portal-warning)'
-      case 'paused': return 'var(--portal-muted)'
-      case 'paused_billing': return 'var(--portal-danger)'
-      case 'completed': return 'var(--portal-info)'
-      default: return 'var(--portal-muted)'
-    }
-  }
+  const counts = useMemo(() => {
+    const byStatus: Record<string, number> = { all: campaigns.length }
+    for (const c of campaigns) byStatus[c.status] = (byStatus[c.status] ?? 0) + 1
+    return byStatus
+  }, [campaigns])
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return campaigns.filter(c =>
+      (filter === 'all' || c.status === filter) &&
+      (!q || c.name.toLowerCase().includes(q) || (c.clients?.company_name ?? '').toLowerCase().includes(q)),
+    )
+  }, [campaigns, filter, query])
+
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load this page from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadCampaigns()}>Try again</button>
+      </div>
+    </div>
+  )
+
+  if (loading) return <div className="portal-loading">Loading…</div>
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
-        <h1 className="portal-page-title">Manage Campaigns</h1>
-        <button onClick={() => { setShowCreate(!showCreate); setCreateError('') }} className="portal-btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {showCreate ? <X size={16} /> : <Plus size={16} />}
-          {showCreate ? 'Cancel' : 'Create Campaign'}
+        <div>
+          <h1 className="portal-page-title">Campaigns</h1>
+          <p className="portal-subtitle">Review new ads, and pause, resume or remove campaigns.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => { setShowCreate(true); setCreateError('') }}
+          className="portal-btn-primary"
+        >
+          <Plus size={16} aria-hidden />
+          New campaign
         </button>
       </div>
 
       {showCreate && (
-        <div style={{
-          background: 'var(--portal-surface)',
-          border: '1px solid var(--portal-border)',
-          borderRadius: 8,
-          padding: '20px',
-          marginBottom: 24,
-        }}>
-          <h3 style={{ color: 'var(--portal-text)', marginBottom: 16, fontSize: 15 }}>New Campaign</h3>
-          {createError && (
-            <div style={{ color: 'var(--portal-danger)', fontSize: 13, marginBottom: 12, padding: '8px 12px', background: 'rgba(163, 58, 58, 0.14)', borderRadius: 8 }}>
-              {createError}
+        <AppDialog labelledBy="new-campaign-title" onClose={() => setShowCreate(false)}>
+            <div className="admin-modal-header">
+              <h2 id="new-campaign-title">New campaign</h2>
+              <button type="button" onClick={() => setShowCreate(false)} className="admin-modal-close" aria-label="Close"><X size={20} /></button>
             </div>
-          )}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div className="portal-input-group" style={{ flex: '1 1 200px' }}>
-              <label>Campaign Name</label>
-              <input
-                type="text"
-                value={newCampaign.name}
-                onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value.toLowerCase().replace(/[^a-z0-9 ]/g, '') })}
-                placeholder="e.g. summer sale promo"
-              />
-              <span style={{ color: 'var(--portal-muted)', fontSize: 11 }}>Lowercase English + numbers + spaces only</span>
-            </div>
-            <div className="portal-input-group" style={{ flex: '1 1 200px' }}>
-              <label>Client</label>
-              <select
-                value={newCampaign.client_id}
-                onChange={(e) => setNewCampaign({ ...newCampaign, client_id: e.target.value })}
-              >
-                <option value="">Select client...</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>{c.company_name}</option>
-                ))}
-              </select>
-            </div>
-            <button
-              onClick={createCampaign}
-              disabled={creating}
-              className="portal-btn-primary"
-              style={{ height: 40, whiteSpace: 'nowrap' }}
+            <form
+              className="portal-form"
+              onSubmit={(e) => { e.preventDefault(); createCampaign() }}
             >
-              {creating ? 'Creating...' : 'Create'}
-            </button>
-          </div>
-        </div>
+              {createError && <div className="portal-login-error" role="alert">{createError}</div>}
+              <div className="portal-input-group">
+                <label htmlFor="new-campaign-name">Name</label>
+                <input
+                  id="new-campaign-name"
+                  type="text"
+                  value={newCampaign.name}
+                  onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value.toLowerCase().replace(/[^a-z0-9 ]/g, '') })}
+                  placeholder="e.g. summer sale promo"
+                  autoFocus
+                />
+                <span className="field-hint">Lowercase English letters, numbers and spaces. Play logs match campaigns by this name.</span>
+              </div>
+              <div className="portal-input-group">
+                <label htmlFor="new-campaign-client">Client</label>
+                <select
+                  id="new-campaign-client"
+                  value={newCampaign.client_id}
+                  onChange={(e) => setNewCampaign({ ...newCampaign, client_id: e.target.value })}
+                >
+                  <option value="">Select a client…</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.company_name}</option>
+                  ))}
+                </select>
+              </div>
+              <span className="field-hint">Campaigns created here start as Active.</span>
+              <button type="submit" disabled={creating} className="portal-btn-primary full-width">
+                {creating ? 'Creating…' : 'Create campaign'}
+              </button>
+            </form>
+        </AppDialog>
       )}
 
-      <div className="admin-filters">
-        {['all', 'pending_review', 'active', 'paused', 'paused_billing', 'completed'].map((f) => (
-          <button
-            key={f}
-            className={`admin-filter-btn ${filter === f ? 'active' : ''}`}
-            onClick={() => setFilter(f)}
-          >
-            {f === 'all' ? 'All' : f.replace('_', ' ')}
-          </button>
-        ))}
+      <div className="table-toolbar">
+        <div className="admin-filters" role="tablist" aria-label="Status">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              role="tab"
+              aria-selected={filter === f}
+              className={`admin-filter-btn ${filter === f ? 'active' : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {FILTER_LABELS[f]}
+              <span className="filter-count">{counts[f] ?? 0}</span>
+            </button>
+          ))}
+        </div>
+        <label className="search-field">
+          <Search size={16} aria-hidden />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search campaigns or clients"
+            aria-label="Search campaigns or clients"
+          />
+        </label>
       </div>
 
-      {campaigns.length === 0 ? (
-        <div className="portal-empty"><p>No campaigns found.</p></div>
+      {visible.length === 0 ? (
+        <div className="portal-empty">
+          <p>{campaigns.length === 0 ? 'No campaigns yet.' : 'No campaigns match this view.'}</p>
+        </div>
       ) : (
         <div className="campaigns-table-wrapper">
           <table className="portal-table">
             <thead>
               <tr>
                 <th>Campaign</th>
-                <th>Material</th>
-                <th>Client</th>
                 <th>Status</th>
                 <th>Group</th>
                 <th>Media</th>
-                <th>Period</th>
+                <th>Dates</th>
                 <th>Price</th>
-                <th>Actions</th>
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
-              {campaigns.map((c) => (
+              {visible.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <Link href={`/admin/campaigns/${c.id}`} className="table-link">{c.name}</Link>
+                    <div className="cell-media">
+                      <div className="cell-thumb">
+                        {c.first_media_url && (
+                          c.first_media_type?.startsWith('video') ? (
+                            <video src={c.first_media_url} muted playsInline preload="metadata" />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={c.first_media_url} alt="" loading="lazy" />
+                          )
+                        )}
+                      </div>
+                      <div className="cell-stack">
+                        <Link href={`/admin/campaigns/${c.id}`} className="table-link">{c.name}</Link>
+                        <span className="cell-sub">{c.clients?.company_name || 'No client'}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><StatusBadge status={c.status} /></td>
+                  <td>
+                    {c.device_groups?.name
+                      ? <span className="portal-chip">{c.device_groups.name}</span>
+                      : <span className="cell-sub">—</span>}
                   </td>
                   <td>
-                    {c.first_media_url ? (
-                      c.first_media_type?.startsWith('video') ? (
-                        <video
-                          src={c.first_media_url}
-                          muted
-                          style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--portal-border)', background: '#160606' }}
-                        />
-                      ) : (
-                        <img
-                          src={c.first_media_url}
-                          alt=""
-                          style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--portal-border)', background: '#160606' }}
-                        />
-                      )
-                    ) : (
-                      <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>—</span>
-                    )}
+                    <div className="cell-stack">
+                      <span>{c.media_count}</span>
+                      {c.pending_media! > 0 && <span className="cell-sub" style={{ color: 'var(--portal-warning)' }}>{c.pending_media} to review</span>}
+                    </div>
                   </td>
-                  <td>{c.clients?.company_name || '—'}</td>
+                  <td className="cell-nowrap">{c.start_date || c.end_date ? `${c.start_date || '…'} → ${c.end_date || '…'}` : <span className="cell-sub">No end date</span>}</td>
+                  <td className="cell-nowrap">{c.monthly_price ? `₾${c.monthly_price}/mo` : '—'}</td>
                   <td>
-                    <span className="status-badge" style={{ color: statusColor(c.status), borderColor: statusColor(c.status) }}>
-                      {c.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td>
-                    {c.device_groups?.name ? (
-                      <span style={{ fontSize: 12, color: 'var(--portal-primary)', background: 'var(--portal-primary-soft)', border: '1px solid var(--portal-border)', borderRadius: 6, padding: '2px 8px' }}>
-                        {c.device_groups.name}
-                      </span>
-                    ) : (
-                      <span style={{ color: 'var(--portal-muted)', fontSize: 12 }}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    {c.media_count} file{c.media_count !== 1 ? 's' : ''}
-                    {c.pending_media! > 0 && (
-                      <span className="badge-warning"> ({c.pending_media} pending)</span>
-                    )}
-                  </td>
-                  <td>{c.start_date || '—'} → {c.end_date || '—'}</td>
-                  <td>{c.monthly_price ? `${c.monthly_price} GEL/mo` : '—'}</td>
-                  <td>
-                    <div className="admin-actions">
+                    <div className="admin-actions" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
                       {c.status === 'pending_review' && (
                         <>
-                          <button className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>Approve</button>
-                          <button className="action-btn reject" onClick={() => updateStatus(c.id, 'paused')}>Reject</button>
+                          <button type="button" className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>Approve</button>
+                          <button type="button" className="action-btn reject" onClick={() => updateStatus(c.id, 'paused')}>Reject</button>
                         </>
                       )}
                       {c.status === 'active' && (
-                        <button className="action-btn pause" onClick={() => updateStatus(c.id, 'paused')}>Pause</button>
+                        <button type="button" className="action-btn" onClick={() => updateStatus(c.id, 'paused')}>Pause</button>
                       )}
-                      {(c.status === 'paused' || c.status === 'paused_billing') && (
-                        <button className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>Resume</button>
+                      {(c.status === 'paused' || c.status === 'paused_billing' || c.status === 'paused_cap') && (
+                        <button type="button" className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>Resume</button>
                       )}
                       <button
+                        type="button"
+                        className="app-icon-btn danger"
                         onClick={() => deleteCampaign(c.id, c.name)}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          padding: '4px 10px', borderRadius: 6, fontSize: 12,
-                          border: '1px solid rgba(163, 58, 58, 0.14)', background: 'rgba(163, 58, 58, 0.14)',
-                          color: 'var(--portal-danger)', cursor: 'pointer', fontWeight: 500,
-                        }}
+                        aria-label={`Delete ${c.name}`}
+                        title="Delete"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={16} aria-hidden />
                       </button>
                     </div>
                   </td>

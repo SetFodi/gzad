@@ -12,7 +12,7 @@ interface GpsPoint {
   device_serial: string
   lat: number
   lng: number
-  speed: number
+  speed: number | null
   recorded_at: string
 }
 
@@ -30,6 +30,7 @@ function todayInTbilisi(): string {
 export default function MapPage() {
   const [points, setPoints] = useState<GpsPoint[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [showDistricts, setShowDistricts] = useState(false)
   const [date, setDate] = useState<string>(todayInTbilisi())
   const [startTime, setStartTime] = useState<string>('00:00')
@@ -38,35 +39,51 @@ export default function MapPage() {
 
   const loadGPS = useCallback(async () => {
     setLoading(true)
-    const { start, end } = tbilisiRange(date, startTime, endTime)
+    setLoadError(false)
+    try {
+      const { start, end } = tbilisiRange(date, startTime, endTime)
 
-    // Read GPS from play_logs — each ad play records its location.
-    const { data } = await supabase
-      .from('play_logs')
-      .select('id, device_id, lat, lng, began_at')
-      .gte('began_at', start)
-      .lte('began_at', end)
-      .not('lat', 'eq', 0)
-      .not('lng', 'eq', 0)
-      .order('began_at', { ascending: true })
-      .limit(5000)
+      // Read GPS from play_logs — each ad play records its location.
+      const { data, error } = await supabase
+        .from('play_logs')
+        .select('id, device_id, lat, lng, began_at')
+        .gte('began_at', start)
+        .lte('began_at', end)
+        .not('lat', 'eq', 0)
+        .not('lng', 'eq', 0)
+        .order('began_at', { ascending: true })
+        .limit(5000)
 
-    const mapped: GpsPoint[] = (data || []).map(r => ({
-      id: r.id,
-      device_serial: r.device_id,
-      lat: r.lat,
-      lng: r.lng,
-      speed: 0,
-      recorded_at: r.began_at,
-    }))
-    setPoints(mapped)
-    setLoading(false)
+      if (error) throw error
+      const mapped: GpsPoint[] = (data || []).map(r => ({
+        id: r.id,
+        device_serial: r.device_id,
+        lat: r.lat,
+        lng: r.lng,
+        speed: null,
+        recorded_at: r.began_at,
+      }))
+      setPoints(mapped)
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [supabase, date, startTime, endTime])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loadGPS() is async: it flips a loading flag, then sets results once the query resolves
     loadGPS()
   }, [loadGPS])
+
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load GPS reports from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadGPS()}>Try again</button>
+      </div>
+    </div>
+  )
 
   // Latest point per device (trail end)
   const latestByDevice = new Map<string, GpsPoint>()
@@ -80,100 +97,54 @@ export default function MapPage() {
   return (
     <div className="portal-page">
       <div className="portal-page-header">
-        <h1 className="portal-page-title">GPS Trails</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => setShowDistricts(v => !v)}
-            className="portal-btn-secondary"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: showDistricts ? 'rgba(47, 125, 89, 0.14)' : undefined,
-              color: showDistricts ? 'var(--portal-success)' : undefined,
-              borderColor: showDistricts ? 'rgba(47, 125, 89, 0.14)' : undefined,
-            }}
-          >
-            <Layers size={16} /> {showDistricts ? 'Hide Districts' : 'Show Districts'}
+        <div>
+          <h1 className="portal-page-title">GPS trails</h1>
+          <p className="portal-subtitle">
+            Where each screen went. {devicePositions.length} {devicePositions.length === 1 ? 'screen' : 'screens'}, {points.length.toLocaleString()} GPS points on {date}, {startTime}–{endTime}.
+          </p>
+        </div>
+        <div className="admin-header-actions">
+          <button type="button" onClick={() => setShowDistricts(v => !v)} className="portal-btn-secondary" aria-pressed={showDistricts}>
+            <Layers size={16} aria-hidden /> {showDistricts ? 'Hide districts' : 'Show districts'}
           </button>
-          <button onClick={loadGPS} className="portal-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <RefreshCw size={16} /> Refresh
+          <button type="button" onClick={loadGPS} className="portal-btn-secondary">
+            <RefreshCw size={16} aria-hidden /> Refresh
           </button>
         </div>
       </div>
 
-      {/* Date + time range selector */}
-      <div style={{
-        display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end',
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 12, color: 'var(--portal-muted)' }}>Date</label>
-          <input
-            type="date"
-            value={date}
-            max={todayInTbilisi()}
-            onChange={e => setDate(e.target.value)}
-            style={{
-              background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', color: 'var(--portal-text)',
-              padding: '8px 12px', borderRadius: 8, fontSize: 13,
-            }}
-          />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 12, color: 'var(--portal-muted)' }}>From</label>
-          <input
-            type="time"
-            value={startTime}
-            onChange={e => setStartTime(e.target.value)}
-            style={{
-              background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', color: 'var(--portal-text)',
-              padding: '8px 12px', borderRadius: 8, fontSize: 13,
-            }}
-          />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 12, color: 'var(--portal-muted)' }}>To</label>
-          <input
-            type="time"
-            value={endTime}
-            onChange={e => setEndTime(e.target.value)}
-            style={{
-              background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', color: 'var(--portal-text)',
-              padding: '8px 12px', borderRadius: 8, fontSize: 13,
-            }}
-          />
-        </div>
+      <div className="filter-bar">
+        <label className="filter-field">
+          <span>Date</span>
+          <input type="date" value={date} max={todayInTbilisi()} onChange={e => setDate(e.target.value)} />
+        </label>
+        <label className="filter-field">
+          <span>From</span>
+          <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+        </label>
+        <label className="filter-field">
+          <span>To</span>
+          <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+        </label>
         <button
+          type="button"
           onClick={() => { setDate(todayInTbilisi()); setStartTime('00:00'); setEndTime('23:59') }}
-          className="portal-btn-secondary"
-          style={{ fontSize: 13 }}
+          className="action-btn"
         >
-          Reset to today
+          Today, all day
         </button>
       </div>
 
-      <div style={{
-        background: 'var(--portal-surface)',
-        border: '1px solid var(--portal-border)',
-        borderRadius: 12,
-        overflow: 'hidden',
-        height: 500,
-        position: 'relative',
-      }}>
+      <div className="map-card map-card-tall">
         {loading && points.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--portal-muted)' }}>
-            Loading GPS data...
-          </div>
+          <div className="portal-loading" style={{ minHeight: '100%' }}>Loading GPS data…</div>
         ) : devicePositions.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--portal-muted)', flexDirection: 'column', gap: 8 }}>
-            <p>No GPS data for {isToday ? 'today' : date} between {startTime} and {endTime}.</p>
-            <p style={{ fontSize: 13 }}>GPS is recorded at the start of each ad play.</p>
+          <div className="portal-empty" style={{ height: '100%', boxShadow: 'none' }}>
+            <p>No GPS data for {isToday ? 'today' : date} between {startTime} and {endTime}. A point is recorded at the start of each ad play.</p>
           </div>
         ) : (
           <MapView positions={devicePositions} allPoints={points} showDistricts={showDistricts} />
         )}
-      </div>
-
-      <div style={{ marginTop: 16, color: 'var(--portal-muted)', fontSize: 13 }}>
-        Showing {devicePositions.length} device(s), {points.length} GPS points for {date} {startTime}–{endTime}
       </div>
     </div>
   )

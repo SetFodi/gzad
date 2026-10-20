@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { RefreshCw, Wifi, WifiOff, Monitor } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { DevicePoint } from '@/components/admin/FleetMapView'
 
@@ -20,16 +20,21 @@ interface ApiDevice {
 export default function FleetPage() {
   const [allDevices, setAllDevices] = useState<ApiDevice[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [realtimeError, setRealtimeError] = useState(false)
   const [focusedId, setFocusedId] = useState<string | null>(null)
 
   const load = async () => {
     setLoading(true)
+    setLoadError(false)
     try {
       const res = await fetch('/api/devices')
       const data = await res.json()
-      setAllDevices(data.devices || [])
+      if (!res.ok || !Array.isArray(data.devices)) throw new Error('Failed to load devices')
+      setAllDevices(data.devices)
+      setRealtimeError(!!data.realtimeError)
     } catch {
-      // ignore
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -40,6 +45,15 @@ export default function FleetPage() {
     const interval = setInterval(load, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load this page from the database. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+      </div>
+    </div>
+  )
 
   const mappedDevices: DevicePoint[] = allDevices
     .filter(d => d.last_lat !== null && d.last_lng !== null)
@@ -58,111 +72,59 @@ export default function FleetPage() {
   return (
     <div className="portal-page">
       <div className="portal-page-header">
-        <h1 className="portal-page-title">Fleet Map</h1>
-        <button onClick={load} className="portal-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <RefreshCw size={16} /> Refresh
+        <div>
+          <h1 className="portal-page-title">Fleet map</h1>
+          <p className="portal-subtitle">
+            {realtimeError ? 'Live status unavailable' : `${onlineCount} online · ${offlineCount} offline`} · {mappedDevices.length} of {allDevices.length} with a GPS fix · refreshes every 30 seconds
+          </p>
+        </div>
+        <button type="button" onClick={load} className="portal-btn-secondary">
+          <RefreshCw size={16} aria-hidden /> Refresh
         </button>
       </div>
 
-      <div className="stats-grid" style={{ marginBottom: 20 }}>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(76, 106, 136, 0.14)' }}>
-            <Monitor size={24} color="var(--portal-info)" />
-          </div>
-          <div className="stat-card-info">
-            <span className="stat-card-value">{allDevices.length}</span>
-            <span className="stat-card-label">Total Devices</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(47, 125, 89, 0.14)' }}>
-            <Wifi size={24} color="var(--portal-success)" />
-          </div>
-          <div className="stat-card-info">
-            <span className="stat-card-value">{onlineCount}</span>
-            <span className="stat-card-label">Online</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(84, 26, 26, 0.08)' }}>
-            <WifiOff size={24} color="var(--portal-muted)" />
-          </div>
-          <div className="stat-card-info">
-            <span className="stat-card-value">{offlineCount}</span>
-            <span className="stat-card-label">Offline</span>
-          </div>
-        </div>
-      </div>
+      {realtimeError && <div className="portal-alert portal-alert-warning" role="status">Live screen status is unavailable. Positions below are the last locations saved in the database.</div>}
 
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-        {/* Device list */}
-        <div style={{
-          width: 220, flexShrink: 0,
-          background: 'var(--portal-surface)', border: '1px solid var(--portal-border)',
-          borderRadius: 12, overflow: 'hidden',
-          maxHeight: 500, overflowY: 'auto',
-        }}>
-          {allDevices.length === 0 && (
-            <div style={{ padding: 16, color: 'var(--portal-muted)', fontSize: 13 }}>No devices</div>
-          )}
+      <div className="map-layout">
+        <div className="map-list">
+          {allDevices.length === 0 && <p className="cell-sub" style={{ padding: 16, margin: 0 }}>No screens yet.</p>}
           {allDevices.map(d => {
             const hasFix = d.last_lat !== null && d.last_lng !== null
             return (
               <button
                 key={d.cardId}
-                onClick={() => hasFix ? setFocusedId(d.cardId) : undefined}
-                style={{
-                  width: '100%', textAlign: 'left', padding: '10px 14px',
-                  background: focusedId === d.cardId ? 'rgba(47, 125, 89, 0.14)' : 'transparent',
-                  border: 'none', borderBottom: '1px solid var(--portal-border)',
-                  cursor: hasFix ? 'pointer' : 'default',
-                  display: 'flex', alignItems: 'center', gap: 10,
-                }}
+                type="button"
+                className="map-list-item"
+                aria-pressed={focusedId === d.cardId}
+                disabled={!hasFix}
+                onClick={() => setFocusedId(d.cardId)}
               >
-                <div style={{
-                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: d.online ? 'var(--portal-success)' : 'var(--portal-muted)',
-                  boxShadow: d.online ? '0 0 6px rgba(47, 125, 89, 0.14)' : 'none',
-                }} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 13, color: 'var(--portal-text)', fontWeight: 500,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {d.name || d.cardId}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--portal-muted)' }}>
-                    {d.lastSeen ? new Date(d.lastSeen).toLocaleTimeString() : 'Never seen'}
+                <span className="device-presence" data-online={d.online || undefined} aria-hidden />
+                <span className="cell-stack" style={{ minWidth: 0 }}>
+                  <span className="recent-name">{d.name || d.cardId}</span>
+                  <span className="cell-sub">
+                    {d.lastSeen
+                      ? new Date(d.lastSeen).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                      : 'Never seen'}
                     {!hasFix && ' · no GPS'}
-                  </div>
-                </div>
+                  </span>
+                </span>
               </button>
             )
           })}
         </div>
 
-        {/* Map */}
-        <div style={{
-          flex: 1, background: 'var(--portal-surface)', border: '1px solid var(--portal-border)',
-          borderRadius: 12, overflow: 'hidden', height: 500, position: 'relative',
-        }}>
+        <div className="map-card map-card-tall">
           {loading && mappedDevices.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--portal-muted)' }}>
-              Loading...
-            </div>
+            <div className="portal-loading" style={{ minHeight: '100%' }}>Loading…</div>
           ) : mappedDevices.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--portal-muted)', gap: 8 }}>
-              <p>No GPS positions available.</p>
-              <p style={{ fontSize: 13 }}>Devices will appear once they report a location.</p>
+            <div className="portal-empty" style={{ height: '100%', boxShadow: 'none' }}>
+              <p>No GPS positions yet. Screens appear on the map once they report a location.</p>
             </div>
           ) : (
             <FleetMapView devices={mappedDevices} focusedId={focusedId} />
           )}
         </div>
-      </div>
-
-      <div style={{ marginTop: 12, color: 'var(--portal-muted)', fontSize: 13 }}>
-        {mappedDevices.length} of {allDevices.length} device(s) have GPS · auto-refreshes every 30s
       </div>
     </div>
   )

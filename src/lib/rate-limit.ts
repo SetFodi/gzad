@@ -14,9 +14,8 @@ export function clientIp(request: NextRequest): string {
 /**
  * Records a hit and reports whether it is within the limit.
  *
- * Fails open: if the rate_limits migration hasn't been applied or the database
- * is unhappy, real users still get through. This protects against floods, it is
- * not an authorization control.
+ * Authentication endpoints fail closed if their counter cannot be checked.
+ * Missing migrations or database outages must not remove attempt limits.
  */
 export async function allowRequest(
   supabase: SupabaseClient,
@@ -31,8 +30,8 @@ export async function allowRequest(
   })
 
   if (error) {
-    console.warn(`Rate limit check unavailable (${error.message}) — allowing request`)
-    return true
+    console.warn('Authentication rate limit check unavailable')
+    return false
   }
-  return data !== false
+  return data === true
 }

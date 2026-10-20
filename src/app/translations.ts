@@ -323,6 +323,114 @@ export const translations = {
             press: "Press",
             rights: "© 2026 Gzad Georgia. All rights reserved."
         },
+        auth: {
+            backToSite: "gzad.ge",
+            terms: "Terms",
+            privacy: "Privacy",
+            language: "Language",
+            showPassword: "Show password",
+            hidePassword: "Hide password",
+            login: {
+                title: "Sign in to Gzad",
+                subtitle: "Manage your campaigns, balance and plays.",
+                email: "Email",
+                emailPlaceholder: "you@company.com",
+                password: "Password",
+                passwordPlaceholder: "Your password",
+                forgot: "Forgot password?",
+                signIn: "Sign in",
+                signingIn: "Signing in…",
+                invalidCredentials: "That email and password don’t match. Check them and try again.",
+                linkFailed: "That sign-in link didn’t work. Sign in with your password instead.",
+                noAccount: "New to Gzad?",
+                createAccount: "Create an account",
+                help: "Trouble signing in? Write to"
+            },
+            signup: {
+                title: "Create your account",
+                registrationPending: "Online registration is being prepared. Contact us to start a campaign or join as a driver.",
+                contactUs: "Contact Gzad",
+                subtitle: "Choose how you’ll use Gzad.",
+                roleLabel: "Account type",
+                advertiser: "Advertiser",
+                advertiserHint: "Run ads on taxi-top screens",
+                fleet: "Fleet driver",
+                fleetHint: "Carry a Gzad screen on your car",
+                fullName: "Full name",
+                fullNamePlaceholder: "Name and surname",
+                company: "Company",
+                companyPlaceholder: "Company or brand name",
+                email: "Email",
+                emailPlaceholder: "you@company.com",
+                phone: "Phone",
+                optional: "Optional",
+                password: "Password",
+                passwordHint: "At least 8 characters.",
+                signUp: "Create account",
+                signingUp: "Creating account…",
+                agree: "By creating an account you agree to the",
+                and: "and",
+                alreadyHaveAccount: "Already have an account?",
+                signIn: "Sign in",
+                errors: {
+                    generic: "We couldn’t create the account. Try again in a moment.",
+                    tooMany: "Too many sign-up attempts from this network. Try again in an hour.",
+                    emailTaken: "An account with this email already exists. Sign in instead.",
+                    invalidEmail: "Enter a valid email address.",
+                    passwordShort: "Use at least 8 characters for the password.",
+                    companyRequired: "Add your company or brand name."
+                }
+            },
+            verification: {
+                signupTitle: "Verify your email",
+                signinTitle: "Confirm this sign-in",
+                sentTo: "Enter the code sent to {email}.",
+                loading: "Loading verification…",
+                startAgainHint: "Start sign-in again to request a new code.",
+                code: "Verification code",
+                signupHint: "This confirms your email. You will sign in next.",
+                trustHint: "After verification, this browser and IP will be remembered for 180 days. A different browser or IP needs a new code.",
+                verify: "Verify code",
+                verifying: "Verifying…",
+                resend: "Send a new code",
+                resendIn: "Send a new code in {seconds}s",
+                sending: "Sending…",
+                resent: "A new code has been sent. Check your inbox and spam folder.",
+                backToSignIn: "Back to sign in",
+                signupComplete: "Your email is verified. Sign in with your password to continue.",
+                expired: "This verification has expired or your network changed. Start sign-in again.",
+                invalidCode: "That code is incorrect or expired. Try again or request a new code.",
+                tooMany: "Too many attempts. Wait a moment before trying again.",
+                setupRequired: "Email verification is being set up. Please contact Gzad to sign in.",
+                deliveryFailed: "We could not send the email. Please try again later.",
+                unavailable: "Sign-in is temporarily unavailable. Please try again later."
+            },
+            panel: {
+                advertiser: {
+                    title: "Your brand, moving through Tbilisi.",
+                    points: [
+                        "Pick the districts and hours you want",
+                        "Prepaid balance, charged only for actual plays",
+                        "Every play logged with time and place"
+                    ]
+                },
+                fleet: {
+                    title: "Your car, part of the city’s screen network.",
+                    points: [
+                        "Plays and screen hours for every vehicle",
+                        "See where your car carried ads on a map",
+                        "All your vehicles in one place"
+                    ]
+                },
+                sample: "Sample ads"
+            },
+            ads: [
+                { tag: "Open till 2am", brand: "Puri House", line: "Hot from the oven · Vake", theme: "sun" },
+                { tag: "First month", brand: "VAKE FIT", line: "Join this week", big: "₾0", theme: "cobalt" },
+                { tag: "Sat – Sun", brand: "Weekend Sale", line: "Saburtalo", big: "−30%", theme: "magenta" },
+                { tag: "2 for 1 before 10am", brand: "nova coffee", line: "Rustaveli · Chavchavadze", theme: "forest" }
+            ]
+        },
         portal: {
             sidebar: {
                 overview: "Overview",
@@ -332,37 +440,44 @@ export const translations = {
                 adminView: "Admin View",
                 signOut: "Sign Out"
             },
-            login: {
-                title: "Client Portal",
-                subtitle: "Sign in to view your campaigns and analytics",
-                email: "Email",
-                password: "Password",
-                signIn: "Sign In",
-                signingIn: "Signing in...",
-                invalidCredentials: "Invalid email or password",
-                contactForAccess: "Contact",
-                contactForAccessSuffix: "for access"
-            },
             dashboard: {
-                title: "Dashboard",
-                activeCampaigns: "Active Campaigns",
-                totalPlays: "Total Plays",
-                screenTime: "Screen Time",
-                recentCampaigns: "Your Campaigns",
+                title: "Overview",
+                subtitle: "Your balance, campaigns and plays at a glance.",
+                activeCampaigns: "Active campaigns",
+                totalPlays: "Plays",
+                screenTime: "Screen time",
+                recentCampaigns: "Your campaigns",
                 noCampaigns: "No campaigns yet. Submit your first ad to get started.",
-                submitAd: "Submit Ad",
-                mediaFiles: "Media"
+                submitAd: "Submit ad",
+                mediaFiles: "Media",
+                balance: "Balance",
+                balanceOk: "Ads keep playing while your balance lasts.",
+                billingDetails: "Billing details",
+                viewAll: "View all",
+                pendingNotice: "Waiting for review: {count}. A campaign goes on air once our team approves it."
             },
             campaigns: {
                 title: "Campaigns",
-                newCampaign: "New Campaign",
+                subtitle: "Everything you've submitted, newest first.",
+                newCampaign: "New campaign",
                 noCampaigns: "No campaigns yet.",
                 createFirst: "Create your first campaign",
-                duration: "Duration",
+                duration: "Dates",
                 price: "Price",
-                mediaFiles: "Media"
+                mediaFiles: "Files",
+                noMedia: "No media yet",
+                month: "month"
             },
             campaignDetail: {
+                dailyLimitTitle: "Daily spending limit",
+                dailyLimitLabel: "Limit per day (GEL)",
+                dailyLimitHint: "Leave blank for no limit. Resets at 00:00 Tbilisi time.",
+                dailyLimitSave: "Save limit",
+                dailyLimitSaving: "Saving…",
+                dailyLimitSaved: "Daily limit saved.",
+                dailyLimitSaveError: "Could not save the daily limit. Try again.",
+                dailyLimitInvalid: "Enter a positive amount with up to two decimal places, or leave it blank.",
+                dailyLimitPausedHint: "This campaign stays paused until the next Tbilisi day. Changing the limit does not restart it today.",
                 backToCampaigns: "Back to Campaigns",
                 totalPlays: "Total Plays",
                 screenTime: "Screen Time",
@@ -375,10 +490,16 @@ export const translations = {
                 taxisCol: "Taxis",
                 km: "KM",
                 adMedia: "Ad Media",
-                notFound: "Campaign not found"
+                notFound: "Campaign not found",
+                clearSelection: "Clear",
+                dragHint: "Select a first and last day, or drag across the chart.",
+                noPlays: "No plays in this period",
+                coverageMap: "Where your ad played",
+                coverageSummary: "{plays} plays in {places} places. Bigger dots mean more plays."
             },
             submit: {
-                title: "Submit New Ad",
+                title: "Submit an ad",
+                subtitle: "Upload your ad. Our team reviews it before it goes on air.",
                 campaignName: "Campaign Name",
                 campaignNamePlaceholder: "e.g. summer sale promo",
                 nameHint: "Lowercase English letters, numbers, and spaces only",
@@ -388,19 +509,24 @@ export const translations = {
                 nameInvalidChars: "Only lowercase English letters, numbers, and spaces allowed",
                 nameDuplicate: "A campaign with this name already exists. Please choose a different name.",
                 adMedia: "Ad Media (Images or Videos)",
-                uploadLabel: "Click to upload or drag files here",
-                uploadHintFormats: "PNG, JPG, GIF (max 10MB) | MP4 (max 100MB)",
+                uploadLabel: "Choose files or drop them here",
+                uploadHintFormats: "JPG, PNG or WebP up to 10 MB · MP4 or WebM up to 100 MB",
                 uploadHintVideo: "Video: H.264/AVC codec, max 1280x1080, 320p-720p recommended",
                 noFiles: "Please upload at least one file",
-                submitForReview: "Submit for Review",
+                submitForReview: "Submit for review",
                 uploading: "Uploading...",
                 success: "Ad Submitted!",
-                successMessage: "Your ad is under review. We will notify you once it is approved.",
+                successMessage: "Your ad is in review. It shows as Active in Campaigns once it is approved.",
                 fileTooLarge: "is too large",
                 maxForVideos: "Max 100MB for videos",
                 maxForImages: "Max 10MB for images",
                 adDuration: "Ad Duration",
-                adDurationHint: "How long each ad is shown on the LED before rotating.",
+                adDurationHint: "How long your ad stays on the screen each time the loop comes around.",
+                previewTitle: "On the screen",
+                previewEmpty: "Add a file to see it on a taxi screen",
+                previewNote: "Screens are 3:1 and fill edge to edge. Artwork in 3:1, for example 720 × 240, looks best.",
+                remove: "Remove",
+                files: "Files",
                 seconds: "sec"
             },
             billing: {
@@ -427,32 +553,40 @@ export const translations = {
                 date: "Date",
                 type: "Type",
                 note: "Note",
-                subtitle: "Your prepaid balance, charges, and top-up history."
+                subtitle: "Your prepaid balance, charges, and top-up history.",
+                coverage: "Played",
+                runway: "About {days} days of airtime left at your recent spend.",
+                runwaySoon: "Less than a day of airtime left at your recent spend. Contact us to top up.",
+                lowBalanceAlert: "Your balance is below {pct}% of the balance after your last top-up. Remaining balance: ₾{balance}.",
+                depleted: "Your balance is used up, so your ads are paused. Contact us to top up.",
+                capReached: "Daily cap reached for {campaign}. It goes back on air at midnight.",
+                txTypes: { topup: "Top-up", adjustment: "Adjustment", billing: "Airtime", refund: "Refund" }
             },
             common: {
+                loadError: "Could not load this page. Please try again.",
+                retry: "Try again",
                 loading: "Loading...",
                 active: "active",
                 pendingReview: "pending review",
                 paused: "paused",
                 pausedBilling: "paused — out of balance",
+                pausedCap: "paused — daily cap reached",
                 completed: "completed",
+                approved: "approved",
+                rejected: "rejected",
                 campaign: "Campaign",
                 startDate: "Start Date",
                 endDate: "End Date"
             }
         },
         fleet: {
-            signup: {
-                title: "Create Account",
-                subtitle: "Choose your account type to get started",
-                fullName: "Full Name",
-                email: "Email",
-                phone: "Phone Number",
-                password: "Password",
-                signUp: "Create Account",
-                signingUp: "Creating account...",
-                alreadyHaveAccount: "Already have an account?",
-                signIn: "Sign in"
+            common: {
+                loading: "Loading...",
+                retry: "Try again",
+                close: "Close",
+                loadFailed: "We couldn't load your fleet data. Try again.",
+                deleteFailed: "The vehicle wasn't deleted. Try again.",
+                addFailed: "The vehicle couldn't be added. Try again."
             },
             sidebar: {
                 overview: "Overview",
@@ -462,6 +596,7 @@ export const translations = {
             },
             dashboard: {
                 title: "Fleet Dashboard",
+                manageVehicles: "Manage vehicles",
                 totalVehicles: "Total Vehicles",
                 assignedLEDs: "Assigned LEDs",
                 totalPlays: "Total Ad Plays",
@@ -502,6 +637,9 @@ export const translations = {
             },
             stats: {
                 title: "LED Statistics",
+                startHour: "Start hour",
+                endHour: "End hour",
+                selectHint: "Select a first and last day, or drag across the chart.",
                 totalPlays: "Total Plays",
                 totalScreenTime: "Total Screen Time",
                 yourDevices: "Your Devices",
@@ -857,6 +995,114 @@ export const translations = {
             press: "პრესა",
             rights: "© 2026 Gzad Georgia. ყველა უფლება დაცულია."
         },
+        auth: {
+            backToSite: "gzad.ge",
+            terms: "წესები",
+            privacy: "კონფიდენციალურობა",
+            language: "ენა",
+            showPassword: "პაროლის ჩვენება",
+            hidePassword: "პაროლის დამალვა",
+            login: {
+                title: "შესვლა Gzad-ში",
+                subtitle: "მართეთ კამპანიები, ბალანსი და ჩვენებები.",
+                email: "ელ-ფოსტა",
+                emailPlaceholder: "you@company.com",
+                password: "პაროლი",
+                passwordPlaceholder: "თქვენი პაროლი",
+                forgot: "დაგავიწყდათ პაროლი?",
+                signIn: "შესვლა",
+                signingIn: "შესვლა…",
+                invalidCredentials: "ელ-ფოსტა ან პაროლი არასწორია. გადაამოწმეთ და სცადეთ თავიდან.",
+                linkFailed: "შესვლის ბმული არ იმუშავა. შედით პაროლით.",
+                noAccount: "ჯერ არ გაქვთ ანგარიში?",
+                createAccount: "რეგისტრაცია",
+                help: "ვერ შედიხართ? მოგვწერეთ:"
+            },
+            signup: {
+                title: "ანგარიშის შექმნა",
+                registrationPending: "ონლაინ რეგისტრაცია მზადდება. კამპანიის დასაწყებად ან მძღოლად შემოსაერთებლად დაგვიკავშირდით.",
+                contactUs: "დაგვიკავშირდით",
+                subtitle: "აირჩიეთ, როგორ გამოიყენებთ Gzad-ს.",
+                roleLabel: "ანგარიშის ტიპი",
+                advertiser: "რეკლამის განმთავსებელი",
+                advertiserHint: "რეკლამა ტაქსის სახურავის ეკრანებზე",
+                fleet: "მძღოლი",
+                fleetHint: "Gzad-ის ეკრანი თქვენს მანქანაზე",
+                fullName: "სახელი და გვარი",
+                fullNamePlaceholder: "სახელი და გვარი",
+                company: "კომპანია",
+                companyPlaceholder: "კომპანიის ან ბრენდის სახელი",
+                email: "ელ-ფოსტა",
+                emailPlaceholder: "you@company.com",
+                phone: "ტელეფონი",
+                optional: "არასავალდებულო",
+                password: "პაროლი",
+                passwordHint: "მინიმუმ 8 სიმბოლო.",
+                signUp: "ანგარიშის შექმნა",
+                signingUp: "იქმნება ანგარიში…",
+                agree: "ანგარიშის შექმნით ეთანხმებით",
+                and: "და",
+                alreadyHaveAccount: "უკვე გაქვთ ანგარიში?",
+                signIn: "შესვლა",
+                errors: {
+                    generic: "ანგარიში ვერ შეიქმნა. სცადეთ ცოტა ხანში.",
+                    tooMany: "ამ ქსელიდან ძალიან ბევრი მცდელობაა. სცადეთ ერთ საათში.",
+                    emailTaken: "ამ ელ-ფოსტით ანგარიში უკვე არსებობს. შედით სისტემაში.",
+                    invalidEmail: "შეიყვანეთ სწორი ელ-ფოსტა.",
+                    passwordShort: "პაროლი მინიმუმ 8 სიმბოლო უნდა იყოს.",
+                    companyRequired: "მიუთითეთ კომპანიის ან ბრენდის სახელი."
+                }
+            },
+            verification: {
+                signupTitle: "დაადასტურეთ ელ-ფოსტა",
+                signinTitle: "დაადასტურეთ შესვლა",
+                sentTo: "შეიყვანეთ კოდი, რომელიც გაიგზავნა მისამართზე {email}.",
+                loading: "იტვირთება…",
+                startAgainHint: "ახალი კოდის მისაღებად დაიწყეთ შესვლა თავიდან.",
+                code: "დადასტურების კოდი",
+                signupHint: "კოდით დაადასტურებთ ელ-ფოსტას. შემდეგ შეძლებთ სისტემაში შესვლას.",
+                trustHint: "დადასტურების შემდეგ ამ ბრაუზერს და IP-ს 180 დღით დავიმახსოვრებთ. სხვა ბრაუზერზე ან IP-ზე ახალი კოდი დაგჭირდებათ.",
+                verify: "კოდის დადასტურება",
+                verifying: "მოწმდება…",
+                resend: "ახალი კოდის გაგზავნა",
+                resendIn: "ახალი კოდი {seconds} წამში",
+                sending: "იგზავნება…",
+                resent: "ახალი კოდი გაიგზავნა. შეამოწმეთ შემოსული წერილები და სპამის საქაღალდე.",
+                backToSignIn: "შესვლის გვერდზე დაბრუნება",
+                signupComplete: "ელ-ფოსტა დადასტურებულია. გასაგრძელებლად შედით პაროლით.",
+                expired: "კოდის მოქმედების ვადა ამოიწურა ან ქსელი შეიცვალა. დაიწყეთ შესვლა თავიდან.",
+                invalidCode: "კოდი არასწორია ან ვადა ამოიწურა. სცადეთ თავიდან ან მოითხოვეთ ახალი კოდი.",
+                tooMany: "ძალიან ბევრი მცდელობაა. ცოტა ხანში სცადეთ თავიდან.",
+                setupRequired: "ელ-ფოსტის დადასტურება ჯერ მზადდება. შესასვლელად დაგვიკავშირდით.",
+                deliveryFailed: "წერილი ვერ გაიგზავნა. სცადეთ მოგვიანებით.",
+                unavailable: "სისტემაში შესვლა დროებით მიუწვდომელია. სცადეთ მოგვიანებით."
+            },
+            panel: {
+                advertiser: {
+                    title: "თქვენი ბრენდი თბილისის ქუჩებში.",
+                    points: [
+                        "აირჩიეთ სასურველი უბნები და საათები",
+                        "წინასწარი ბალანსი, გადაიხდით მხოლოდ რეალურ ჩვენებებში",
+                        "ყოველი ჩვენება ჩაწერილია დროით და ადგილით"
+                    ]
+                },
+                fleet: {
+                    title: "თქვენი მანქანა ქალაქის ეკრანების ქსელში.",
+                    points: [
+                        "ჩვენებები და ეკრანის საათები ყველა მანქანაზე",
+                        "რუკაზე ნახეთ, სად ატარა მანქანამ რეკლამა",
+                        "ყველა მანქანა ერთ სივრცეში"
+                    ]
+                },
+                sample: "რეკლამის მაგალითები"
+            },
+            ads: [
+                { tag: "ღიაა 02:00-მდე", brand: "Puri House", line: "ცხელი, ახლახან გამომცხვარი · ვაკე", theme: "sun" },
+                { tag: "პირველი თვე", brand: "VAKE FIT", line: "შემოგვიერთდით ამ კვირაში", big: "₾0", theme: "cobalt" },
+                { tag: "შაბ – კვი", brand: "ფასდაკლება", line: "საბურთალო", big: "−30%", theme: "magenta" },
+                { tag: "2 ერთის ფასად 10:00-მდე", brand: "nova coffee", line: "რუსთაველი · ჭავჭავაძე", theme: "forest" }
+            ]
+        },
         portal: {
             sidebar: {
                 overview: "მიმოხილვა",
@@ -866,37 +1112,44 @@ export const translations = {
                 adminView: "ადმინ პანელი",
                 signOut: "გასვლა"
             },
-            login: {
-                title: "კლიენტის პორტალი",
-                subtitle: "შედით თქვენი კამპანიებისა და ანალიტიკის სანახავად",
-                email: "ელ-ფოსტა",
-                password: "პაროლი",
-                signIn: "შესვლა",
-                signingIn: "შესვლა...",
-                invalidCredentials: "არასწორი ელ-ფოსტა ან პაროლი",
-                contactForAccess: "დაგვიკავშირდით",
-                contactForAccessSuffix: "წვდომისთვის"
-            },
             dashboard: {
                 title: "მიმოხილვა",
+                subtitle: "ბალანსი, კამპანიები და ჩვენებები ერთ გვერდზე.",
                 activeCampaigns: "აქტიური კამპანიები",
-                totalPlays: "ჯამური ჩვენებები",
+                totalPlays: "ჩვენებები",
                 screenTime: "ეკრანის დრო",
                 recentCampaigns: "თქვენი კამპანიები",
-                noCampaigns: "ჯერ არ გაქვთ კამპანიები. ატვირთეთ პირველი რეკლამა დასაწყებად.",
+                noCampaigns: "კამპანიები ჯერ არ გაქვთ. ატვირთეთ პირველი რეკლამა.",
                 submitAd: "რეკლამის ატვირთვა",
-                mediaFiles: "მედია"
+                mediaFiles: "ფაილები",
+                balance: "ბალანსი",
+                balanceOk: "რეკლამა გადის, სანამ ბალანსზე თანხაა.",
+                billingDetails: "გადახდების დეტალები",
+                viewAll: "ყველა",
+                pendingNotice: "განხილვას ელოდება: {count}. კამპანია ეთერში გავა ჩვენი გუნდის დადასტურების შემდეგ."
             },
             campaigns: {
                 title: "კამპანიები",
+                subtitle: "ყველა გაგზავნილი კამპანია, ახლიდან ძველისკენ.",
                 newCampaign: "ახალი კამპანია",
-                noCampaigns: "ჯერ არ გაქვთ კამპანიები.",
+                noCampaigns: "კამპანიები ჯერ არ გაქვთ.",
                 createFirst: "შექმენით პირველი კამპანია",
-                duration: "ხანგრძლივობა",
+                duration: "თარიღები",
                 price: "ფასი",
-                mediaFiles: "მედია"
+                mediaFiles: "ფაილები",
+                noMedia: "ფაილი ჯერ არ არის",
+                month: "თვე"
             },
             campaignDetail: {
+                dailyLimitTitle: "დღიური ხარჯის ლიმიტი",
+                dailyLimitLabel: "დღიური ლიმიტი (ლარი)",
+                dailyLimitHint: "ლიმიტის გარეშე დასატოვებლად ველი ცარიელი დატოვეთ. განულდება თბილისის დროით 00:00-ზე.",
+                dailyLimitSave: "ლიმიტის შენახვა",
+                dailyLimitSaving: "ინახება…",
+                dailyLimitSaved: "დღიური ლიმიტი შენახულია.",
+                dailyLimitSaveError: "დღიური ლიმიტი ვერ შეინახა. სცადეთ თავიდან.",
+                dailyLimitInvalid: "შეიყვანეთ დადებითი თანხა მაქსიმუმ ორი ათწილადი ნიშნით, ან დატოვეთ ცარიელი.",
+                dailyLimitPausedHint: "კამპანია დაპაუზებული დარჩება მომდევნო დღემდე თბილისის დროით. ლიმიტის შეცვლა დღეს კამპანიას არ განაახლებს.",
                 backToCampaigns: "კამპანიებზე დაბრუნება",
                 totalPlays: "ჯამური ჩვენებები",
                 screenTime: "ეკრანის დრო",
@@ -909,10 +1162,16 @@ export const translations = {
                 taxisCol: "ტაქსები",
                 km: "კმ",
                 adMedia: "რეკლამის მედია",
-                notFound: "კამპანია ვერ მოიძებნა"
+                notFound: "კამპანია ვერ მოიძებნა",
+                clearSelection: "გასუფთავება",
+                dragHint: "აირჩიეთ პირველი და ბოლო დღე, ან მონიშნეთ პერიოდი სვეტებზე გადათრევით.",
+                noPlays: "ამ პერიოდში ჩვენება არ ყოფილა",
+                coverageMap: "სად გავიდა თქვენი რეკლამა",
+                coverageSummary: "{plays} ჩვენება {places} ადგილას. დიდი წერტილი მეტ ჩვენებას ნიშნავს."
             },
             submit: {
                 title: "ახალი რეკლამის ატვირთვა",
+                subtitle: "ატვირთეთ რეკლამა. ეთერში გასვლამდე მას ჩვენი გუნდი განიხილავს.",
                 campaignName: "კამპანიის სახელი",
                 campaignNamePlaceholder: "მაგ. summer sale promo",
                 nameHint: "მხოლოდ ინგლისური პატარა ასოები, რიცხვები და სფეისები",
@@ -922,19 +1181,24 @@ export const translations = {
                 nameInvalidChars: "მხოლოდ ინგლისური პატარა ასოები, რიცხვები და სფეისები",
                 nameDuplicate: "ამ სახელით კამპანია უკვე არსებობს. აირჩიეთ სხვა სახელი.",
                 adMedia: "რეკლამის მედია (ფოტო ან ვიდეო)",
-                uploadLabel: "დააკლიკეთ ასატვირთად ან გადმოიტანეთ ფაილები",
-                uploadHintFormats: "PNG, JPG, GIF (მაქს 10MB) | MP4 (მაქს 100MB)",
+                uploadLabel: "აირჩიეთ ფაილები ან ჩააგდეთ აქ",
+                uploadHintFormats: "JPG, PNG ან WebP 10 MB-მდე · MP4 ან WebM 100 MB-მდე",
                 uploadHintVideo: "ვიდეო: H.264/AVC კოდეკი, მაქს 1280x1080, 320p-720p რეკომენდებული",
                 noFiles: "ატვირთეთ მინიმუმ ერთი ფაილი",
                 submitForReview: "გაგზავნა განსახილველად",
                 uploading: "იტვირთება...",
                 success: "რეკლამა ატვირთულია!",
-                successMessage: "თქვენი რეკლამა განხილვის პროცესშია. შეგატყობინებთ დამტკიცების შემდეგ.",
+                successMessage: "თქვენი რეკლამა განხილვაშია. დადასტურების შემდეგ კამპანიებში სტატუსი „აქტიური“ გახდება.",
                 fileTooLarge: "ზედმეტად დიდია",
                 maxForVideos: "მაქს 100MB ვიდეოსთვის",
                 maxForImages: "მაქს 10MB ფოტოსთვის",
                 adDuration: "რეკლამის ხანგრძლივობა",
-                adDurationHint: "რამდენ ხანს ჩანს თითოეული რეკლამა LED-ზე როტაციამდე.",
+                adDurationHint: "რამდენ ხანს ჩანს თქვენი რეკლამა ეკრანზე ციკლის ყოველ ჯერზე.",
+                previewTitle: "ეკრანზე",
+                previewEmpty: "ატვირთეთ ფაილი, რომ ტაქსის ეკრანზე ნახოთ",
+                previewNote: "ეკრანი 3:1 ფორმატისაა და მთლიანად ივსება. საუკეთესოა 3:1 დიზაინი, მაგალითად 720 × 240.",
+                remove: "წაშლა",
+                files: "ფაილები",
                 seconds: "წმ"
             },
             billing: {
@@ -961,32 +1225,40 @@ export const translations = {
                 date: "თარიღი",
                 type: "ტიპი",
                 note: "შენიშვნა",
-                subtitle: "თქვენი წინასწარ გადახდილი ბალანსი, ჩამოჭრები და შევსების ისტორია."
+                subtitle: "თქვენი წინასწარ გადახდილი ბალანსი, ჩამოჭრები და შევსების ისტორია.",
+                coverage: "გავიდა",
+                runway: "თქვენი ბოლოდროინდელი ხარჯით ეთერი დაახლოებით {days} დღე გეყოფათ.",
+                runwaySoon: "თქვენი ბოლოდროინდელი ხარჯით ეთერი ერთ დღეზე ნაკლებ ხანს გეყოფათ. შესავსებად დაგვიკავშირდით.",
+                lowBalanceAlert: "ბალანსი ბოლო შევსების შემდეგ არსებული თანხის {pct}%-ზე ნაკლებია. დარჩენილია ₾{balance}.",
+                depleted: "ბალანსი ამოიწურა და რეკლამები შეჩერებულია. შესავსებად დაგვიკავშირდით.",
+                capReached: "„{campaign}“-ის დღიური ლიმიტი ამოიწურა. ეთერში შუაღამისას დაბრუნდება.",
+                txTypes: { topup: "შევსება", adjustment: "კორექტირება", billing: "ეთერის დრო", refund: "დაბრუნება" }
             },
             common: {
+                loadError: "გვერდი ვერ ჩაიტვირთა. სცადეთ თავიდან.",
+                retry: "თავიდან ცდა",
                 loading: "იტვირთება...",
                 active: "აქტიური",
                 pendingReview: "განხილვაში",
                 paused: "შეჩერებული",
                 pausedBilling: "შეჩერებული — ბალანსი ამოიწურა",
+                pausedCap: "შეჩერებული — დღიური ლიმიტი ამოიწურა",
                 completed: "დასრულებული",
+                approved: "დადასტურებული",
+                rejected: "უარყოფილი",
                 campaign: "კამპანია",
                 startDate: "დაწყების თარიღი",
                 endDate: "დასრულების თარიღი"
             }
         },
         fleet: {
-            signup: {
-                title: "ანგარიშის შექმნა",
-                subtitle: "აირჩიეთ ანგარიშის ტიპი დასაწყებად",
-                fullName: "სრული სახელი",
-                email: "ელ-ფოსტა",
-                phone: "ტელეფონის ნომერი",
-                password: "პაროლი",
-                signUp: "ანგარიშის შექმნა",
-                signingUp: "იქმნება ანგარიში...",
-                alreadyHaveAccount: "უკვე გაქვთ ანგარიში?",
-                signIn: "შესვლა"
+            common: {
+                loading: "იტვირთება...",
+                retry: "თავიდან ცდა",
+                close: "დახურვა",
+                loadFailed: "ფლოტის მონაცემები ვერ ჩაიტვირთა. სცადეთ თავიდან.",
+                deleteFailed: "მანქანა ვერ წაიშალა. სცადეთ თავიდან.",
+                addFailed: "მანქანა ვერ დაემატა. სცადეთ თავიდან."
             },
             sidebar: {
                 overview: "მიმოხილვა",
@@ -996,6 +1268,7 @@ export const translations = {
             },
             dashboard: {
                 title: "ფლოტის პანელი",
+                manageVehicles: "მანქანების მართვა",
                 totalVehicles: "მანქანები",
                 assignedLEDs: "მინიჭებული LED-ები",
                 totalPlays: "სულ ჩვენებები",
@@ -1036,6 +1309,9 @@ export const translations = {
             },
             stats: {
                 title: "LED სტატისტიკა",
+                startHour: "დაწყების საათი",
+                endHour: "დასრულების საათი",
+                selectHint: "აირჩიეთ პირველი და ბოლო დღე, ან მონიშნეთ პერიოდი სვეტებზე გადათრევით.",
                 totalPlays: "სულ ჩვენებები",
                 totalScreenTime: "ეკრანის დრო",
                 yourDevices: "თქვენი მოწყობილობები",

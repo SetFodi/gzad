@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, CheckCircle, X } from 'lucide-react'
+import ScreenPreview from '@/components/portal/ScreenPreview'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n'
 
@@ -30,6 +31,7 @@ export default function SubmitAdPage() {
   const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [dragOver, setDragOver] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const { t } = useTranslations()
@@ -45,6 +47,8 @@ export default function SubmitAdPage() {
     }))
   }, [files])
 
+  useEffect(() => () => previews.forEach(preview => URL.revokeObjectURL(preview.url)), [previews])
+
   function validateName(value: string): string | null {
     if (!value.trim()) return p.nameRequired
     if (value.trim().length < 2) return p.nameMinLength
@@ -53,28 +57,41 @@ export default function SubmitAdPage() {
     return null
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selected = Array.from(e.target.files)
+  const acceptFiles = (selected: File[]) => {
+    if (selected.length === 0) return
 
-      const wrongType = selected.find(f => !ALLOWED_TYPES.includes(f.type))
-      if (wrongType) {
-        setError(`${wrongType.name}: unsupported file type. Use JPG, PNG, WebP, MP4 or WebM.`)
-        return
-      }
-
-      const invalid = selected.find(f => {
-        const limit = f.type.startsWith('video/') ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE
-        return f.size > limit
-      })
-      if (invalid) {
-        const isVideo = invalid.type.startsWith('video/')
-        setError(`${invalid.name} ${p.fileTooLarge} (${(invalid.size / 1024 / 1024).toFixed(1)}MB). ${isVideo ? p.maxForVideos : p.maxForImages}.`)
-        return
-      }
-      setError('')
-      setFiles(selected)
+    const wrongType = selected.find(f => !ALLOWED_TYPES.includes(f.type))
+    if (wrongType) {
+      setError(`${wrongType.name}: unsupported file type. Use JPG, PNG, WebP, MP4 or WebM.`)
+      return
     }
+
+    const invalid = selected.find(f => {
+      const limit = f.type.startsWith('video/') ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE
+      return f.size > limit
+    })
+    if (invalid) {
+      const isVideo = invalid.type.startsWith('video/')
+      setError(`${invalid.name} ${p.fileTooLarge} (${(invalid.size / 1024 / 1024).toFixed(1)}MB). ${isVideo ? p.maxForVideos : p.maxForImages}.`)
+      return
+    }
+    setError('')
+    setFiles(current => {
+      const seen = new Set(current.map(f => `${f.name}|${f.size}`))
+      return [...current, ...selected.filter(f => !seen.has(`${f.name}|${f.size}`))]
+    })
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) acceptFiles(Array.from(e.target.files))
+    // Let the same file be picked again after removing it.
+    e.target.value = ''
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setDragOver(false)
+    acceptFiles(Array.from(e.dataTransfer.files))
   }
 
   const removeFile = (index: number) => {
@@ -181,151 +198,123 @@ export default function SubmitAdPage() {
 
   return (
     <div className="portal-page">
-      <h1 className="portal-page-title">{p.title}</h1>
-
-      <form onSubmit={handleSubmit} className="portal-form">
-        {error && <div className="portal-login-error">{error}</div>}
-
-        <div className="portal-input-group">
-          <label htmlFor="name">{p.campaignName}</label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            placeholder={p.campaignNamePlaceholder}
-            required
-          />
-          {nameError && <span style={{ color: 'var(--portal-danger)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{nameError}</span>}
-          <span style={{ color: 'var(--portal-muted)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-            {p.nameHint}
-          </span>
+      <div className="portal-page-header">
+        <div>
+          <h1 className="portal-page-title">{p.title}</h1>
+          <p className="portal-subtitle">{p.subtitle}</p>
         </div>
+      </div>
 
-        <div className="portal-input-group">
-          <label>{p.adMedia}</label>
-          <div className="file-upload-zone">
+      <div className="submit-layout">
+        <form onSubmit={handleSubmit} className="portal-form submit-form">
+          {error && <div className="portal-login-error" role="alert">{error}</div>}
+
+          <div className="portal-input-group">
+            <label htmlFor="name">{p.campaignName}</label>
             <input
-              type="file"
-              id="files"
-              multiple
-              accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-              onChange={handleFileChange}
-              className="file-input"
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder={p.campaignNamePlaceholder}
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby="name-hint"
+              required
             />
-            <label htmlFor="files" className="file-upload-label">
-              <Upload size={32} />
-              <span>{p.uploadLabel}</span>
-              <span className="file-hint">{p.uploadHintFormats}</span>
-              <span className="file-hint">{p.uploadHintVideo}</span>
-            </label>
+            {nameError
+              ? <span className="field-error">{nameError}</span>
+              : <span id="name-hint" className="field-hint">{p.nameHint}</span>}
           </div>
 
-          {files.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-              {previews.map((preview, i) => (
-                <div key={i} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '8px 12px',
-                  borderRadius: 10,
-                  border: '1px solid var(--border)',
-                  background: 'var(--card)',
-                }}>
-                  <div style={{
-                    width: 64,
-                    height: 40,
-                    borderRadius: 6,
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    background: '#000',
-                    border: '1px solid var(--border)',
-                  }}>
-                    {preview.isVideo ? (
-                      <video
-                        src={preview.url}
-                        muted
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <img
-                        src={preview.url}
-                        alt=""
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                    )}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {preview.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
-                      {(preview.size / 1024 / 1024).toFixed(1)} MB
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 28,
-                      height: 28,
-                      borderRadius: 6,
-                      border: '1px solid var(--border)',
-                      background: 'transparent',
-                      color: 'var(--muted-foreground)',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
+          <div className="portal-input-group">
+            <label htmlFor="files">{p.adMedia}</label>
+            <div
+              className="file-upload-zone"
+              data-drag={dragOver || undefined}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+            >
+              <input
+                type="file"
+                id="files"
+                multiple
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                onChange={handleFileChange}
+                className="file-input"
+              />
+              <label htmlFor="files" className="file-upload-label">
+                <Upload size={28} aria-hidden />
+                <span>{p.uploadLabel}</span>
+                <span className="file-hint">{p.uploadHintFormats}</span>
+                <span className="file-hint">{p.uploadHintVideo}</span>
+              </label>
             </div>
-          )}
-        </div>
 
-        <div className="portal-input-group">
-          <label>{p.adDuration}</label>
-          <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
-            {([10, 20, 30] as AdDuration[]).map(d => {
-              const active = duration === d
-              return (
+            {files.length > 0 && (
+              <ul className="file-list">
+                {previews.map((preview, i) => (
+                  <li key={`${preview.name}-${preview.size}`} className="file-row">
+                    <div className="file-row-thumb">
+                      {preview.isVideo ? (
+                        <video src={preview.url} muted playsInline />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={preview.url} alt="" />
+                      )}
+                    </div>
+                    <div className="file-row-text">
+                      <span className="file-row-name">{preview.name}</span>
+                      <span className="file-row-size">{(preview.size / 1024 / 1024).toFixed(1)} MB</span>
+                    </div>
+                    <button type="button" className="app-icon-btn" onClick={() => removeFile(i)} aria-label={`${p.remove} ${preview.name}`}>
+                      <X size={16} aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="portal-input-group">
+            <span className="field-label" id="duration-label">{p.adDuration}</span>
+            <div className="segmented" role="radiogroup" aria-labelledby="duration-label">
+              {([10, 20, 30] as AdDuration[]).map(d => (
                 <button
                   type="button"
                   key={d}
+                  role="radio"
+                  aria-checked={duration === d}
                   onClick={() => setDuration(d)}
-                  style={{
-                    flex: 1,
-                    padding: '12px 16px',
-                    borderRadius: 10,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: active ? 'var(--portal-primary-soft)' : 'rgba(255, 249, 240, 0.62)',
-                    border: `1px solid ${active ? 'var(--portal-primary)' : 'var(--portal-border)'}`,
-                    color: active ? 'var(--portal-primary)' : 'var(--portal-muted)',
-                    transition: 'all 0.15s',
-                  }}
                 >
                   {d} {p.seconds}
                 </button>
-              )
-            })}
+              ))}
+            </div>
+            <span className="field-hint">{p.adDurationHint}</span>
           </div>
-          <span style={{ color: 'var(--portal-muted)', fontSize: 12, marginTop: 6, display: 'block' }}>
-            {p.adDurationHint}
-          </span>
-        </div>
 
-        <button type="submit" disabled={uploading} className="portal-btn-primary full-width">
-          {uploading ? p.uploading : p.submitForReview}
-        </button>
-      </form>
+          <button type="submit" disabled={uploading} className="portal-btn-primary full-width">
+            {uploading ? p.uploading : p.submitForReview}
+          </button>
+        </form>
+
+        <aside className="submit-preview">
+          <h2>{p.previewTitle}</h2>
+          <ScreenPreview
+            src={previews[0]?.url}
+            isVideo={previews[0]?.isVideo}
+            emptyLabel={p.previewEmpty}
+          />
+          <p className="field-hint">{p.previewNote}</p>
+          {files.length > 0 && (
+            <dl className="submit-summary">
+              <div><dt>{p.files}</dt><dd>{files.length}</dd></div>
+              <div><dt>{p.adDuration}</dt><dd>{duration} {p.seconds}</dd></div>
+            </dl>
+          )}
+        </aside>
+      </div>
     </div>
   )
 }

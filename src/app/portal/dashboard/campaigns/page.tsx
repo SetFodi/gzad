@@ -1,100 +1,90 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { readAllRows } from '@/lib/supabase/read'
 import { useTranslations } from '@/lib/i18n'
-
-interface CampaignWithMedia {
-  id: string
-  name: string
-  status: string
-  start_date: string
-  end_date: string
-  monthly_price: number
-  created_at: string
-  media_count: number
-  first_media_url?: string
-  first_media_type?: string
-}
+import CampaignCard, { summariseMedia, type CampaignSummary } from '@/components/portal/CampaignCard'
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<CampaignWithMedia[]>([])
+  const [campaigns, setCampaigns] = useState<CampaignSummary[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const [loadError, setLoadError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const { t } = useTranslations()
   const p = t.portal.campaigns
   const c = t.portal.common
 
   useEffect(() => {
+    let active = true
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const supabase = createClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) throw authError ?? new Error('Not authenticated')
 
-      const { data: client } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single()
+        const { data: client, error: clientError } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .single()
 
-      if (!client) { setLoading(false); return }
+        if (clientError || !client) throw clientError ?? new Error('Client profile unavailable')
 
-      const { data } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('client_id', client.id)
-        .order('created_at', { ascending: false })
+        const data = await readAllRows<CampaignSummary>((from, to) => supabase
+          .from('campaigns')
+          .select('*')
+          .eq('client_id', client.id)
+          .order('created_at', { ascending: false }).order('id').range(from, to))
 
-      const withMedia = await Promise.all(
-        (data || []).map(async (camp) => {
-          const [{ count: mediaCount }, { data: firstMedia }] = await Promise.all([
-            supabase.from('ad_media').select('*', { count: 'exact', head: true }).eq('campaign_id', camp.id),
-            supabase.from('ad_media').select('file_url, file_type').eq('campaign_id', camp.id).order('uploaded_at', { ascending: true }).limit(1),
-          ])
-          return {
-            ...camp,
-            media_count: mediaCount || 0,
-            first_media_url: firstMedia?.[0]?.file_url || undefined,
-            first_media_type: firstMedia?.[0]?.file_type || undefined,
-          }
-        })
-      )
+        const ids = (data || []).map(camp => camp.id)
+        const mediaRows = ids.length
+          ? await readAllRows<{ campaign_id: string; file_url: string; file_type: string | null }>((from, to) => supabase
+            .from('ad_media')
+            .select('campaign_id, file_url, file_type')
+            .in('campaign_id', ids)
+            .order('uploaded_at', { ascending: true }).order('id').range(from, to))
+          : []
+        const media = summariseMedia(mediaRows || [])
 
-      setCampaigns(withMedia)
-      setLoading(false)
+        if (!active) return
+        setCampaigns(data.map(camp => {
+          const m = media.get(camp.id)
+          return { ...camp, media_count: m?.count ?? 0, first_media_url: m?.url, first_media_type: m?.type }
+        }))
+      } catch {
+        if (active) setLoadError(true)
+      } finally {
+        if (active) setLoading(false)
+      }
     }
-    load()
-  }, [])
-
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'var(--portal-success)'
-      case 'pending_review': return 'var(--portal-warning)'
-      case 'paused': return 'var(--portal-muted)'
-      case 'paused_billing': return 'var(--portal-danger)'
-      case 'completed': return 'var(--portal-info)'
-      default: return 'var(--portal-muted)'
-    }
-  }
-
-  const statusLabel = (status: string) => {
-    switch (status) {
-      case 'active': return c.active
-      case 'pending_review': return c.pendingReview
-      case 'paused': return c.paused
-      case 'paused_billing': return c.pausedBilling
-      case 'completed': return c.completed
-      default: return status
-    }
-  }
+    void load()
+    return () => { active = false }
+  }, [attempt])
 
   if (loading) return <div className="portal-loading">{c.loading}</div>
+
+  if (loadError) return (
+    <div className="portal-page">
+      <h1 className="portal-page-title">{p.title}</h1>
+      <div className="portal-alert portal-alert-error" role="alert">{c.loadError}</div>
+      <button type="button" className="portal-btn-primary" onClick={() => { setLoadError(false); setLoading(true); setAttempt(value => value + 1) }}>{c.retry}</button>
+    </div>
+  )
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
-        <h1 className="portal-page-title">{p.title}</h1>
-        <Link href="/portal/dashboard/submit" className="portal-btn-primary">{p.newCampaign}</Link>
+        <div>
+          <h1 className="portal-page-title">{p.title}</h1>
+          <p className="portal-subtitle">{p.subtitle}</p>
+        </div>
+        <Link href="/portal/dashboard/submit" className="portal-btn-primary">
+          <Plus size={16} aria-hidden />
+          {p.newCampaign}
+        </Link>
       </div>
 
       {campaigns.length === 0 ? (
@@ -105,54 +95,7 @@ export default function CampaignsPage() {
       ) : (
         <div className="campaigns-grid">
           {campaigns.map((camp) => (
-            <Link key={camp.id} href={`/portal/dashboard/campaigns/${camp.id}`} className="campaign-card">
-              {camp.first_media_url && (
-                <div style={{
-                  marginBottom: 12,
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                  border: '1px solid var(--border)',
-                  height: 100,
-                  background: '#000',
-                }}>
-                  {camp.first_media_type?.startsWith('video') ? (
-                    <video
-                      src={camp.first_media_url}
-                      muted
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <img
-                      src={camp.first_media_url}
-                      alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  )}
-                </div>
-              )}
-              <div className="campaign-card-header">
-                <h3>{camp.name}</h3>
-                <span className="status-badge" style={{ color: statusColor(camp.status), borderColor: statusColor(camp.status) }}>
-                  {statusLabel(camp.status)}
-                </span>
-              </div>
-              <div className="campaign-card-details">
-                <div>
-                  <span className="detail-label">{p.duration}</span>
-                  <span>{camp.start_date || '—'} → {camp.end_date || '—'}</span>
-                </div>
-                <div>
-                  <span className="detail-label">{p.mediaFiles}</span>
-                  <span>{camp.media_count} file{camp.media_count !== 1 ? 's' : ''}</span>
-                </div>
-                {camp.monthly_price > 0 && (
-                  <div>
-                    <span className="detail-label">{p.price}</span>
-                    <span>{camp.monthly_price} GEL/mo</span>
-                  </div>
-                )}
-              </div>
-            </Link>
+            <CampaignCard key={camp.id} campaign={camp} />
           ))}
         </div>
       )}

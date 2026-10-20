@@ -1,30 +1,19 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
-import Link from 'next/link'
-import { LayoutDashboard, Megaphone, Upload, Receipt, LogOut, Menu, X, Shield, Globe } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { LayoutDashboard, Megaphone, Plus, Receipt, Shield } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
 import { useTranslations } from '@/lib/i18n'
+import AppSidebar, { type NavItem } from '@/components/app/AppSidebar'
 
 export default function Sidebar() {
-  const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
-  const { lang, setLang, t } = useTranslations()
-
-  const navItems = [
-    { href: '/portal/dashboard', label: t.portal.sidebar.overview, icon: LayoutDashboard },
-    { href: '/portal/dashboard/campaigns', label: t.portal.sidebar.campaigns, icon: Megaphone },
-    { href: '/portal/dashboard/submit', label: t.portal.sidebar.submitAd, icon: Upload },
-    { href: '/portal/dashboard/billing', label: t.portal.sidebar.billing, icon: Receipt },
-  ]
+  const { t } = useTranslations()
+  const s = t.portal.sidebar
 
   useEffect(() => {
     async function checkAdmin() {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       const { data } = await supabase
@@ -37,83 +26,23 @@ export default function Sidebar() {
     checkAdmin()
   }, [])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/portal/login')
-  }
+  const links: NavItem[] = isAdmin ? [{ href: '/admin', label: s.adminView, icon: Shield }] : []
 
   return (
-    <>
-      <button
-        className="sidebar-mobile-toggle"
-        onClick={() => setMobileOpen(!mobileOpen)}
-      >
-        {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
-      <aside className={`portal-sidebar ${mobileOpen ? 'open' : ''}`}>
-        {/* Logo */}
-        <div className="sidebar-logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="8" width="18" height="10" rx="2" fill="#F1E2D1" />
-            <rect x="5" y="10" width="14" height="6" rx="1" fill="#810B38" />
-          </svg>
-          <span className="sidebar-logo-text">Gzad</span>
-        </div>
-
-        {/* Nav Links */}
-        <div className="sidebar-nav">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href ||
-              (item.href !== '/portal/dashboard' && pathname.startsWith(item.href))
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={`nav-item ${isActive ? 'active' : ''}`}
-              >
-                <item.icon size={20} />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-        </div>
-
-        {/* Footer */}
-        <div className="sidebar-footer">
-          {/* Language Toggle */}
-          <button
-            onClick={() => setLang(lang === 'en' ? 'ge' : 'en')}
-            className="nav-item"
-          >
-            <Globe size={20} />
-            <span>{lang === 'en' ? 'ქართული' : 'English'}</span>
-          </button>
-
-          {isAdmin && (
-            <Link
-              href="/admin"
-              onClick={() => setMobileOpen(false)}
-              className="nav-item"
-            >
-              <Shield size={20} />
-              <span>{t.portal.sidebar.adminView}</span>
-            </Link>
-          )}
-          <button onClick={handleLogout} className="sidebar-logout">
-            <LogOut size={20} />
-            <span>{t.portal.sidebar.signOut}</span>
-          </button>
-        </div>
-      </aside>
-
-      {mobileOpen && (
-        <div
-          onClick={() => setMobileOpen(false)}
-          className="sidebar-overlay"
-        />
-      )}
-    </>
+    <AppSidebar
+      sections={[
+        {
+          items: [
+            { href: '/portal/dashboard', label: s.overview, icon: LayoutDashboard, exact: true },
+            { href: '/portal/dashboard/campaigns', label: s.campaigns, icon: Megaphone },
+            { href: '/portal/dashboard/billing', label: s.billing, icon: Receipt },
+          ],
+        },
+      ]}
+      primaryAction={{ href: '/portal/dashboard/submit', label: s.submitAd, icon: Plus }}
+      links={links}
+      language
+      signOutLabel={s.signOut}
+    />
   )
 }

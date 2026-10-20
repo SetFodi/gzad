@@ -17,9 +17,11 @@ export async function POST(request: NextRequest) {
 
   if (!admin?.is_admin) return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
 
-  const { email, password, company_name, contact_name, phone } = await request.json()
+  const body = await request.json()
+  const { password, company_name, contact_name, phone } = body
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
 
-  if (!email || !password || !company_name || !contact_name) {
+  if (!email || typeof password !== 'string' || password.length < 8 || typeof company_name !== 'string' || !company_name.trim() || typeof contact_name !== 'string' || !contact_name.trim()) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
   const { data: authUser, error: authError } = await adminSupabase.auth.admin.createUser({
     email,
     password,
-    email_confirm: true,
+    email_confirm: false,
   })
 
   if (authError) {
@@ -44,9 +46,9 @@ export async function POST(request: NextRequest) {
   const { error: clientError } = await supabase.from('clients').insert({
     auth_user_id: authUser.user.id,
     email,
-    company_name,
-    contact_name,
-    phone: phone || null,
+    company_name: company_name.trim(),
+    contact_name: contact_name.trim(),
+    phone: typeof phone === 'string' ? phone.trim() || null : null,
     is_admin: false,
   })
 

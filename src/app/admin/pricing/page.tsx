@@ -49,6 +49,11 @@ interface BillingLog {
   time_multiplier: number
   total_cost: number
   ad_duration_seconds: number
+  // From migration 010 (metered billing); absent on older databases.
+  billing_unit?: 'slot_hour' | 'block_10m'
+  plays?: number | null
+  expected_plays?: number | null
+  proration?: number | null
   campaigns?: { name: string } | null
   clients?: { company_name: string } | null
 }
@@ -56,11 +61,12 @@ interface BillingLog {
 export default function PricingPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'rates' | 'districts' | 'time' | 'balances' | 'history' | 'map'>('rates')
 
   // Pricing config
-  const [baseRates, setBaseRates] = useState<Record<string, number>>({ '10': 2.0, '20': 3.4, '30': 4.6 })
+  const [baseRates, setBaseRates] = useState<Record<string, number>>({})
   const [districtTiers, setDistrictTiers] = useState<Record<string, number>>({})
   const [districtMultipliers, setDistrictMultipliers] = useState<Record<string, number>>({})
   const [timeMultipliers, setTimeMultipliers] = useState<Record<string, number>>({})
@@ -81,43 +87,64 @@ export default function PricingPage() {
 
   async function load() {
     setLoading(true)
-    const [configRes, clientsRes, logsRes] = await Promise.all([
-      supabase.from('pricing_config').select('key, value'),
-      supabase.from('clients').select('id, company_name, balance').eq('is_admin', false).neq('role', 'fleet').order('company_name'),
-      supabase.from('billing_logs')
-        .select('id, client_id, campaign_id, device_id, period_start, district, district_tier, base_rate, district_multiplier, time_multiplier, total_cost, ad_duration_seconds, campaigns(name), clients(company_name)')
-        .order('period_start', { ascending: false })
-        .limit(100),
-    ])
+    setLoadError(false)
+    try {
+      const logColumns = 'id, client_id, campaign_id, device_id, period_start, district, district_tier, base_rate, district_multiplier, time_multiplier, total_cost, ad_duration_seconds, campaigns(name), clients(company_name)'
+      const recentLogs = (columns: string) =>
+        supabase.from('billing_logs').select(columns).order('period_start', { ascending: false }).limit(100)
+      const [configRes, clientsRes, meteredLogsRes] = await Promise.all([
+        supabase.from('pricing_config').select('key, value'),
+        supabase.from('clients').select('id, company_name, balance').eq('is_admin', false).neq('role', 'fleet').order('company_name'),
+        recentLogs(`${logColumns}, billing_unit, plays, expected_plays, proration`),
+      ])
+      // Before migration 010 the metering columns don't exist yet.
+      const logsRes = meteredLogsRes.error ? await recentLogs(logColumns) : meteredLogsRes
 
-    const cfg: Record<string, Record<string, number>> = {}
-    for (const c of configRes.data || []) cfg[c.key] = c.value as Record<string, number>
+      const failedRead = [configRes, clientsRes, logsRes].find(result => result.error)
+      if (failedRead) throw failedRead.error
 
-    setBaseRates(cfg.base_rates || { '10': 2.0, '20': 3.4, '30': 4.6 })
-    setDistrictTiers(cfg.district_tiers || {})
-    setDistrictMultipliers(cfg.district_multipliers || { '1': 1.45, '2': 1.25, '3': 1.10, '4': 1.00 })
-    setTimeMultipliers(cfg.time_multipliers || {})
-    setClients(clientsRes.data || [])
-    setBillingLogs((logsRes.data || []) as unknown as BillingLog[])
+      const cfg: Record<string, Record<string, number>> = {}
+      for (const c of configRes.data || []) cfg[c.key] = c.value as Record<string, number>
 
-    // Load district polygons: DB override or hardcoded defaults
-    const savedPolygons = cfg.district_polygons as unknown as Record<string, { color: string; polygon: [number, number][] }> | undefined
-    if (savedPolygons && Object.keys(savedPolygons).length > 0) {
-      setEditableDistricts(Object.entries(savedPolygons).map(([name, data]) => ({
-        name,
-        color: data.color,
-        polygon: data.polygon,
-      })))
-    } else {
-      setEditableDistricts(TBILISI_DISTRICTS.map(d => ({
-        name: d.name,
-        color: d.color,
-        polygon: [...d.polygon],
-      })))
+      const required = ['base_rates', 'district_tiers', 'district_multipliers', 'time_multipliers']
+      if (required.some(key => !cfg[key] || typeof cfg[key] !== 'object' || Array.isArray(cfg[key]))) {
+        throw new Error('Pricing configuration is missing')
+      }
+      if (['10', '20', '30'].some(key => !Number.isFinite(cfg.base_rates[key]) || cfg.base_rates[key] < 0)
+        || ['1', '2', '3', '4'].some(key => !Number.isFinite(cfg.district_multipliers[key]) || cfg.district_multipliers[key] < 0)
+        || Object.values(cfg.district_tiers).some(tier => !Number.isInteger(tier) || tier < 1 || tier > 4)
+        || Object.entries(cfg.time_multipliers).some(([hour, value]) => !/^(?:[0-9]|1[0-9]|2[0-3])$/.test(hour) || !Number.isFinite(value) || value < 0)) {
+        throw new Error('Pricing configuration is invalid')
+      }
+
+      setBaseRates(cfg.base_rates)
+      setDistrictTiers(cfg.district_tiers)
+      setDistrictMultipliers(cfg.district_multipliers)
+      setTimeMultipliers(cfg.time_multipliers)
+      setClients(clientsRes.data || [])
+      setBillingLogs((logsRes.data || []) as unknown as BillingLog[])
+
+      // Load district polygons: DB override or hardcoded defaults
+      const savedPolygons = cfg.district_polygons as unknown as Record<string, { color: string; polygon: [number, number][] }> | undefined
+      if (savedPolygons && Object.keys(savedPolygons).length > 0) {
+        setEditableDistricts(Object.entries(savedPolygons).map(([name, data]) => ({
+          name,
+          color: data.color,
+          polygon: data.polygon,
+        })))
+      } else {
+        setEditableDistricts(TBILISI_DISTRICTS.map(d => ({
+          name: d.name,
+          color: d.color,
+          polygon: [...d.polygon],
+        })))
+      }
+      setMapDirty(false)
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
     }
-    setMapDirty(false)
-
-    setLoading(false)
   }
 
   async function saveConfig(key: string, value: Record<string, number>) {
@@ -163,68 +190,84 @@ export default function PricingPage() {
     }
   }
 
+  if (loadError) return (
+    <div className="portal-page">
+      <div className="portal-empty" role="alert">
+        <p>Could not load pricing and balances from the database. No rates have been substituted. Please try again.</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+      </div>
+    </div>
+  )
+
   if (loading) return <div className="portal-loading">Loading...</div>
 
+  const vakeTier = districtTiers.Vake ?? 4
+  const vakeMultiplier = districtMultipliers[vakeTier.toString()]
+  const rushMultiplier = timeMultipliers['8'] ?? 1
+  const gldaniTier = districtTiers.Gldani ?? 4
+  const gldaniMultiplier = districtMultipliers[gldaniTier.toString()]
+  const offPeakMultiplier = timeMultipliers['2'] ?? 1
+
   const tabs = [
-    { key: 'rates', label: 'Base Rates', icon: DollarSign },
-    { key: 'districts', label: 'District Tiers', icon: MapPin },
-    { key: 'time', label: 'Time Multipliers', icon: Clock },
-    { key: 'map', label: 'District Map', icon: Map },
-    { key: 'balances', label: 'Client Balances', icon: Users },
-    { key: 'history', label: 'Billing History', icon: Receipt },
+    { key: 'rates', label: 'Rates', icon: DollarSign },
+    { key: 'districts', label: 'Districts', icon: MapPin },
+    { key: 'time', label: 'Time of day', icon: Clock },
+    { key: 'map', label: 'Map', icon: Map },
+    { key: 'balances', label: 'Balances', icon: Users },
+    { key: 'history', label: 'History', icon: Receipt },
   ] as const
 
   return (
     <div className="portal-page">
-      <h1 className="portal-page-title">Pricing & Billing</h1>
+      <div className="portal-page-header">
+        <div>
+          <h1 className="portal-page-title">Pricing</h1>
+          <p className="portal-subtitle">Rates, district and time multipliers, and client balances. Changes apply to the next billing run.</p>
+        </div>
+      </div>
 
       {/* Summary cards */}
       <div className="stats-grid" style={{ marginBottom: '2rem' }}>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(76, 106, 136, 0.14)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-info-soft)' }}>
             <DollarSign size={24} color="var(--portal-info)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatGEL(clients.reduce((s, c) => s + c.balance, 0))}</span>
-            <span className="stat-card-label">Total Client Balance</span>
+            <span className="stat-card-label">Total client balance</span>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(47, 125, 89, 0.12)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-success-soft)' }}>
             <Users size={24} color="var(--portal-success)" />
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{clients.filter(c => c.balance > 0).length} / {clients.length}</span>
-            <span className="stat-card-label">Active / Total Clients</span>
+            <span className="stat-card-label">Clients with balance</span>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'rgba(185, 133, 71, 0.13)' }}>
+          <div className="stat-card-icon" style={{ background: 'var(--portal-fill)' }}>
             <Receipt size={24} color="var(--portal-brass)" />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value">{formatGEL(billingLogs.reduce((s, l) => s + l.total_cost, 0))}</span>
-            <span className="stat-card-label">Recent Charges (last 100)</span>
+            <span className="stat-card-value">{formatGEL(billingLogs.reduce((s, l) => s + Number(l.total_cost), 0))}</span>
+            <span className="stat-card-label">Last 100 charges</span>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="segmented" role="tablist" aria-label="Pricing sections" style={{ marginTop: 28, marginBottom: 24 }}>
         {tabs.map(tab => (
           <button
             key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
-            style={{
-              padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid',
-              borderColor: activeTab === tab.key ? 'var(--portal-info)' : 'var(--border)',
-              background: activeTab === tab.key ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
-              color: activeTab === tab.key ? 'var(--portal-info)' : 'var(--muted-foreground)',
-              cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-            }}
           >
-            <tab.icon size={16} />
+            <tab.icon size={14} aria-hidden style={{ verticalAlign: -2, marginRight: 6 }} />
             {tab.label}
           </button>
         ))}
@@ -236,13 +279,13 @@ export default function PricingPage() {
         {/* ── Base Rates ── */}
         {activeTab === 'rates' && (
           <>
-            <h2>Base Rate Card <span style={{ fontSize: 13, color: 'var(--muted-foreground)', fontWeight: 400 }}>per taxi-slot-hour</span></h2>
+            <h2>Base rates <span style={{ fontSize: 13, color: 'var(--muted-foreground)', fontWeight: 400 }}>per taxi-slot-hour</span></h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Slot Duration</th>
-                    <th style={{ textAlign: 'right' }}>Rate (GEL)</th>
+                    <th>Ad length</th>
+                    <th style={{ textAlign: 'right' }}>Rate per hour</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -274,26 +317,26 @@ export default function PricingPage() {
                 disabled={saving}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
-                  borderRadius: 8, border: 'none', background: 'var(--portal-info)', color: '#fff',
+                  borderRadius: 980, border: 'none', background: 'var(--portal-primary)', color: '#fff',
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
-                <Save size={16} /> {saving ? 'Saving...' : 'Save Rates'}
+                <Save size={16} /> {saving ? 'Saving...' : 'Save rates'}
               </button>
             </div>
 
             {/* Example calculation */}
             <div style={{
               marginTop: 24, padding: 16, borderRadius: 12,
-              background: 'rgba(76, 106, 136, 0.14)', border: '1px solid rgba(76, 106, 136, 0.14)',
+              background: 'var(--portal-surface)', border: '1px solid var(--portal-hairline)',
             }}>
-              <h3 style={{ margin: '0 0 8px', fontSize: 14 }}>Example Calculation</h3>
+              <h3 style={{ margin: '0 0 8px', fontSize: 14 }}>Example</h3>
               <p style={{ margin: 0, fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.8 }}>
-                10s slot in <strong>Vake</strong> (Tier 1, 1.45x) during <strong>Rush Hour</strong> (1.30x):<br />
-                {formatGEL(baseRates['10'])} × 1.45 × 1.30 = <strong>{formatGEL(baseRates['10'] * 1.45 * 1.30)}</strong> per taxi-slot-hour<br />
+                10s slot in <strong>Vake</strong> (Tier {vakeTier}, {vakeMultiplier.toFixed(2)}x) at <strong>08:00</strong> ({rushMultiplier.toFixed(2)}x):<br />
+                {formatGEL(baseRates['10'])} × {vakeMultiplier.toFixed(2)} × {rushMultiplier.toFixed(2)} = <strong>{formatGEL(baseRates['10'] * vakeMultiplier * rushMultiplier)}</strong> per taxi-slot-hour<br />
                 <br />
-                30s slot in <strong>Gldani</strong> (Tier 4, 1.00x) during <strong>Off-Peak</strong> (0.75x):<br />
-                {formatGEL(baseRates['30'])} × 1.00 × 0.75 = <strong>{formatGEL(baseRates['30'] * 1.00 * 0.75)}</strong> per taxi-slot-hour
+                30s slot in <strong>Gldani</strong> (Tier {gldaniTier}, {gldaniMultiplier.toFixed(2)}x) at <strong>02:00</strong> ({offPeakMultiplier.toFixed(2)}x):<br />
+                {formatGEL(baseRates['30'])} × {gldaniMultiplier.toFixed(2)} × {offPeakMultiplier.toFixed(2)} = <strong>{formatGEL(baseRates['30'] * gldaniMultiplier * offPeakMultiplier)}</strong> per taxi-slot-hour
               </p>
             </div>
           </>
@@ -302,7 +345,7 @@ export default function PricingPage() {
         {/* ── District Tiers ── */}
         {activeTab === 'districts' && (
           <>
-            <h2>District Tier Assignments</h2>
+            <h2>District tiers</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -339,7 +382,7 @@ export default function PricingPage() {
                           </select>
                         </td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{mult.toFixed(2)}x</td>
-                        <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatGEL((baseRates['10'] || 2) * mult)}</td>
+                        <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatGEL(baseRates['10'] * mult)}</td>
                       </tr>
                     )
                   })}
@@ -348,7 +391,7 @@ export default function PricingPage() {
             </div>
 
             {/* Tier multiplier config */}
-            <h3 style={{ marginTop: 24 }}>Tier Multipliers</h3>
+            <h3 style={{ marginTop: 24 }}>Tier multipliers</h3>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
               {[1, 2, 3, 4].map(tier => (
                 <div key={tier} style={{
@@ -377,11 +420,11 @@ export default function PricingPage() {
                 disabled={saving}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
-                  borderRadius: 8, border: 'none', background: 'var(--portal-info)', color: '#fff',
+                  borderRadius: 980, border: 'none', background: 'var(--portal-primary)', color: '#fff',
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
-                <Save size={16} /> {saving ? 'Saving...' : 'Save Districts'}
+                <Save size={16} /> {saving ? 'Saving...' : 'Save districts'}
               </button>
             </div>
           </>
@@ -390,7 +433,7 @@ export default function PricingPage() {
         {/* ── Time Multipliers ── */}
         {activeTab === 'time' && (
           <>
-            <h2>Time-of-Day Multipliers</h2>
+            <h2>Time of day</h2>
 
             {/* Visual schedule bar */}
             <div style={{
@@ -483,11 +526,11 @@ export default function PricingPage() {
                 disabled={saving}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
-                  borderRadius: 8, border: 'none', background: 'var(--portal-info)', color: '#fff',
+                  borderRadius: 980, border: 'none', background: 'var(--portal-primary)', color: '#fff',
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
-                <Save size={16} /> {saving ? 'Saving...' : 'Save Time Config'}
+                <Save size={16} /> {saving ? 'Saving...' : 'Save times'}
               </button>
             </div>
           </>
@@ -498,7 +541,7 @@ export default function PricingPage() {
         {activeTab === 'map' && (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h2 style={{ margin: 0 }}>District Boundaries</h2>
+              <h2 style={{ margin: 0 }}>District boundaries</h2>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {mapDirty && <span style={{ fontSize: 12, color: 'var(--portal-warning)' }}>Unsaved changes</span>}
                 <button
@@ -539,7 +582,7 @@ export default function PricingPage() {
                   padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500,
                   border: '1px solid', cursor: 'pointer',
                   borderColor: !selectedMapDistrict ? 'var(--portal-info)' : 'var(--border)',
-                  background: !selectedMapDistrict ? 'rgba(76, 106, 136, 0.14)' : 'transparent',
+                  background: !selectedMapDistrict ? 'var(--portal-info-soft)' : 'transparent',
                   color: !selectedMapDistrict ? 'var(--portal-info)' : 'var(--muted-foreground)',
                 }}
               >
@@ -585,7 +628,7 @@ export default function PricingPage() {
             {/* Instructions */}
             <div style={{
               padding: 14, borderRadius: 10,
-              background: 'rgba(76, 106, 136, 0.14)', border: '1px solid rgba(76, 106, 136, 0.14)',
+              background: 'var(--portal-surface)', border: '1px solid var(--portal-hairline)',
               fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.7,
             }}>
               <strong style={{ color: 'var(--foreground)' }}>How to edit:</strong><br />
@@ -597,14 +640,14 @@ export default function PricingPage() {
 
         {activeTab === 'balances' && (
           <>
-            <h2>Client Balances</h2>
+            <h2>Client balances</h2>
             {balanceMsg && (
               <div style={{
                 padding: '10px 16px',
                 borderRadius: 8,
                 fontSize: 13,
                 marginBottom: 16,
-                background: balanceMsg.ok ? 'rgba(47, 125, 89, 0.14)' : 'rgba(163, 58, 58, 0.14)',
+                background: balanceMsg.ok ? 'var(--portal-success-soft)' : 'var(--portal-danger-soft)',
                 color: balanceMsg.ok ? 'var(--portal-success)' : 'var(--portal-danger)',
               }}>
                 {balanceMsg.msg}
@@ -686,7 +729,7 @@ export default function PricingPage() {
         {/* ── Billing History ── */}
         {activeTab === 'history' && (
           <>
-            <h2>Recent Billing History</h2>
+            <h2>Recent charges</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
@@ -699,12 +742,13 @@ export default function PricingPage() {
                     <th style={{ textAlign: 'right' }}>Base</th>
                     <th style={{ textAlign: 'right' }}>Dist ×</th>
                     <th style={{ textAlign: 'right' }}>Time ×</th>
+                    <th style={{ textAlign: 'right' }}>Played</th>
                     <th style={{ textAlign: 'right' }}>Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {billingLogs.length === 0 ? (
-                    <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No billing history yet</td></tr>
+                    <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No billing history yet</td></tr>
                   ) : billingLogs.map(l => (
                     <tr key={l.id}>
                       <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
@@ -717,7 +761,12 @@ export default function PricingPage() {
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatGEL(l.base_rate)}</td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{l.district_multiplier.toFixed(2)}x</td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{l.time_multiplier.toFixed(2)}x</td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{formatGEL(l.total_cost)}</td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 12, color: 'var(--muted-foreground)' }}>
+                        {l.billing_unit === 'block_10m' && l.proration != null
+                          ? `${l.plays}/${l.expected_plays} · ${Math.round(Number(l.proration) * 100)}%`
+                          : 'full hour'}
+                      </td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{formatGEL(Number(l.total_cost))}</td>
                     </tr>
                   ))}
                 </tbody>

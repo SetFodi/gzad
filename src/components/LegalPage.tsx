@@ -1,5 +1,8 @@
+import { Children, isValidElement } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { appFonts } from '@/app/fonts'
+import '@/app/legal.css'
 
 interface LegalPageProps {
   title: string
@@ -8,43 +11,66 @@ interface LegalPageProps {
 }
 
 export default function LegalPage({ title, lastUpdated, children }: LegalPageProps) {
+  const headings = Children.toArray(children)
+    .filter((child) => isValidElement<{ heading?: string }>(child) && typeof child.props.heading === 'string')
+    .map((child) => (child as React.ReactElement<{ heading: string }>).props.heading)
+
   return (
-    <main className="min-h-screen bg-[#FDF8F1] dark:bg-[#1A0E0E] text-[#541A1A] dark:text-[#F1E2D1]">
-      <div className="mx-auto max-w-3xl px-6 py-16 md:py-24">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm opacity-70 hover:opacity-100 transition-opacity mb-10"
-        >
-          <ArrowLeft size={16} /> Back to Gzad
+    <div className="legal-page" style={appFonts} lang="en">
+      <a href="#legal-content" className="legal-skip">Skip to content</a>
+      <header className="legal-header">
+        <div className="legal-header-inner">
+          <Link href="/" className="legal-logo" aria-label="Gzad home">
+            <span className="legal-logo-mark" aria-hidden />
+            gzad
+          </Link>
+          <Link href="/portal/login" className="legal-login">Log in</Link>
+        </div>
+      </header>
+
+      <main id="legal-content" className="legal-main" tabIndex={-1}>
+        <Link href="/" className="legal-back">
+          <ArrowLeft size={15} aria-hidden /> Back to Gzad
         </Link>
-
-        <h1 className="text-4xl md:text-5xl font-normal tracking-[-0.022em] leading-[1.05] mb-3">
-          {title}
-        </h1>
-        <p className="text-sm opacity-60 mb-12">Last updated: {lastUpdated}</p>
-
-        <div className="legal-prose flex flex-col gap-6 text-[15px] leading-relaxed">
-          {children}
+        <div className="legal-title-block">
+          <h1>{title}</h1>
+          <p>Last updated: {lastUpdated}</p>
         </div>
 
-        <hr className="my-12 border-current opacity-10" />
+        <div className="legal-document">
+          <nav className="legal-contents" aria-label="On this page">
+            <p>On this page</p>
+            <ul>
+              {headings.map((heading) => (
+                <li key={heading}><a href={`#${sectionId(heading)}`}>{heading}</a></li>
+              ))}
+            </ul>
+          </nav>
+          <article className="legal-prose" aria-label={title}>{children}</article>
+        </div>
 
-        <p className="text-sm opacity-60">
-          Questions about this page? Write to{' '}
-          <a href="mailto:legal@gzad.ge" className="underline hover:opacity-100">legal@gzad.ge</a>.
-        </p>
-      </div>
-    </main>
+        <footer className="legal-footer">
+          <p>
+            Questions about this page? Write to{' '}
+            <a href="mailto:legal@gzad.ge">legal@gzad.ge</a>.
+          </p>
+          <nav aria-label="Legal">
+            <Link href="/privacy" aria-current={title === 'Privacy Policy' ? 'page' : undefined}>Privacy Policy</Link>
+            <Link href="/terms" aria-current={title === 'Terms of Service' ? 'page' : undefined}>Terms of Service</Link>
+          </nav>
+        </footer>
+      </main>
+    </div>
   )
 }
 
-// A <div>, not a <section>: the global landing-page stylesheet gives every
-// <section> 120px of vertical padding, which pulls a text page apart.
+const sectionId = (heading: string) => heading.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
 export function Section({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-3">
-      <h2 className="text-xl font-medium tracking-[-0.01em] mt-4">{heading}</h2>
+    <section className="legal-section" id={sectionId(heading)}>
+      <h2>{heading}</h2>
       {children}
-    </div>
+    </section>
   )
 }
