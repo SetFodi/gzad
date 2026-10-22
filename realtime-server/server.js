@@ -624,6 +624,13 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     if (cardId) {
+      // A reconnecting controller registers its new socket before the old one has
+      // finished closing. Only the socket that is still registered may mark the
+      // device offline, otherwise a live connection is reported as down.
+      if (devices[cardId] && devices[cardId].ws !== ws) {
+        console.log(`[${new Date().toISOString()}] Replaced connection closed: ${cardId}`)
+        return
+      }
       console.log(`[${new Date().toISOString()}] Device disconnected: ${cardId}`)
       if (devices[cardId]) {
         devices[cardId].lastSeen = new Date().toISOString()
@@ -662,6 +669,12 @@ setInterval(() => {
 
 // ─── Core functions ──────────────────────────────────────────────────────────
 
+// Callback URLs carry the device's key in the query string. Redact before the
+// text reaches a log, where it would sit in plain text next to the pm2 output.
+function redactSecrets(text) {
+  return text.replace(/([?&]key=)[^&"\\\s]+/g, '$1***')
+}
+
 function sendCommand(cardId, data) {
   return new Promise((resolve, reject) => {
     const d = devices[cardId]
@@ -685,7 +698,7 @@ function sendCommand(cardId, data) {
         delete pendingCommands[commandId]
         reject(err)
       } else {
-        console.log(`[${new Date().toISOString()}] Sent to ${cardId}:`, JSON.stringify(data).slice(0, 200))
+        console.log(`[${new Date().toISOString()}] Sent to ${cardId}:`, redactSecrets(JSON.stringify(data)).slice(0, 200))
       }
     })
   })
