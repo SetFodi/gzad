@@ -40,6 +40,7 @@ templates are ready for the matching application release.
 | `20261020133430_auth_trusted_sessions.sql` | Configured SMTP and code templates, with coordinated `AUTH_DEVICE_VERIFICATION=on` deployment |
 | `20261020133824_client_daily_caps.sql` | Auth migration already applied and verified |
 | `20261020170130_billing_alert_smtp_delivery.sql` | Email-delivery migration applied; enables durable SMTP attempts before configuring `BILLING_EMAIL_PROVIDER=smtp` |
+| `20261026120000_system_events.sql` | Auth migration applied. Additive: apply before the release with the admin Activity page; until then billing and device callbacks skip logging without failing. Screen events need the matching realtime server |
 
 ## After applying 009
 

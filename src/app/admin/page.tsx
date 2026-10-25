@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  AlertTriangle, ArrowRight, BellRing, CheckCircle2, FileImage, Megaphone, Monitor, Play, Users, WalletMinimal,
+  AlertTriangle, ArrowRight, BellRing, CheckCircle2, FileImage, Megaphone, Monitor, Play, Receipt, Server, Users, WalletMinimal,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { readAllRows } from '@/lib/supabase/read'
@@ -32,11 +32,15 @@ interface Overview {
   today: string
   devices: number
   recent: RecentCampaign[]
+  /** Last billing run from the activity log; null before that migration or any run. */
+  billing: { at: string; ago: string; failed: boolean; stale: boolean; title: string } | null
 }
 
 // Screens report a play every few seconds while on air; an hour of silence
 // means none of them is playing or their reports aren't arriving.
 const SILENCE_MS = 60 * 60 * 1000
+// The realtime server triggers billing every 15 minutes; two missed runs is a problem.
+const BILLING_STALE_MS = 35 * 60 * 1000
 
 function timeAgo(iso: string, now: number) {
   const minutes = Math.round((now - new Date(iso).getTime()) / 60000)
@@ -49,6 +53,7 @@ function timeAgo(iso: string, now: number) {
 export default function AdminOverview() {
   const [data, setData] = useState<Overview | null>(null)
   const [online, setOnline] = useState<number | null>(null)
+  const [realtimeOk, setRealtimeOk] = useState<boolean | null>(null)
   const [loadError, setLoadError] = useState(false)
 
   const load = useCallback(async () => {
@@ -60,7 +65,7 @@ export default function AdminOverview() {
       const now = Date.now()
       const since = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-      const [clients, active, pending, pendingMedia, plays, depleted, alerts, lastPlay, devices, recent] = await Promise.all([
+      const [clients, active, pending, pendingMedia, plays, depleted, alerts, lastPlay, devices, recent, lastRun] = await Promise.all([
         supabase.from('clients').select('*', { count: 'exact', head: true }).eq('is_admin', false).neq('role', 'fleet'),
         supabase.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
@@ -73,6 +78,8 @@ export default function AdminOverview() {
         supabase.from('play_logs').select('began_at').order('began_at', { ascending: false }).limit(1),
         supabase.from('devices').select('*', { count: 'exact', head: true }),
         supabase.from('campaigns').select('id, name, status, created_at, clients(company_name)').order('created_at', { ascending: false }).limit(6),
+        // Optional: the activity log may not exist yet, so it isn't in failedRead.
+        supabase.from('system_events').select('occurred_at, severity, title').eq('category', 'billing').order('occurred_at', { ascending: false }).limit(1),
       ])
 
       const failedRead = [clients, active, pending, pendingMedia, depleted, alerts, lastPlay, devices, recent].find(result => result.error)
@@ -91,6 +98,15 @@ export default function AdminOverview() {
         lastPlayAgo: lastPlay.data?.[0] ? timeAgo(lastPlay.data[0].began_at, now) : null,
         today: new Date(now).toLocaleDateString('en-GB', { timeZone: 'Asia/Tbilisi', weekday: 'long', day: 'numeric', month: 'long' }),
         devices: devices.count ?? 0,
+        billing: lastRun.data?.[0]
+          ? {
+            at: lastRun.data[0].occurred_at,
+            ago: timeAgo(lastRun.data[0].occurred_at, now),
+            failed: lastRun.data[0].severity === 'error',
+            stale: now - new Date(lastRun.data[0].occurred_at).getTime() > BILLING_STALE_MS,
+            title: lastRun.data[0].title,
+          }
+          : null,
         recent: (recent.data || []).map((c: Record<string, unknown>) => ({
           id: c.id as string,
           name: c.name as string,
@@ -105,9 +121,11 @@ export default function AdminOverview() {
         const res = await fetch('/api/devices')
         const list = await res.json()
         const items: { online?: boolean }[] = Array.isArray(list) ? list : list.devices || []
+        setRealtimeOk(res.ok && !list.realtimeError)
         if (res.ok && !list.realtimeError) setOnline(items.filter(d => d.online).length)
       } catch {
         setOnline(null)
+        setRealtimeOk(false)
       }
     } catch {
       setLoadError(true)
@@ -152,6 +170,24 @@ export default function AdminOverview() {
       text: `${data.openAlerts} billing ${data.openAlerts === 1 ? 'alert' : 'alerts'} this week (low balance or daily cap)`,
       href: '/admin/clients',
     },
+    data.billing?.failed && {
+      icon: Receipt,
+      tone: 'danger',
+      text: `${data.billing.title} (${data.billing.ago})`,
+      href: '/admin/activity',
+    },
+    data.billing && !data.billing.failed && data.billing.stale && {
+      icon: Receipt,
+      tone: 'danger',
+      text: `Billing hasn't run since ${data.billing.ago}. Check the realtime server's billing trigger.`,
+      href: '/admin/activity',
+    },
+    realtimeOk === false && {
+      icon: Server,
+      tone: 'danger',
+      text: "Can't reach the Realtime Server: screens can't be controlled and online status is unknown",
+      href: '/admin/devices',
+    },
     data.silent && {
       icon: AlertTriangle,
       tone: 'danger',
@@ -168,6 +204,16 @@ export default function AdminOverview() {
         <div>
           <h1 className="portal-page-title">Overview</h1>
           <p className="portal-subtitle">{data.today}</p>
+        </div>
+        <div className="system-status" aria-label="System status">
+          <Link href="/admin/activity" className="system-pill" data-tone={!data.billing ? 'idle' : data.billing.failed || data.billing.stale ? 'danger' : 'ok'}>
+            <span className="system-dot" aria-hidden />
+            {data.billing ? `Billing ran ${data.billing.ago}` : 'Billing: no runs logged yet'}
+          </Link>
+          <Link href="/admin/devices" className="system-pill" data-tone={realtimeOk === null ? 'idle' : realtimeOk ? 'ok' : 'danger'}>
+            <span className="system-dot" aria-hidden />
+            {realtimeOk === null ? 'Realtime Server: checking…' : realtimeOk ? 'Realtime Server reachable' : 'Realtime Server unreachable'}
+          </Link>
         </div>
       </div>
 

@@ -560,6 +560,14 @@ wss.on('connection', (ws) => {
 
       cardId = data.cardId
 
+      // A screen that was already connected is just swapping sockets; only a
+      // screen coming back from offline is news for the activity log.
+      const previous = devices[cardId]
+      const wasOnline = Boolean(previous && previous.ws && previous.ws !== ws && previous.ws.readyState === 1)
+      const offlineSeconds = previous && !previous.ws && previous.lastSeen
+        ? Math.round((Date.now() - new Date(previous.lastSeen).getTime()) / 1000)
+        : null
+
       // Close old connection if exists
       if (devices[cardId] && devices[cardId].ws !== ws) {
         try { devices[cardId].ws.close() } catch (e) {}
@@ -572,9 +580,17 @@ wss.on('connection', (ws) => {
         info: {},
       }
       console.log(`[${new Date().toISOString()}] Device connected: ${cardId}`)
+      if (!wasOnline) {
+        postDeviceEvent(cardId, 'connected', {
+          ip: ws._socket?.remoteAddress || null,
+          ...(offlineSeconds !== null ? { offline_seconds: offlineSeconds } : {}),
+        })
+      }
 
-      // Auto-configure callbacks on every connection
-      autoSetupDevice(cardId)
+      // Auto-configure callbacks on every connection, then make sure the screen
+      // plays today's playlist: anything paused or ended while it was offline
+      // must stop, and new campaigns must start.
+      autoSetupDevice(cardId).then(() => syncPlaylistAfterConnect(cardId))
       return
     }
 
@@ -586,6 +602,7 @@ wss.on('connection', (ws) => {
     // Controller restart notification
     if (data._type === 'restart') {
       console.log(`[${new Date().toISOString()}] Device restarted: ${cardId}`)
+      postDeviceEvent(cardId, 'restarted')
       return
     }
 
@@ -632,6 +649,11 @@ wss.on('connection', (ws) => {
         return
       }
       console.log(`[${new Date().toISOString()}] Device disconnected: ${cardId}`)
+      if (devices[cardId]?.connectedAt) {
+        postDeviceEvent(cardId, 'disconnected', {
+          connected_seconds: Math.round((Date.now() - new Date(devices[cardId].connectedAt).getTime()) / 1000),
+        })
+      }
       if (devices[cardId]) {
         devices[cardId].lastSeen = new Date().toISOString()
         // Clean up: null out the WebSocket reference to free memory
@@ -880,6 +902,7 @@ async function autoSetupDevice(cardId) {
   const playlogUrl = callbackUrl('playlog', cardId, key)
 
   // Run all setup commands in parallel — each has its own try/catch so one failure won't block others
+  const failures = []
   await Promise.allSettled([
     // 1a. Tell XixunPlayer to upload play logs (player-level command)
     sendCommand(cardId, {
@@ -893,6 +916,7 @@ async function autoSetupDevice(cardId) {
     }).then(() => {
       console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) set for ${cardId}`)
     }).catch((err) => {
+      failures.push(`UploadPlayLogs: ${err.message}`)
       console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) failed for ${cardId}: ${err.message}`)
     }),
 
@@ -904,11 +928,51 @@ async function autoSetupDevice(cardId) {
     }).then(() => {
       console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) set for ${cardId}`)
     }).catch((err) => {
+      failures.push(`setUploadLogUrl: ${err.message}`)
       console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) failed for ${cardId}: ${err.message}`)
     }),
 
     // GPS is captured per-ad via the play log callback (lat/lng embedded in each log entry)
   ])
+
+  // Both routes failing means this screen won't report plays (or be billed).
+  if (failures.length === 2) postDeviceEvent(cardId, 'setup_failed', { errors: failures })
+}
+
+// ─── Activity log and playlist sync ──────────────────────────────────────────
+// Reports screen events to the app's admin Activity log. Fire and forget: a
+// slow or failing app must never hold up the WebSocket.
+function postDeviceEvent(cardId, kind, detail = {}) {
+  fetch(`${config.gzadAppUrl}/api/callback/device-event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.callbackSecret}` },
+    body: JSON.stringify({ cardId, kind, at: new Date().toISOString(), detail }),
+  }).then((res) => {
+    if (!res.ok) console.error(`[${new Date().toISOString()}] Activity event ${kind} for ${cardId} rejected (${res.status})`)
+  }).catch((err) => {
+    console.error(`[${new Date().toISOString()}] Activity event ${kind} for ${cardId} failed: ${err.message}`)
+  })
+}
+
+// Screens reconnect in bursts; one playlist push per screen per few minutes is plenty.
+const PLAYLIST_SYNC_COOLDOWN_MS = 3 * 60 * 1000
+const lastPlaylistSync = {}
+
+async function syncPlaylistAfterConnect(cardId) {
+  const last = lastPlaylistSync[cardId] || 0
+  if (Date.now() - last < PLAYLIST_SYNC_COOLDOWN_MS) return
+  lastPlaylistSync[cardId] = Date.now()
+  try {
+    const res = await fetch(`${config.gzadAppUrl}/api/devices/sync-single`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.callbackSecret}` },
+      body: JSON.stringify({ cardId }),
+    })
+    const body = await res.json().catch(() => ({}))
+    console.log(`[${new Date().toISOString()}] Playlist sync for ${cardId}: ${res.ok ? `pushed=${body.pushed} cleared=${body.cleared} media=${body.media}` : `failed (${res.status})`}`)
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] Playlist sync for ${cardId} failed: ${err.message}`)
+  }
 }
 
 // ─── Billing trigger ─────────────────────────────────────────────────────────

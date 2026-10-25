@@ -14,6 +14,8 @@ interface Client {
   phone: string
   created_at: string
   balance: number | null
+  is_admin?: boolean
+  role?: string
   campaign_count?: number
   active_count?: number
 }
@@ -33,17 +35,17 @@ export default function AdminClientsPage() {
     setLoading(true)
     setLoadError(false)
     try {
-      const { data, error: clientsError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('is_admin', false)
-        .neq('role', 'fleet')
-        .order('created_at', { ascending: false })
-
+      // Advertisers, plus any staff or driver account that owns campaigns:
+      // those are billed like anyone else and need their balance managed here.
+      const [{ data: accounts, error: clientsError }, { data: campaigns, error: campaignsError }] = await Promise.all([
+        supabase.from('clients').select('*').order('created_at', { ascending: false }),
+        supabase.from('campaigns').select('client_id, status'),
+      ])
       if (clientsError) throw clientsError
+      if (campaignsError) throw campaignsError
+      const owners = new Set((campaigns || []).map(c => c.client_id))
+      const data = (accounts || []).filter(a => owners.has(a.id) || (!a.is_admin && a.role !== 'fleet'))
       if (data) {
-        const { data: campaigns, error: campaignsError } = await supabase.from('campaigns').select('client_id, status')
-        if (campaignsError) throw campaignsError
         const totals = new Map<string, { all: number; active: number }>()
         for (const c of campaigns || []) {
           const entry = totals.get(c.client_id) ?? { all: 0, active: 0 }
@@ -197,7 +199,14 @@ export default function AdminClientsPage() {
                   <tr key={c.id}>
                     <td>
                       <div className="cell-stack">
-                        <Link href={`/admin/clients/${c.id}`} className="table-link">{c.company_name}</Link>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Link href={`/admin/clients/${c.id}`} className="table-link">{c.company_name}</Link>
+                          {(c.is_admin || c.role === 'fleet') && (
+                            <span className="portal-chip" title={`${c.is_admin ? 'Staff' : 'Driver'} account that owns campaigns`}>
+                              {c.is_admin ? 'Staff' : 'Driver'}
+                            </span>
+                          )}
+                        </span>
                         <span className="cell-sub">{c.contact_name}</span>
                       </div>
                     </td>
@@ -212,7 +221,7 @@ export default function AdminClientsPage() {
                       <span className="cell-sub">{c.active_count ? ` · ${c.campaign_count} total` : `${c.campaign_count} total`}</span>
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 500, color: balance <= 0 ? 'var(--portal-danger)' : 'var(--portal-text)' }}>
-                      ₾{balance.toFixed(2)}
+                      {balance < 0 ? `−₾${Math.abs(balance).toFixed(2)}` : `₾${balance.toFixed(2)}`}
                     </td>
                     <td className="cell-nowrap cell-sub">{new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                   </tr>

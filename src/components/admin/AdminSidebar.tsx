@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  BarChart3, Car, DollarSign, FolderOpen, LayoutDashboard, LayoutGrid, Map, MapPin,
+  Activity, BarChart3, Car, DollarSign, FolderOpen, LayoutDashboard, LayoutGrid, Map, MapPin,
   Megaphone, Monitor, ScrollText, Users, Eye,
 } from 'lucide-react'
 import AppSidebar from '@/components/app/AppSidebar'
@@ -41,6 +41,7 @@ export default function AdminSidebar() {
         {
           title: 'Insights',
           items: [
+            { href: '/admin/activity', label: 'Activity', icon: Activity },
             { href: '/admin/stats', label: 'Stats', icon: BarChart3 },
             { href: '/admin/logs', label: 'Logs', icon: ScrollText },
           ],

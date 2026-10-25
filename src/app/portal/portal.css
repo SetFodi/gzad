@@ -2424,6 +2424,316 @@ a.attention-row:hover {
     box-shadow: none;
 }
 
+/* ── System status (admin overview) ─────────────────────────────────────── */
+
+.system-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.system-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 980px;
+    background: var(--portal-surface);
+    box-shadow: var(--portal-shadow);
+    color: var(--portal-text-soft);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.system-pill:hover {
+    color: var(--portal-text);
+}
+
+.system-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--portal-faint);
+}
+
+.system-pill[data-tone='ok'] .system-dot {
+    background: #34c759;
+}
+
+.system-pill[data-tone='danger'] {
+    color: var(--portal-danger);
+}
+
+.system-pill[data-tone='danger'] .system-dot {
+    background: var(--portal-danger);
+}
+
+/* ── Activity ───────────────────────────────────────────────────────────── */
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--portal-faint);
+}
+
+.live-dot[data-on] {
+    background: #34c759;
+    box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.22);
+    animation: live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    50% {
+        box-shadow: 0 0 0 6px rgba(52, 199, 89, 0);
+    }
+}
+
+.spin {
+    animation: portal-spin 0.9s linear infinite;
+}
+
+.activity-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    margin-top: 28px;
+}
+
+.activity-toolbar .admin-filters {
+    margin-bottom: 0;
+}
+
+.activity-range {
+    width: 240px;
+}
+
+.activity-subbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin: 14px 0 8px;
+}
+
+.activity-subbar .search-field {
+    width: min(100%, 340px);
+}
+
+.activity-quiet {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--portal-muted);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.activity-days {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    margin-top: 10px;
+}
+
+.activity-day-label {
+    margin: 0 0 8px;
+    color: var(--portal-muted);
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0 !important;
+}
+
+.activity-list {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--portal-radius);
+    background: var(--portal-surface);
+    box-shadow: var(--portal-shadow);
+    list-style: none;
+}
+
+.activity-item + .activity-item {
+    border-top: 1px solid var(--portal-hairline);
+}
+
+.activity-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 52px;
+    padding: 10px 16px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.activity-row:disabled {
+    cursor: default;
+}
+
+.activity-row:not(:disabled):hover {
+    background: #fafafc;
+}
+
+.activity-time {
+    flex: none;
+    width: 64px;
+    color: var(--portal-muted);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.activity-icon {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex: none;
+    border-radius: 8px;
+    background: var(--portal-fill);
+    color: var(--portal-text-soft);
+}
+
+.activity-item[data-severity='success'] .activity-icon {
+    background: var(--portal-success-soft);
+    color: var(--portal-success);
+}
+
+.activity-item[data-severity='warning'] .activity-icon {
+    background: var(--portal-warning-soft);
+    color: var(--portal-warning);
+}
+
+.activity-item[data-severity='error'] .activity-icon {
+    background: var(--portal-danger-soft);
+    color: var(--portal-danger);
+}
+
+.activity-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.activity-title {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.activity-item[data-severity='error'] .activity-title {
+    color: var(--portal-danger);
+}
+
+.activity-tag {
+    flex: none;
+    padding: 2px 8px;
+    border-radius: 980px;
+    background: var(--portal-fill);
+    color: var(--portal-muted);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.activity-chevron {
+    flex: none;
+    color: var(--portal-faint);
+    transition: transform 0.2s var(--portal-ease);
+}
+
+.activity-row[aria-expanded='true'] .activity-chevron {
+    transform: rotate(180deg);
+}
+
+.activity-detail {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 16px 14px 92px;
+    padding: 12px 14px;
+    border-radius: var(--portal-radius-sm);
+    background: var(--portal-bg);
+}
+
+.activity-detail dl {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+}
+
+.activity-detail dl div {
+    display: grid;
+    grid-template-columns: minmax(120px, auto) 1fr;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.activity-detail dt {
+    color: var(--portal-muted);
+}
+
+.activity-detail dd {
+    margin: 0;
+    color: var(--portal-text);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+    .activity-row {
+        flex-wrap: wrap;
+        gap: 6px 10px;
+    }
+
+    .activity-time {
+        width: auto;
+    }
+
+    .activity-text {
+        flex-basis: 100%;
+        order: 3;
+    }
+
+    .activity-tag {
+        margin-left: auto;
+    }
+
+    .activity-detail {
+        flex-direction: column;
+        align-items: stretch;
+        margin-left: 16px;
+    }
+
+    .activity-detail dl div {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-dot[data-on],
+    .spin {
+        animation: none;
+    }
+}
+
 /* ── Shell: sidebar, top bar, drawer ────────────────────────────────────── */
 
 .app-sidebar {

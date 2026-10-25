@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { syncDevicePlaylist } from '@/lib/device-sync'
+import { recordEvents } from '@/lib/system-events'
 
 function getSupabase() {
   return createClient(
@@ -23,5 +24,22 @@ export async function POST(request: NextRequest) {
   const supabase = getSupabase()
   const result = await syncDevicePlaylist(supabase, cardId)
   console.log(`[sync-single] ${cardId}: pushed=${result.pushed} cleared=${result.cleared} media=${result.media} campaigns=${result.campaigns}`)
+
+  const failed = Boolean(result.error)
+  const skipped = !result.pushed && !result.cleared && !failed
+  await recordEvents(supabase, [{
+    category: 'screen',
+    kind: failed ? 'playlist_failed' : skipped ? 'playlist_skipped' : 'playlist_pushed',
+    severity: failed ? 'error' : skipped ? 'info' : 'success',
+    title: failed
+      ? `${cardId}: playlist push failed`
+      : skipped
+        ? `${cardId}: playlist not pushed (${result.reason ?? 'nothing to do'})`
+        : result.cleared
+          ? `${cardId}: screen cleared, no live campaigns`
+          : `${cardId}: playlist pushed, ${result.campaigns} ${result.campaigns === 1 ? 'campaign' : 'campaigns'}, ${result.media} ${result.media === 1 ? 'file' : 'files'}`,
+    device_id: cardId,
+    detail: { ...result },
+  }])
   return NextResponse.json(result)
 }

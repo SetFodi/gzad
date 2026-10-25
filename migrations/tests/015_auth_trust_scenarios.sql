@@ -134,8 +134,8 @@ end $$;
 
 reset role;
 do $$ begin
-  assert (select count(*) from pg_policies where schemaname = 'public' and policyname = 'Verified session required' and permissive = 'RESTRICTIVE') = 19,
-    'every existing private app table has a restrictive session gate';
+  assert (select count(*) from pg_policies where schemaname = 'public' and policyname = 'Verified session required' and permissive = 'RESTRICTIVE') = 20,
+    'every existing private app table (19, plus system_events) has a restrictive session gate';
   assert not has_function_privilege('anon','gzad_auth.session_is_verified()','EXECUTE'), 'anonymous users cannot execute private trust lookup';
   assert not has_table_privilege('authenticated','public.auth_verified_sessions','INSERT'), 'authenticated users cannot approve sessions';
 end $$;

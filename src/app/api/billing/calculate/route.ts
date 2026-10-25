@@ -22,6 +22,7 @@ import {
 import { syncGroupDevices } from '@/lib/device-sync'
 import { TZ } from '@/lib/campaigns'
 import { deliverBillingNotifications } from '@/lib/billing-notifications'
+import { billingRunEvent, recordEvents, type BillingRunSummary } from '@/lib/system-events'
 
 // Bills airtime per (campaign, device, block) — docs/billing-metering-plan.md.
 //
@@ -171,35 +172,45 @@ async function checkMeteredFrom(supabase: SupabaseClient, meteredFrom: Date | nu
   }
 }
 
-/** Marks campaigns whose end_date has passed as completed. Returns groups to resync. */
-async function completeExpiredCampaigns(supabase: SupabaseClient, today: string): Promise<string[]> {
+interface StatusChange {
+  groups: string[]
+  /** Names of the campaigns that changed, for the activity log. */
+  names: string[]
+}
+
+/** Marks campaigns whose end_date has passed as completed. */
+async function completeExpiredCampaigns(supabase: SupabaseClient, today: string): Promise<StatusChange> {
   const { data: expired, error } = await supabase
     .from('campaigns')
     .update({ status: 'completed' })
     .eq('status', 'active')
     .not('end_date', 'is', null)
     .lt('end_date', today)
-    .select('device_group_id')
+    .select('name, device_group_id')
 
   if (error) {
     console.error('Expiring campaigns failed:', error.message)
-    return []
+    return { groups: [], names: [] }
   }
-  return [...new Set((expired || []).map((c) => c.device_group_id).filter(Boolean) as string[])]
+  return {
+    groups: [...new Set((expired || []).map((c) => c.device_group_id).filter(Boolean) as string[])],
+    names: (expired || []).map((c) => c.name),
+  }
 }
 
 /** First run of a Tbilisi day: campaigns paused by their daily cap go back on air. */
-async function resumeCappedCampaigns(supabase: SupabaseClient, today: string): Promise<string[]> {
+async function resumeCappedCampaigns(supabase: SupabaseClient, today: string): Promise<StatusChange> {
   const last = await readState<{ date?: string }>(supabase, 'cap_resume_date')
-  if (last?.date === today) return []
+  if (last?.date === today) return { groups: [], names: [] }
 
   const { data: capped, error } = await supabase
     .from('campaigns')
-    .select('id, device_group_id, clients(balance)')
+    .select('id, name, device_group_id, clients(balance)')
     .eq('status', 'paused_cap')
   if (error) throw new Error(`Reading capped campaigns failed: ${error.message}`)
 
   const groups = new Set<string>()
+  const names: string[] = []
   for (const c of capped || []) {
     const client = (Array.isArray(c.clients) ? c.clients[0] : c.clients) as { balance?: number } | null
     const status = (client?.balance ?? 0) > 0 ? 'active' : 'paused_billing'
@@ -212,31 +223,41 @@ async function resumeCappedCampaigns(supabase: SupabaseClient, today: string): P
       console.error(`Resuming capped campaign ${c.id} failed:`, updateError.message)
       continue
     }
+    if (status === 'active') names.push(c.name)
     if (c.device_group_id) groups.add(c.device_group_id)
   }
   await writeState(supabase, 'cap_resume_date', { date: today })
-  return [...groups]
+  return { groups: [...groups], names }
 }
 
-async function pauseDepletedClients(supabase: SupabaseClient, clientIds: string[]): Promise<string[]> {
+/**
+ * Pauses the still-active campaigns of clients whose balance ran out. Clients
+ * already paused in an earlier run change nothing and aren't counted.
+ */
+async function pauseDepletedClients(
+  supabase: SupabaseClient,
+  clientIds: string[],
+): Promise<{ groups: string[]; paused: { id: string; name: string; client_id: string }[] }> {
   const groups = new Set<string>()
+  const pausedCampaigns: { id: string; name: string; client_id: string }[] = []
   for (const clientId of clientIds) {
     const { data: paused, error } = await supabase
       .from('campaigns')
       .update({ status: 'paused_billing' })
       .eq('client_id', clientId)
       .eq('status', 'active')
-      .select('device_group_id')
+      .select('id, name, client_id, device_group_id')
 
     if (error) {
       console.error(`Pausing campaigns for ${clientId} failed:`, error.message)
       continue
     }
     for (const c of paused || []) {
+      pausedCampaigns.push({ id: c.id, name: c.name, client_id: c.client_id })
       if (c.device_group_id) groups.add(c.device_group_id)
     }
   }
-  return [...groups]
+  return { groups: [...groups], paused: pausedCampaigns }
 }
 
 /** Writes low-balance and cap alerts to the outbox; repeats are ignored by dedupe_key. */
@@ -351,6 +372,7 @@ async function dailyMaintenance(supabase: SupabaseClient, settings: BillingSetti
 async function run() {
   const supabase = getSupabase()
   const now = new Date()
+  const startedAt = Date.now()
   const today = tbilisiDate(now)
   const meteredFrom = parseMeteredFrom(process.env.BILLING_METERED_FROM)
 
@@ -358,8 +380,9 @@ async function run() {
   await checkMeteredFrom(supabase, meteredFrom)
 
   const groupsToSync = new Set<string>()
-  for (const g of await completeExpiredCampaigns(supabase, today)) groupsToSync.add(g)
-  for (const g of await resumeCappedCampaigns(supabase, today)) groupsToSync.add(g)
+  const completed = await completeExpiredCampaigns(supabase, today)
+  const resumed = await resumeCappedCampaigns(supabase, today)
+  for (const g of [...completed.groups, ...resumed.groups]) groupsToSync.add(g)
 
   // Late uploads: anything received since the last fully successful run.
   const watermark = await readState<{ at?: string }>(supabase, 'late_log_watermark')
@@ -369,6 +392,7 @@ async function run() {
   const balances = new Map<string, number>()
   const depleted = new Set<string>()
   const capped: { campaignId: string; clientId: string }[] = []
+  const chargedByClient = new Map<string, { charged: number; balance: number }>()
   let totalCharged = 0
   let blocks = 0
   let lateBlocks = 0
@@ -394,7 +418,11 @@ async function run() {
       }
       const result = data as PostResult
       totalCharged = money(totalCharged + Number(result.charged))
-      if (Number(result.charged) !== 0) balances.set(clientId, Number(result.balance))
+      if (Number(result.charged) !== 0) {
+        balances.set(clientId, Number(result.balance))
+        const prev = chargedByClient.get(clientId)?.charged ?? 0
+        chargedByClient.set(clientId, { charged: money(prev + Number(result.charged)), balance: Number(result.balance) })
+      }
       if (Number(result.balance) <= 0) depleted.add(clientId)
       for (const campaignId of result.capped || []) {
         capped.push({ campaignId, clientId })
@@ -407,7 +435,8 @@ async function run() {
   // Advance only when every client posted, so a failure is retried next run.
   if (failures === 0) await writeState(supabase, 'late_log_watermark', { at: now.toISOString() })
 
-  for (const g of await pauseDepletedClients(supabase, [...depleted])) groupsToSync.add(g)
+  const depletion = await pauseDepletedClients(supabase, [...depleted])
+  for (const g of depletion.groups) groupsToSync.add(g)
 
   const alerts = await recordAlerts(supabase, balances, capped, settings, now)
 
@@ -425,14 +454,48 @@ async function run() {
 
   const maintenance = await dailyMaintenance(supabase, settings, now)
   const notificationDelivery = await deliverBillingNotifications(supabase, now)
+  const mode = meteredFrom && now >= meteredFrom ? 'metered' : 'hourly'
+
+  // Record the run in the staff activity log, by name rather than id.
+  const involved = [...new Set([...chargedByClient.keys(), ...depletion.paused.map((c) => c.client_id), ...capped.map((c) => c.clientId)])]
+  const clientNames = new Map<string, string>()
+  if (involved.length) {
+    const { data } = await supabase.from('clients').select('id, company_name').in('id', involved)
+    for (const c of data || []) clientNames.set(c.id, c.company_name)
+  }
+  const nameOf = (clientId: string) => clientNames.get(clientId) ?? clientId
+  const summary: BillingRunSummary = {
+    mode,
+    totalCharged,
+    blocks,
+    lateBlocks,
+    failedClients: failures,
+    durationMs: Date.now() - startedAt,
+    devicesSynced,
+    charges: [...chargedByClient].map(([clientId, c]) => ({ clientId, client: nameOf(clientId), ...c })),
+    paused: [
+      ...depletion.paused.map((c) => ({ campaignId: c.id, campaign: c.name, client: nameOf(c.client_id), reason: 'balance' as const })),
+      ...capped.map((c) => ({
+        campaignId: c.campaignId,
+        campaign: campaigns.get(c.campaignId)?.name ?? c.campaignId,
+        client: nameOf(c.clientId),
+        reason: 'cap' as const,
+      })),
+    ],
+    completed: completed.names,
+    resumed: resumed.names,
+  }
+  await recordEvents(supabase, [billingRunEvent(summary)])
 
   return {
-    mode: meteredFrom && now >= meteredFrom ? 'metered' : 'hourly',
+    mode,
     // periodsBilled / totalCharged / pausedClients are read by the realtime
-    // server's log line; keep their names.
+    // server's log line; keep their names. pausedClients counts only clients
+    // whose campaigns this run actually paused.
     periodsBilled: blocks,
     totalCharged,
-    pausedClients: depleted.size,
+    pausedClients: new Set(depletion.paused.map((c) => c.client_id)).size,
+    pausedCampaigns: depletion.paused.length,
     blocks,
     lateBlocks,
     cappedCampaigns: capped.length,
@@ -525,6 +588,10 @@ async function handle(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Billing run failed'
     console.error('Billing run failed:', message)
+    await recordEvents(getSupabase(), [billingRunEvent({
+      mode: 'unknown', totalCharged: 0, blocks: 0, lateBlocks: 0, failedClients: 0, durationMs: 0,
+      charges: [], paused: [], completed: [], resumed: [], devicesSynced: 0, error: message,
+    })])
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

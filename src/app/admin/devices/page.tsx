@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Monitor, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock, RotateCcw, HardDrive, MapPin, Search, Signal, Thermometer, Zap, Droplets } from 'lucide-react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import StatusBadge from '@/components/app/StatusBadge'
 
@@ -388,6 +389,9 @@ export default function DevicesPage() {
                     </span>
                   </div>
                   <StatusBadge status={error ? 'unknown' : d.online ? 'online' : 'offline'}>{error ? 'Unknown' : d.online ? 'Online' : 'Offline'}</StatusBadge>
+                  <Link href={`/admin/activity?device=${encodeURIComponent(d.cardId)}`} className="action-btn" title="Connections, playlist pushes and errors for this screen">
+                    History
+                  </Link>
                 </header>
 
                 {chips.length > 0 && (
