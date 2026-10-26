@@ -5,6 +5,7 @@ import { Monitor, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import StatusBadge from '@/components/app/StatusBadge'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface Device {
   cardId: string
@@ -26,6 +27,7 @@ interface DeviceHealth {
 }
 
 export default function DevicesPage() {
+  const { t, locale } = useAdminText()
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -149,13 +151,13 @@ export default function DevicesPage() {
       if (res.ok) {
         const detail = data.result !== undefined
           ? (typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2))
-          : (data.success ? 'Done' : JSON.stringify(data, null, 2))
-        setActionResult({ ok: true, msg: `${action}: Success`, data: detail })
+          : (data.success ? t('Done') : JSON.stringify(data, null, 2))
+        setActionResult({ ok: true, msg: `${action}: ${t('Success')}`, data: detail })
       } else {
-        setActionResult({ ok: false, msg: `${action}: ${data.error || 'Failed'}` })
+        setActionResult({ ok: false, msg: `${action}: ${data.error || t('Failed')}` })
       }
     } catch {
-      setActionResult({ ok: false, msg: `${action}: Failed to connect` })
+      setActionResult({ ok: false, msg: `${action}: ${t('Failed to connect')}` })
     } finally {
       setActionLoading(null)
     }
@@ -180,15 +182,15 @@ export default function DevicesPage() {
         if (imgData) {
           const cleanBase64 = imgData.replace(/\n/g, '')
           setScreenshotUrl(`data:image/png;base64,${cleanBase64}`)
-          setActionResult({ ok: true, msg: 'Screenshot captured' })
+          setActionResult({ ok: true, msg: t('Screenshot captured') })
         } else {
-          setActionResult({ ok: false, msg: 'Screenshot: No image data', data: JSON.stringify(data, null, 2) })
+          setActionResult({ ok: false, msg: t('Screenshot: no image data'), data: JSON.stringify(data, null, 2) })
         }
       } else {
-        setActionResult({ ok: false, msg: `Screenshot: ${data.error || 'Failed'}` })
+        setActionResult({ ok: false, msg: `${t('Screenshot')}: ${data.error || t('Failed')}` })
       }
     } catch (err) {
-      setActionResult({ ok: false, msg: `Screenshot: ${err instanceof Error ? err.message : 'Failed'}` })
+      setActionResult({ ok: false, msg: `${t('Screenshot')}: ${err instanceof Error ? err.message : t('Failed')}` })
     } finally {
       setActionLoading(null)
     }
@@ -208,10 +210,10 @@ export default function DevicesPage() {
         const name = data.name || data.result?.name || data.programName
         setPlayingInfo(name || JSON.stringify(data))
       } else {
-        setPlayingInfo(data.error || 'No program playing')
+        setPlayingInfo(data.error || t('No program playing'))
       }
     } catch {
-      setPlayingInfo('Failed to connect')
+      setPlayingInfo(t('Failed to connect'))
     } finally {
       setActionLoading(null)
     }
@@ -234,7 +236,7 @@ export default function DevicesPage() {
       if (lat && lng && (lat !== 0 || lng !== 0)) {
         setActionResult({
           ok: true,
-          msg: `Live GPS Location`,
+          msg: t('Live GPS location'),
           data: `Lat: ${lat}, Lng: ${lng}${data?.speed ? `, Speed: ${data.speed} km/h` : ''}\nhttps://www.google.com/maps?q=${lat},${lng}`,
         })
       } else {
@@ -249,22 +251,22 @@ export default function DevicesPage() {
         if (device?.last_lat && device?.last_lng) {
           setActionResult({
             ok: true,
-            msg: `Last Known Location (${device.last_seen_at ? new Date(device.last_seen_at).toLocaleString() : 'unknown time'})`,
+            msg: t('Last known location ({when})', { when: device.last_seen_at ? new Date(device.last_seen_at).toLocaleString(locale, { timeZone: 'Asia/Tbilisi' }) : t('unknown time') }),
             data: `Lat: ${device.last_lat}, Lng: ${device.last_lng}\nhttps://www.google.com/maps?q=${device.last_lat},${device.last_lng}`,
           })
         } else {
-          setActionResult({ ok: false, msg: 'GPS: No location data available' })
+          setActionResult({ ok: false, msg: t('GPS: no location data available') })
         }
       }
     } catch {
-      setActionResult({ ok: false, msg: 'GPS: Failed to fetch location' })
+      setActionResult({ ok: false, msg: t('GPS: could not fetch the location') })
     } finally {
       setActionLoading(null)
     }
   }
 
   const cleanStorage = async (cardId: string) => {
-    if (!confirm('Clean device storage? This will clear all cached programs. You\'ll need to re-push active ads.')) return
+    if (!confirm(t('Clean device storage? This clears all cached programs, and active ads must be pushed again.'))) return
     setActionLoading(`${cardId}-clean-storage`)
     setActionResult(null)
     try {
@@ -276,29 +278,29 @@ export default function DevicesPage() {
       const data = await res.json()
       if (res.ok) {
         const diskInfo = data.diskSpace?.result || data.diskSpace || {}
-        const freeStr = diskInfo.free ? `${Math.round(diskInfo.free / 1024 / 1024)}MB free` : ''
+        const freeStr = diskInfo.free ? t('{mb} MB free', { mb: Math.round(diskInfo.free / 1024 / 1024) }) : ''
         setActionResult({
           ok: true,
-          msg: `Storage cleaned${freeStr ? ` — ${freeStr}` : ''}`,
+          msg: `${t('Storage cleaned')}${freeStr ? ` — ${freeStr}` : ''}`,
           data: JSON.stringify(data, null, 2),
         })
       } else {
-        setActionResult({ ok: false, msg: `Clean storage: ${data.error || 'Failed'}` })
+        setActionResult({ ok: false, msg: `${t('Clean storage')}: ${data.error || t('Failed')}` })
       }
     } catch {
-      setActionResult({ ok: false, msg: 'Clean storage: Failed to connect' })
+      setActionResult({ ok: false, msg: `${t('Clean storage')}: ${t('Failed to connect')}` })
     } finally {
       setActionLoading(null)
     }
   }
 
-  if (loading) return <div className="portal-loading">Loading…</div>
+  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
 
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load devices from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void loadDevices()}>Try again</button>
+        <p>{t('Could not load devices from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadDevices()}>{t('Try again')}</button>
       </div>
     </div>
   )
@@ -306,15 +308,15 @@ export default function DevicesPage() {
   const onlineCount = devices.filter(d => d.online).length
   const busy = !!actionLoading
   const when = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null
+    iso ? new Date(iso).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Devices</h1>
+          <h1 className="portal-page-title">{t('Devices')}</h1>
           <p className="portal-subtitle">
-            {error ? 'Live status unavailable' : `${onlineCount} of ${devices.length} ${devices.length === 1 ? 'screen' : 'screens'} online`} · refreshes every 10 seconds
+            {error ? t('Live status unavailable') : t('{online} of {total} screens online', { online: onlineCount, total: devices.length })} · {t('refreshes every 10 seconds')}
           </p>
         </div>
         <div className="admin-header-actions">
@@ -324,17 +326,17 @@ export default function DevicesPage() {
             disabled={healthLoading}
             className="portal-btn-secondary"
           >
-            <Thermometer size={16} aria-hidden /> {healthLoading ? 'Checking…' : 'Health check'}
+            <Thermometer size={16} aria-hidden /> {healthLoading ? t('Checking…') : t('Health check')}
           </button>
           <button type="button" onClick={loadDevices} className="portal-btn-secondary">
-            <RefreshCw size={16} aria-hidden /> Refresh
+            <RefreshCw size={16} aria-hidden /> {t('Refresh')}
           </button>
         </div>
       </div>
 
       {error && (
         <div className="portal-alert portal-alert-warning">
-          <strong>Can&apos;t reach the Realtime Server</strong> ({error}). Showing registered screens; live status and controls come back once it&apos;s reachable.
+          <strong>{t('Can’t reach the Realtime Server')}</strong> ({error}). {t('Showing registered screens; live status and controls come back once it’s reachable.')}
         </div>
       )}
 
@@ -344,15 +346,15 @@ export default function DevicesPage() {
             <div style={{ fontWeight: 600 }}>{actionResult.msg}</div>
             {actionResult.data && <pre className="alert-pre">{actionResult.data}</pre>}
           </div>
-          <button type="button" className="app-icon-btn" onClick={() => setActionResult(null)} aria-label="Dismiss">×</button>
+          <button type="button" className="app-icon-btn" onClick={() => setActionResult(null)} aria-label={t('Dismiss')}>×</button>
         </div>
       )}
 
       {devices.length === 0 && !error ? (
         <div className="portal-empty">
-          <p>No devices registered yet.</p>
+          <p>{t('No devices registered yet.')}</p>
           <p style={{ fontSize: 14 }}>
-            Add one to the <code>devices</code> table, or connect a controller to the Realtime Server.
+            {t('Add one to the devices table, or connect a controller to the Realtime Server.')}
           </p>
         </div>
       ) : (
@@ -362,7 +364,7 @@ export default function DevicesPage() {
             const named = d.name && d.name !== d.cardId
             const chips: { icon: typeof Sun; label: string; tone?: string }[] = []
             if (d.online && health) {
-              if (health.screenOn !== undefined) chips.push({ icon: Power, label: health.screenOn ? 'Screen on' : 'Screen off', tone: health.screenOn ? 'var(--portal-success)' : undefined })
+              if (health.screenOn !== undefined) chips.push({ icon: Power, label: health.screenOn ? t('Screen on') : t('Screen off'), tone: health.screenOn ? 'var(--portal-success)' : undefined })
               if (health.temperature !== undefined) chips.push({ icon: Thermometer, label: `${health.temperature.toFixed(1)}°C` })
               if (health.voltage !== undefined) chips.push({ icon: Zap, label: `${health.voltage.toFixed(1)} V` })
               if (health.humidity !== undefined) chips.push({ icon: Droplets, label: `${health.humidity.toFixed(0)}%` })
@@ -384,13 +386,13 @@ export default function DevicesPage() {
                     </h3>
                     <span className="cell-sub">
                       {named && <code>{d.cardId}</code>} {d.online
-                        ? `Connected ${when(d.connectedAt) ?? '—'}`
-                        : d.lastSeen ? `Last seen ${when(d.lastSeen)}` : 'Never connected'}
+                        ? t('Connected {when}', { when: when(d.connectedAt) ?? '—' })
+                        : d.lastSeen ? t('Last seen {when}', { when: when(d.lastSeen) ?? '' }) : t('Never connected')}
                     </span>
                   </div>
-                  <StatusBadge status={error ? 'unknown' : d.online ? 'online' : 'offline'}>{error ? 'Unknown' : d.online ? 'Online' : 'Offline'}</StatusBadge>
-                  <Link href={`/admin/activity?device=${encodeURIComponent(d.cardId)}`} className="action-btn" title="Connections, playlist pushes and errors for this screen">
-                    History
+                  <StatusBadge status={error ? 'unknown' : d.online ? 'online' : 'offline'}>{error ? t('Unknown') : d.online ? t('Online') : t('Offline')}</StatusBadge>
+                  <Link href={`/admin/activity?device=${encodeURIComponent(d.cardId)}`} className="action-btn" title={t('Connections, playlist pushes and errors for this screen')}>
+                    {t('History')}
                   </Link>
                 </header>
 
@@ -406,7 +408,7 @@ export default function DevicesPage() {
 
                 {!d.online ? (
                   <p className="device-offline">
-                    {error ? 'Live status is unavailable. Controls return when the Realtime Server is reachable.' : 'The screen is off or not connected to the Realtime Server. Controls appear when it comes back online.'}
+                    {error ? t('Live status is unavailable. Controls return when the Realtime Server is reachable.') : t('The screen is off or not connected to the Realtime Server. Controls appear when it comes back online.')}
                   </p>
                 ) : (
                   <>
@@ -421,7 +423,7 @@ export default function DevicesPage() {
                           setDeviceHealth(prev => ({ ...prev, [d.cardId]: { ...prev[d.cardId], screenOn: true } }))
                         }}
                       >
-                        <Power size={14} aria-hidden /> Screen on
+                        <Power size={14} aria-hidden /> {t('Screen on')}
                       </button>
                       <button
                         type="button"
@@ -433,92 +435,92 @@ export default function DevicesPage() {
                           setDeviceHealth(prev => ({ ...prev, [d.cardId]: { ...prev[d.cardId], screenOn: false } }))
                         }}
                       >
-                        <Power size={14} aria-hidden /> Screen off
+                        <Power size={14} aria-hidden /> {t('Screen off')}
                       </button>
                       <button type="button" className="action-btn" onClick={() => takeScreenshot(d.cardId)} disabled={busy}>
-                        <Camera size={14} aria-hidden /> Screenshot
+                        <Camera size={14} aria-hidden /> {t('Screenshot')}
                       </button>
                       <button type="button" className="action-btn" onClick={() => checkPlaying(d.cardId)} disabled={busy}>
-                        <Play size={14} aria-hidden /> Now playing
+                        <Play size={14} aria-hidden /> {t('Now playing')}
                       </button>
                       <button type="button" className="action-btn" onClick={() => getGpsLocation(d.cardId)} disabled={busy}>
-                        <MapPin size={14} aria-hidden /> Locate
+                        <MapPin size={14} aria-hidden /> {t('Locate')}
                       </button>
                     </div>
 
                     <div className="device-sliders">
                       <div className="device-slider">
                         <Sun size={16} aria-hidden />
-                        <span className="device-slider-label">Brightness</span>
-                        <input type="range" aria-label="Brightness" min={1} max={255} value={brightness} onChange={(e) => setBrightness(parseInt(e.target.value))} />
+                        <span className="device-slider-label">{t('Brightness')}</span>
+                        <input type="range" aria-label={t('Brightness')} min={1} max={255} value={brightness} onChange={(e) => setBrightness(parseInt(e.target.value))} />
                         <output>{brightness}</output>
-                        <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'brightness', { brightness })} disabled={actionLoading === `${d.cardId}-brightness`}>Set</button>
+                        <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'brightness', { brightness })} disabled={actionLoading === `${d.cardId}-brightness`}>{t('Set')}</button>
                       </div>
                       <div className="device-slider">
                         <Volume2 size={16} aria-hidden />
-                        <span className="device-slider-label">Volume</span>
-                        <input type="range" aria-label="Volume" min={0} max={15} value={volume} onChange={(e) => setVolume(parseInt(e.target.value))} />
+                        <span className="device-slider-label">{t('Volume')}</span>
+                        <input type="range" aria-label={t('Volume')} min={0} max={15} value={volume} onChange={(e) => setVolume(parseInt(e.target.value))} />
                         <output>{volume}</output>
-                        <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'volume', { volume })} disabled={actionLoading === `${d.cardId}-volume`}>Set</button>
+                        <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'volume', { volume })} disabled={actionLoading === `${d.cardId}-volume`}>{t('Set')}</button>
                       </div>
                     </div>
 
                     {playingInfo && (
                       <div className="portal-alert" style={{ margin: 0 }}>
-                        <strong>Now playing:</strong> {playingInfo}
+                        <strong>{t('Now playing')}:</strong> {playingInfo}
                       </div>
                     )}
 
                     {screenshotUrl && (
                       <figure className="device-screenshot">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={screenshotUrl} alt="What the screen is showing" />
-                        <figcaption className="cell-sub">Live screenshot</figcaption>
+                        <img src={screenshotUrl} alt={t('What the screen is showing')} />
+                        <figcaption className="cell-sub">{t('Live screenshot')}</figcaption>
                       </figure>
                     )}
 
                     <details className="device-more">
-                      <summary>Advanced</summary>
+                      <summary>{t('Advanced')}</summary>
                       <div className="device-more-body">
                         <div className="device-group">
-                          <p className="device-group-title">Setup</p>
+                          <p className="device-group-title">{t('Setup')}</p>
                           <div className="device-actions">
                             <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'setup-callbacks')} disabled={busy}>
-                              <Send size={14} aria-hidden /> Set up callbacks
+                              <Send size={14} aria-hidden /> {t('Set up callbacks')}
                             </button>
                             <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'info')} disabled={busy}>
-                              <Settings size={14} aria-hidden /> Device info
+                              <Settings size={14} aria-hidden /> {t('Device info')}
                             </button>
                           </div>
                         </div>
 
                         <div className="device-group">
-                          <p className="device-group-title"><Search size={12} aria-hidden /> Read device state</p>
+                          <p className="device-group-title"><Search size={12} aria-hidden /> {t('Read device state')}</p>
                           <div className="device-actions">
-                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-brightness')} disabled={busy}>Brightness</button>
-                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'is-screen-on')} disabled={busy}>Screen status</button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-brightness')} disabled={busy}>{t('Brightness')}</button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'is-screen-on')} disabled={busy}>{t('Screen status')}</button>
                             <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-disk-space')} disabled={busy}>
-                              <HardDrive size={12} aria-hidden /> Disk space
+                              <HardDrive size={12} aria-hidden /> {t('Disk space')}
                             </button>
-                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-upload-log-url')} disabled={busy}>Play-log config</button>
-                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-sub-gps')} disabled={busy}>GPS config</button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-upload-log-url')} disabled={busy}>{t('Play-log config')}</button>
+                            <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-sub-gps')} disabled={busy}>{t('GPS config')}</button>
                             <button type="button" className="action-btn" onClick={() => sendAction(d.cardId, 'get-sim-info')} disabled={busy}>
-                              <Signal size={12} aria-hidden /> SIM info
+                              <Signal size={12} aria-hidden /> {t('SIM info')}
                             </button>
                           </div>
                         </div>
 
                         <div className="device-group">
-                          <p className="device-group-title"><Clock size={12} aria-hidden /> Scheduled brightness</p>
+                          <p className="device-group-title"><Clock size={12} aria-hidden /> {t('Scheduled brightness')}</p>
                           <div className="device-actions">
                             <input
                               type="time"
                               className="input-sm"
                               value={schedBrightness.time}
                               onChange={(e) => setSchedBrightness({ ...schedBrightness, time: e.target.value })}
-                              aria-label="Time"
+                              aria-label={t('Time')}
                             />
-                            <span className="cell-sub">set brightness to</span>
+                            <span className="cell-sub">{t('set brightness to')}</span>
                             <input
                               type="number"
                               className="input-sm"
@@ -526,7 +528,7 @@ export default function DevicesPage() {
                               max={255}
                               value={schedBrightness.value}
                               onChange={(e) => setSchedBrightness({ ...schedBrightness, value: parseInt(e.target.value) || 1 })}
-                              aria-label="Brightness"
+                              aria-label={t('Brightness')}
                               style={{ width: 80 }}
                             />
                             <button
@@ -537,40 +539,40 @@ export default function DevicesPage() {
                               })}
                               disabled={busy}
                             >
-                              Save
+                              {t('Save')}
                             </button>
                           </div>
                         </div>
 
                         <div className="device-group device-danger">
-                          <p className="device-group-title">Danger zone</p>
+                          <p className="device-group-title">{t('Danger zone')}</p>
                           <div className="device-actions">
                             <button
                               type="button"
                               className="action-btn reject"
                               onClick={() => {
-                                if (confirm('Clear the program on this screen? It stops showing ads until playlists are pushed again.')) {
+                                if (confirm(t('Clear the program on this screen? It stops showing ads until playlists are pushed again.'))) {
                                   sendAction(d.cardId, 'clear-program')
                                 }
                               }}
                               disabled={busy}
                             >
-                              <Trash2 size={14} aria-hidden /> Clear program
+                              <Trash2 size={14} aria-hidden /> {t('Clear program')}
                             </button>
                             <button type="button" className="action-btn reject" onClick={() => cleanStorage(d.cardId)} disabled={busy}>
-                              <HardDrive size={14} aria-hidden /> Clean storage
+                              <HardDrive size={14} aria-hidden /> {t('Clean storage')}
                             </button>
                             <button
                               type="button"
                               className="action-btn reject"
                               onClick={() => {
-                                if (confirm('Reboot this device? It will disconnect for about 30 seconds.')) {
+                                if (confirm(t('Reboot this device? It will disconnect for about 30 seconds.'))) {
                                   sendAction(d.cardId, 'reboot')
                                 }
                               }}
                               disabled={busy}
                             >
-                              <RotateCcw size={14} aria-hidden /> Reboot
+                              <RotateCcw size={14} aria-hidden /> {t('Reboot')}
                             </button>
                           </div>
                         </div>

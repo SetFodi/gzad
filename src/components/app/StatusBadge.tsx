@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { useTranslations } from '@/lib/i18n'
+import { useAdminText } from '@/lib/admin-i18n'
 
 /** Colour for a campaign or media status; one place for every page. */
 export function statusTone(status: string): string {
@@ -68,14 +69,15 @@ export default function StatusBadge({
   tone,
 }: {
   status: string
-  /** Label; defaults to the English admin label. */
+  /** Label; defaults to the admin label in the chosen language. */
   children?: ReactNode
   /** Overrides the colour picked from the status. */
   tone?: string
 }) {
+  const { t } = useAdminText()
   return (
     <span className="status-badge" style={{ color: tone ?? statusTone(status) }}>
-      {children ?? adminStatusLabel(status)}
+      {children ?? t(adminStatusLabel(status))}
     </span>
   )
 }

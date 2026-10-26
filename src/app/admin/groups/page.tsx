@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Plus, X, Trash2, Monitor, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import AppDialog from '@/components/app/AppDialog'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface DeviceGroup {
   id: string
@@ -21,6 +22,7 @@ interface DeviceOption {
 }
 
 export default function GroupsPage() {
+  const { t } = useAdminText()
   const [groups, setGroups] = useState<DeviceGroup[]>([])
   const [unassigned, setUnassigned] = useState<DeviceOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,7 +87,7 @@ export default function GroupsPage() {
     setError('')
     const { error: err } = await supabase.from('device_groups').insert({ name })
     if (err) {
-      setError(err.message.includes('unique') ? 'Group name already exists' : err.message)
+      setError(err.message.includes('unique') ? t('Group name already exists') : err.message)
     } else {
       setNewName('')
       setShowCreate(false)
@@ -95,7 +97,7 @@ export default function GroupsPage() {
   }
 
   const deleteGroup = async (id: string) => {
-    if (!confirm('Delete this group? Devices will become unassigned.')) return
+    if (!confirm(t('Delete this group? Its screens become unassigned.'))) return
     // Unassign devices first
     await supabase.from('devices').update({ group_id: null }).eq('group_id', id)
     // Unassign campaigns
@@ -174,47 +176,47 @@ export default function GroupsPage() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>{t('Try again')}</button>
       </div>
     </div>
   )
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Groups</h1>
-          <p className="portal-subtitle">A group is a set of screens that play the same campaigns. Assign each screen to one group.</p>
+          <h1 className="portal-page-title">{t('Groups')}</h1>
+          <p className="portal-subtitle">{t('A group is a set of screens that play the same campaigns. Assign each screen to one group.')}</p>
         </div>
         <button type="button" onClick={() => { setShowCreate(true); setError('') }} className="portal-btn-primary">
-          <Plus size={16} aria-hidden /> New group
+          <Plus size={16} aria-hidden /> {t('New group')}
         </button>
       </div>
 
       {showCreate && (
         <AppDialog labelledBy="new-group-title" onClose={() => setShowCreate(false)}>
             <div className="admin-modal-header">
-              <h2 id="new-group-title">New group</h2>
-              <button type="button" onClick={() => setShowCreate(false)} className="admin-modal-close" aria-label="Close"><X size={20} /></button>
+              <h2 id="new-group-title">{t('New group')}</h2>
+              <button type="button" onClick={() => setShowCreate(false)} className="admin-modal-close" aria-label={t('Close')}><X size={20} /></button>
             </div>
             <form className="portal-form" onSubmit={(e) => { e.preventDefault(); createGroup() }}>
               {error && <div className="portal-login-error" role="alert">{error}</div>}
               <div className="portal-input-group">
-                <label htmlFor="group-name">Name</label>
+                <label htmlFor="group-name">{t('Name')}</label>
                 <input
                   id="group-name"
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Vake taxis, Airport line"
+                  placeholder={t('e.g. Vake taxis, Airport line')}
                   autoFocus
                 />
               </div>
               <button type="submit" disabled={creating} className="portal-btn-primary full-width">
-                {creating ? 'Creating…' : 'Create group'}
+                {creating ? t('Creating…') : t('Create group')}
               </button>
             </form>
         </AppDialog>
@@ -222,7 +224,7 @@ export default function GroupsPage() {
 
       {unassigned.length > 0 && (
         <div className="portal-alert portal-alert-warning">
-          <strong>{unassigned.length} {unassigned.length === 1 ? 'screen is' : 'screens are'} not in a group</strong> and won&apos;t get any campaigns until assigned.
+          <strong>{unassigned.length === 1 ? t('1 screen is not in a group') : t('{n} screens are not in a group', { n: unassigned.length })}</strong> {t('and won’t get any campaigns until assigned.')}
           <div className="chip-row" style={{ marginTop: 10 }}>
             {unassigned.map(d => (
               <span key={d.id} className="device-chip">
@@ -233,9 +235,9 @@ export default function GroupsPage() {
                     className="chip-select"
                     onChange={(e) => assignDevice(d.id, e.target.value || null)}
                     defaultValue=""
-                    aria-label={`Assign ${d.id} to a group`}
+                    aria-label={t('Assign {id} to a group', { id: d.id })}
                   >
-                    <option value="">Assign to…</option>
+                    <option value="">{t('Assign to…')}</option>
                     {groups.map(g => (
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
@@ -249,7 +251,7 @@ export default function GroupsPage() {
 
       {groups.length === 0 ? (
         <div className="portal-empty">
-          <p>No groups yet. Create one, then assign screens to it.</p>
+          <p>{t('No groups yet. Create one, then assign screens to it.')}</p>
         </div>
       ) : (
         <div className="group-grid">
@@ -260,7 +262,7 @@ export default function GroupsPage() {
                   <span className="cell-stack">
                     <span className="group-card-name">{g.name}</span>
                     <span className="cell-sub">
-                      {g.devices.length} {g.devices.length === 1 ? 'screen' : 'screens'} · {g.campaign_count} {g.campaign_count === 1 ? 'campaign' : 'campaigns'}
+                      {g.devices.length === 1 ? t('1 screen') : t('{n} screens', { n: g.devices.length })} · {g.campaign_count === 1 ? t('1 campaign') : t('{n} campaigns', { n: g.campaign_count })}
                     </span>
                   </span>
                   <ChevronRight size={18} aria-hidden className="attention-go" />
@@ -269,8 +271,8 @@ export default function GroupsPage() {
                   type="button"
                   onClick={() => deleteGroup(g.id)}
                   className="app-icon-btn danger"
-                  aria-label={`Delete ${g.name}`}
-                  title="Delete group"
+                  aria-label={t('Delete {name}', { name: g.name })}
+                  title={t('Delete group')}
                 >
                   <Trash2 size={16} aria-hidden />
                 </button>
@@ -278,7 +280,7 @@ export default function GroupsPage() {
 
               {g.devices.length === 0 ? (
                 <p className="cell-sub" style={{ margin: 0 }}>
-                  {unassigned.length > 0 ? 'No screens yet. Assign one from the list above.' : 'No screens yet. Move one here from another group.'}
+                  {unassigned.length > 0 ? t('No screens yet. Assign one from the list above.') : t('No screens yet. Move one here from another group.')}
                 </p>
               ) : (
                 <div className="chip-row">
@@ -290,8 +292,8 @@ export default function GroupsPage() {
                         type="button"
                         onClick={() => assignDevice(d.id, null)}
                         className="chip-remove"
-                        aria-label={`Remove ${d.id} from ${g.name}`}
-                        title="Remove from group"
+                        aria-label={t('Remove {id} from {name}', { id: d.id, name: g.name })}
+                        title={t('Remove from group')}
                       >
                         <X size={12} aria-hidden />
                       </button>

@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, Polygon, Tooltip } fr
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { TBILISI_DISTRICTS } from '@/lib/districts'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface GpsPoint {
   id: string
@@ -29,6 +30,7 @@ const deviceIcon = new L.DivIcon({
 })
 
 export default function MapView({ positions, allPoints, showDistricts = false }: MapViewProps) {
+  const { t, locale } = useAdminText()
   const center: [number, number] = positions.length > 0
     ? [positions[0].lat, positions[0].lng]
     : [41.7151, 44.8271]
@@ -66,7 +68,7 @@ export default function MapView({ positions, allPoints, showDistricts = false }:
             fillOpacity: 0.35,
           }}
         >
-          <Tooltip sticky>{district.name}</Tooltip>
+          <Tooltip sticky>{t(district.name)}</Tooltip>
         </Polygon>
       ))}
 
@@ -87,8 +89,8 @@ export default function MapView({ positions, allPoints, showDistricts = false }:
           <Popup>
             <div style={{ color: '#050505', fontSize: 13 }}>
               <strong>{p.device_serial}</strong><br />
-              Speed: {p.speed === null ? 'Not recorded' : `${p.speed} km/h`}<br />
-              Last update: {new Date(p.recorded_at).toLocaleString()}
+              {t('Speed')}: {p.speed === null ? t('Not recorded') : t('{n} km/h', { n: p.speed })}<br />
+              {t('Last update')}: {new Date(p.recorded_at).toLocaleString(locale, { timeZone: 'Asia/Tbilisi' })}
             </div>
           </Popup>
         </Marker>

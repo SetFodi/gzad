@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { BarChart3, Play, Clock, Monitor, Megaphone, FolderOpen, X, MapPin, ChevronDown } from 'lucide-react'
 import StatusBadge from '@/components/app/StatusBadge'
 import HourRange from '@/components/app/HourRange'
+import { useAdminText } from '@/lib/admin-i18n'
 
 const StatsMapView = dynamic(() => import('@/components/admin/StatsMapView'), { ssr: false })
 
@@ -58,12 +59,12 @@ function toTbilisiHour(iso: string): number {
   return parseInt(new Date(iso).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }), 10)
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+function durationText(seconds: number, t: (en: string, vars?: Record<string, number>) => string): string {
+  if (seconds < 60) return t('{s}s', { s: seconds })
+  if (seconds < 3600) return t('{m}m {s}s', { m: Math.floor(seconds / 60), s: seconds % 60 })
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
-  return m > 0 ? `${h}h ${m}m` : `${h}h`
+  return m > 0 ? t('{h}h {m}m', { h, m }) : t('{h}h', { h })
 }
 
 // ─── Dropdown select ─────────────────────────────────────────────────────────
@@ -101,6 +102,8 @@ function FilterSelect({ label, value, options, onChange }: {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function AdminStatsPage() {
+  const { t, locale } = useAdminText()
+  const dur = (seconds: number) => durationText(seconds, t)
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -311,24 +314,24 @@ export default function AdminStatsPage() {
       if (l.program_name && l.program_name !== 'unknown') names.add(l.program_name)
     }
     return [
-      { value: 'all', label: 'All campaigns' },
+      { value: 'all', label: t('All campaigns') },
       ...Array.from(names).sort().map(n => ({ value: n.toLowerCase(), label: n })),
     ]
-  }, [logs])
+  }, [logs, t])
 
   const groupOptions = useMemo(() => [
-    { value: 'all', label: 'All groups' },
+    { value: 'all', label: t('All groups') },
     ...groups.map(g => ({ value: g.id, label: g.name })),
-  ], [groups])
+  ], [groups, t])
 
   const deviceOptions = useMemo(() => {
     const ids = new Set<string>()
     for (const l of logs) ids.add(l.device_id)
     return [
-      { value: 'all', label: 'All devices' },
+      { value: 'all', label: t('All devices') },
       ...Array.from(ids).sort().map(id => ({ value: id, label: id })),
     ]
-  }, [logs])
+  }, [logs, t])
 
   // Compute stats from filtered logs
   const totalPlays = logs.length
@@ -407,12 +410,12 @@ export default function AdminStatsPage() {
     dragStart.current = null
   }
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>{t('Try again')}</button>
       </div>
     </div>
   )
@@ -425,8 +428,8 @@ export default function AdminStatsPage() {
     <div className="portal-page" onMouseUp={handleBarMouseUp}>
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Stats</h1>
-          <p className="portal-subtitle">Plays from the last 30 days. Select a first and last day, or drag across the chart.</p>
+          <h1 className="portal-page-title">{t('Stats')}</h1>
+          <p className="portal-subtitle">{t('Plays from the last 30 days. Select a first and last day, or drag across the chart.')}</p>
         </div>
       </div>
 
@@ -438,7 +441,7 @@ export default function AdminStatsPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalPlays.toLocaleString()}</span>
-            <span className="stat-card-label">Plays, 30 days</span>
+            <span className="stat-card-label">{t('Plays, 30 days')}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -446,8 +449,8 @@ export default function AdminStatsPage() {
             <Clock size={24} color="var(--portal-success)" />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value">{formatDuration(totalDuration)}</span>
-            <span className="stat-card-label">Screen time</span>
+            <span className="stat-card-value">{dur(totalDuration)}</span>
+            <span className="stat-card-label">{t('Screen time')}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -456,7 +459,7 @@ export default function AdminStatsPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{totalDevices}</span>
-            <span className="stat-card-label">Screens</span>
+            <span className="stat-card-label">{t('Screens')}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -465,7 +468,7 @@ export default function AdminStatsPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{activeCampaigns} / {totalCampaigns}</span>
-            <span className="stat-card-label">Active campaigns</span>
+            <span className="stat-card-label">{t('Active campaigns')}</span>
           </div>
         </div>
       </div>
@@ -473,12 +476,12 @@ export default function AdminStatsPage() {
       {/* Selectable Daily Chart */}
       <div className="portal-section" style={{ marginBottom: '2rem' }}>
         <div className="section-head">
-          <h2>Last 30 days</h2>
+          <h2>{t('Last 30 days')}</h2>
           {hasSelection && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 13, color: 'var(--portal-text-soft)', fontWeight: 500 }}>{selLabel}</span>
               <button type="button" onClick={clearSelection} className="action-btn">
-                <X size={12} aria-hidden /> Clear
+                <X size={12} aria-hidden /> {t('Clear')}
               </button>
             </div>
           )}
@@ -487,7 +490,7 @@ export default function AdminStatsPage() {
           className="play-chart"
           ref={chartRef}
           role="group"
-          aria-label="Daily plays, select a first and last day"
+          aria-label={t('Daily plays, select a first and last day')}
           onMouseLeave={() => { if (dragging) handleBarMouseUp() }}
         >
           {dailyTrend.map((d, i) => {
@@ -498,9 +501,9 @@ export default function AdminStatsPage() {
                 key={d.date}
                 type="button"
                 className="play-chart-day"
-                aria-label={`${d.date}: ${d.plays} plays, ${formatDuration(d.duration)}`}
+                aria-label={`${d.date}: ${t('{n} plays', { n: d.plays })}, ${dur(d.duration)}`}
                 aria-pressed={isSelected}
-                title={`${d.date}: ${d.plays} plays, ${formatDuration(d.duration)}`}
+                title={`${d.date}: ${t('{n} plays', { n: d.plays })}, ${dur(d.duration)}`}
                 onMouseDown={() => handleBarMouseDown(i)}
                 onMouseEnter={() => handleBarMouseEnter(i)}
                 onClick={event => handleBarClick(i, event)}
@@ -525,7 +528,7 @@ export default function AdminStatsPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="segmented" role="tablist" aria-label="Breakdown" style={{ marginTop: 28, marginBottom: 4, maxWidth: 720 }}>
+      <div className="segmented" role="tablist" aria-label={t('Breakdown')} style={{ marginTop: 28, marginBottom: 4, maxWidth: 720 }}>
         {([
           { key: 'campaigns', label: 'Campaigns', icon: Megaphone },
           { key: 'devices', label: 'Devices', icon: Monitor },
@@ -541,7 +544,7 @@ export default function AdminStatsPage() {
             onClick={() => setActiveTab(tab.key)}
           >
             <tab.icon size={14} aria-hidden style={{ verticalAlign: -2, marginRight: 6 }} />
-            {tab.label}
+            {t(tab.label)}
           </button>
         ))}
       </div>
@@ -550,21 +553,21 @@ export default function AdminStatsPage() {
       <div className="portal-section">
         {activeTab === 'campaigns' && (
           <>
-            <h2>By campaign {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>{t('By campaign')} {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Campaign</th><th>Client</th><th>Group</th><th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Plays</th>
-                    <th style={{ textAlign: 'right' }}>Screen Time</th>
-                    <th style={{ textAlign: 'right' }}>Devices</th>
-                    <th style={{ textAlign: 'right' }}>Media</th>
+                    <th>{t('Campaign')}</th><th>{t('Client')}</th><th>{t('Group')}</th><th>{t('Status')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Plays')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Screen time')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Devices')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Media')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayedCampaigns.length === 0 ? (
-                    <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No campaigns</td></tr>
+                    <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>{t('No campaigns')}</td></tr>
                   ) : displayedCampaigns.map(c => {
                     const cp = campaignPlays[c.name.toLowerCase()]
                     return (
@@ -572,7 +575,7 @@ export default function AdminStatsPage() {
                         <td style={{ fontWeight: 600 }}>
                           {c.name}
                           {c.isDeleted && (
-                            <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--portal-danger)', fontWeight: 400 }}>(deleted)</span>
+                            <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--portal-danger)', fontWeight: 400 }}>({t('deleted')})</span>
                           )}
                         </td>
                         <td>{c.clientName}</td>
@@ -581,7 +584,7 @@ export default function AdminStatsPage() {
                           <StatusBadge status={c.status} />
                         </td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cp?.plays || 0).toLocaleString()}</td>
-                        <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatDuration(cp?.duration || 0)}</td>
+                        <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{dur(cp?.duration || 0)}</td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{cp?.devices.size || 0}</td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{c.mediaCount}</td>
                       </tr>
@@ -595,27 +598,27 @@ export default function AdminStatsPage() {
 
         {activeTab === 'devices' && (
           <>
-            <h2>By device {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>{t('By device')} {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Device ID</th><th>Group</th>
-                    <th style={{ textAlign: 'right' }}>Total Plays</th>
-                    <th style={{ textAlign: 'right' }}>Screen Time</th>
-                    <th>Last Seen</th>
+                    <th>{t('Device ID')}</th><th>{t('Group')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Total plays')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Screen time')}</th>
+                    <th>{t('Last seen')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {devices.length === 0 ? (
-                    <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No devices</td></tr>
+                    <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>{t('No devices')}</td></tr>
                   ) : devices.map(d => (
                     <tr key={d.id}>
                       <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{d.id}</td>
                       <td>{d.groupName}</td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(devicePlays[d.id]?.plays || 0).toLocaleString()}</td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatDuration(devicePlays[d.id]?.duration || 0)}</td>
-                      <td style={{ color: 'var(--muted-foreground)' }}>{d.lastSeen !== '—' ? new Date(d.lastSeen).toLocaleString() : '—'}</td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{dur(devicePlays[d.id]?.duration || 0)}</td>
+                      <td style={{ color: 'var(--muted-foreground)' }}>{d.lastSeen !== '—' ? new Date(d.lastSeen).toLocaleString(locale, { timeZone: TZ }) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -626,21 +629,21 @@ export default function AdminStatsPage() {
 
         {activeTab === 'groups' && (
           <>
-            <h2>By group {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>{t('By group')} {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Group</th>
-                    <th style={{ textAlign: 'right' }}>Devices</th>
-                    <th style={{ textAlign: 'right' }}>Campaigns</th>
-                    <th style={{ textAlign: 'right' }}>Total Plays</th>
-                    <th style={{ textAlign: 'right' }}>Screen Time</th>
+                    <th>{t('Group')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Devices')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Campaigns')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Total plays')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Screen time')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {groups.length === 0 ? (
-                    <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No groups</td></tr>
+                    <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>{t('No groups')}</td></tr>
                   ) : groups.map(g => {
                     let gPlays = 0, gDuration = 0
                     for (const did of g.deviceIds) {
@@ -653,7 +656,7 @@ export default function AdminStatsPage() {
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{g.deviceIds.length}</td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{g.campaignCount}</td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{gPlays.toLocaleString()}</td>
-                        <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatDuration(gDuration)}</td>
+                        <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{dur(gDuration)}</td>
                       </tr>
                     )
                   })}
@@ -666,9 +669,9 @@ export default function AdminStatsPage() {
         {activeTab === 'map' && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <h2 style={{ margin: 0 }}>Play Locations</h2>
+              <h2 style={{ margin: 0 }}>{t('Play locations')}</h2>
               <span style={{ fontSize: 12, color: 'var(--muted-foreground)', marginLeft: 4 }}>
-                {mapPoints.length.toLocaleString()} plays on map
+                {t('{n} plays on map', { n: mapPoints.length.toLocaleString() })}
               </span>
             </div>
 
@@ -679,12 +682,12 @@ export default function AdminStatsPage() {
               background: 'var(--card)', borderRadius: '0.75rem',
               border: '1px solid var(--border)',
             }}>
-              <FilterSelect label="Campaign" value={mapCampaign} options={campaignOptions} onChange={setMapCampaign} />
-              <FilterSelect label="Group" value={mapGroup} options={groupOptions} onChange={setMapGroup} />
-              <FilterSelect label="Device" value={mapDevice} options={deviceOptions} onChange={setMapDevice} />
+              <FilterSelect label={t('Campaign')} value={mapCampaign} options={campaignOptions} onChange={setMapCampaign} />
+              <FilterSelect label={t('Group')} value={mapGroup} options={groupOptions} onChange={setMapGroup} />
+              <FilterSelect label={t('Device')} value={mapDevice} options={deviceOptions} onChange={setMapDevice} />
 
               <div style={{ flex: 1, minWidth: 200 }}>
-                <HourRange start={hourRange[0]} end={hourRange[1]} onChange={setHourRange} label="Time of day" />
+                <HourRange start={hourRange[0]} end={hourRange[1]} onChange={setHourRange} label={t('Time of day')} fromLabel={t('Start hour')} toLabel={t('End hour')} />
               </div>
             </div>
 
@@ -699,14 +702,14 @@ export default function AdminStatsPage() {
 
         {activeTab === 'daily' && (
           <>
-            <h2>Daily Breakdown {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
+            <h2>{t('By day')} {hasSelection && <span style={{ fontSize: 13, color: 'var(--portal-muted)', fontWeight: 400 }}>({selLabel})</span>}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th style={{ textAlign: 'right' }}>Plays</th>
-                    <th style={{ textAlign: 'right' }}>Screen Time</th>
+                    <th>{t('Date')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Plays')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Screen time')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -717,7 +720,7 @@ export default function AdminStatsPage() {
                     <tr key={d.date} style={{ opacity: d.plays === 0 ? 0.4 : 1 }}>
                       <td>{d.date}</td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.plays.toLocaleString()}</td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatDuration(d.duration)}</td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{dur(d.duration)}</td>
                     </tr>
                   ))}
                 </tbody>

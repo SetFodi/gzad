@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Monitor, X, Link2, Unlink } from 'lucide-react'
 import AppDialog from '@/components/app/AppDialog'
+import { useAdminText } from '@/lib/admin-i18n'
 
 const initials = (name: string) =>
   name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?'
@@ -33,6 +34,7 @@ interface Device {
 }
 
 export default function AdminFleetUsersPage() {
+  const { t, locale } = useAdminText()
   const [fleetUsers, setFleetUsers] = useState<FleetUser[]>([])
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
@@ -108,20 +110,20 @@ export default function AdminFleetUsersPage() {
       })
 
       const result = await res.json()
-      if (!res.ok) throw new Error(result.error || 'Failed to assign device')
+      if (!res.ok) throw new Error(result.error || t('Could not assign the screen'))
 
       setAssignModal(null)
       setSelectedDevice('')
       await loadData()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to assign device')
+      setError(err instanceof Error ? err.message : t('Could not assign the screen'))
     } finally {
       setAssigning(false)
     }
   }
 
   const handleUnassign = async (vehicleId: string) => {
-    if (!confirm('Unassign LED from this vehicle?')) return
+    if (!confirm(t('Remove the screen from this vehicle?'))) return
 
     try {
       await fetch('/api/admin/fleet/assign-device', {
@@ -138,13 +140,13 @@ export default function AdminFleetUsersPage() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void loadData()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadData()}>{t('Try again')}</button>
       </div>
     </div>
   )
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
 
   const vehicleCount = fleetUsers.reduce((sum, u) => sum + u.vehicles.length, 0)
   const withLed = fleetUsers.reduce((sum, u) => sum + u.vehicles.filter(v => v.device_id).length, 0)
@@ -153,9 +155,9 @@ export default function AdminFleetUsersPage() {
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Fleet users</h1>
+          <h1 className="portal-page-title">{t('Fleet users')}</h1>
           <p className="portal-subtitle">
-            {fleetUsers.length} {fleetUsers.length === 1 ? 'driver' : 'drivers'} · {vehicleCount} {vehicleCount === 1 ? 'vehicle' : 'vehicles'} · {withLed} with a screen
+            {fleetUsers.length === 1 ? t('1 driver') : t('{n} drivers', { n: fleetUsers.length })} · {vehicleCount === 1 ? t('1 vehicle') : t('{n} vehicles', { n: vehicleCount })} · {t('{n} with a screen', { n: withLed })}
           </p>
         </div>
       </div>
@@ -163,33 +165,33 @@ export default function AdminFleetUsersPage() {
       {assignModal && (
         <AppDialog labelledBy="assign-title" onClose={() => setAssignModal(null)}>
             <div className="admin-modal-header">
-              <h2 id="assign-title">Assign a screen</h2>
-              <button type="button" onClick={() => setAssignModal(null)} className="admin-modal-close" aria-label="Close"><X size={20} /></button>
+              <h2 id="assign-title">{t('Assign a screen')}</h2>
+              <button type="button" onClick={() => setAssignModal(null)} className="admin-modal-close" aria-label={t('Close')}><X size={20} /></button>
             </div>
             <div className="portal-form">
               {error && <div className="portal-login-error" role="alert">{error}</div>}
               <div className="portal-input-group">
-                <label htmlFor="assign-device">Screen</label>
+                <label htmlFor="assign-device">{t('Screen')}</label>
                 <select
                   id="assign-device"
                   value={selectedDevice}
                   onChange={(e) => setSelectedDevice(e.target.value)}
                 >
-                  <option value="">No screen</option>
+                  <option value="">{t('No screen')}</option>
                   {devices.map((d) => (
                     <option
                       key={d.id}
                       value={d.id}
                       disabled={assignedDeviceIds.has(d.id) && d.id !== assignModal.currentDeviceId}
                     >
-                      {d.name || d.id}{assignedDeviceIds.has(d.id) && d.id !== assignModal.currentDeviceId ? ' (in another car)' : ''}
+                      {d.name || d.id}{assignedDeviceIds.has(d.id) && d.id !== assignModal.currentDeviceId ? ` (${t('in another car')})` : ''}
                     </option>
                   ))}
                 </select>
-                <span className="field-hint">A screen can be in one car at a time.</span>
+                <span className="field-hint">{t('A screen can be in one car at a time.')}</span>
               </div>
               <button type="button" onClick={handleAssign} disabled={assigning} className="portal-btn-primary full-width">
-                {assigning ? 'Saving…' : 'Save'}
+                {assigning ? t('Saving…') : t('Save')}
               </button>
             </div>
         </AppDialog>
@@ -197,8 +199,8 @@ export default function AdminFleetUsersPage() {
 
       {fleetUsers.length === 0 ? (
         <div className="portal-empty">
-          <p>No drivers have signed up yet.</p>
-          <p style={{ fontSize: 14 }}>Drivers sign up at <code>/portal/fleet-signup?role=fleet</code>.</p>
+          <p>{t('No drivers have signed up yet.')}</p>
+          <p style={{ fontSize: 14 }}>{t('Drivers sign up at')} <code>/portal/fleet-signup?role=fleet</code>.</p>
         </div>
       ) : (
         <div className="group-grid">
@@ -211,12 +213,12 @@ export default function AdminFleetUsersPage() {
                   <span className="cell-sub">{[u.email, u.phone].filter(Boolean).join(' · ')}</span>
                 </div>
                 <span className="cell-sub cell-nowrap">
-                  Joined {new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {t('Joined {date}', { date: new Date(u.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }) })}
                 </span>
               </header>
 
               {u.vehicles.length === 0 ? (
-                <p className="cell-sub" style={{ margin: 0 }}>No vehicles added yet.</p>
+                <p className="cell-sub" style={{ margin: 0 }}>{t('No vehicles added yet.')}</p>
               ) : (
                 <ul className="vehicle-list">
                   {u.vehicles.map((v) => (
@@ -231,7 +233,7 @@ export default function AdminFleetUsersPage() {
                           <Monitor size={12} aria-hidden /> {v.device_id}
                         </span>
                       ) : (
-                        <span className="portal-chip">No screen</span>
+                        <span className="portal-chip">{t('No screen')}</span>
                       )}
                       <div className="device-actions">
                         <button
@@ -243,11 +245,11 @@ export default function AdminFleetUsersPage() {
                           }}
                           className="action-btn"
                         >
-                          <Link2 size={13} aria-hidden /> {v.device_id ? 'Change' : 'Assign'}
+                          <Link2 size={13} aria-hidden /> {v.device_id ? t('Change') : t('Assign')}
                         </button>
                         {v.device_id && (
                           <button type="button" onClick={() => handleUnassign(v.id)} className="action-btn reject">
-                            <Unlink size={13} aria-hidden /> Remove
+                            <Unlink size={13} aria-hidden /> {t('Remove')}
                           </button>
                         )}
                       </div>

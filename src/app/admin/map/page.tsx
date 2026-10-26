@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { RefreshCw, Layers } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { useAdminText } from '@/lib/admin-i18n'
 
 const MapView = dynamic(() => import('@/components/admin/MapView'), { ssr: false })
 
@@ -28,6 +29,7 @@ function todayInTbilisi(): string {
 }
 
 export default function MapPage() {
+  const { t } = useAdminText()
   const [points, setPoints] = useState<GpsPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -79,8 +81,8 @@ export default function MapPage() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load GPS reports from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void loadGPS()}>Try again</button>
+        <p>{t('Could not load GPS reports from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadGPS()}>{t('Try again')}</button>
       </div>
     </div>
   )
@@ -98,32 +100,32 @@ export default function MapPage() {
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">GPS trails</h1>
+          <h1 className="portal-page-title">{t('GPS trails')}</h1>
           <p className="portal-subtitle">
-            Where each screen went. {devicePositions.length} {devicePositions.length === 1 ? 'screen' : 'screens'}, {points.length.toLocaleString()} GPS points on {date}, {startTime}–{endTime}.
+            {t('Where each screen went.')} {t('{screens} screen(s), {points} GPS points on {date}, {from}–{to}.', { screens: devicePositions.length, points: points.length.toLocaleString(), date, from: startTime, to: endTime })}
           </p>
         </div>
         <div className="admin-header-actions">
           <button type="button" onClick={() => setShowDistricts(v => !v)} className="portal-btn-secondary" aria-pressed={showDistricts}>
-            <Layers size={16} aria-hidden /> {showDistricts ? 'Hide districts' : 'Show districts'}
+            <Layers size={16} aria-hidden /> {showDistricts ? t('Hide districts') : t('Show districts')}
           </button>
           <button type="button" onClick={loadGPS} className="portal-btn-secondary">
-            <RefreshCw size={16} aria-hidden /> Refresh
+            <RefreshCw size={16} aria-hidden /> {t('Refresh')}
           </button>
         </div>
       </div>
 
       <div className="filter-bar">
         <label className="filter-field">
-          <span>Date</span>
+          <span>{t('Date')}</span>
           <input type="date" value={date} max={todayInTbilisi()} onChange={e => setDate(e.target.value)} />
         </label>
         <label className="filter-field">
-          <span>From</span>
+          <span>{t('From')}</span>
           <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
         </label>
         <label className="filter-field">
-          <span>To</span>
+          <span>{t('To')}</span>
           <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
         </label>
         <button
@@ -131,16 +133,16 @@ export default function MapPage() {
           onClick={() => { setDate(todayInTbilisi()); setStartTime('00:00'); setEndTime('23:59') }}
           className="action-btn"
         >
-          Today, all day
+          {t('Today, all day')}
         </button>
       </div>
 
       <div className="map-card map-card-tall">
         {loading && points.length === 0 ? (
-          <div className="portal-loading" style={{ minHeight: '100%' }}>Loading GPS data…</div>
+          <div className="portal-loading" style={{ minHeight: '100%' }}>{t('Loading GPS data…')}</div>
         ) : devicePositions.length === 0 ? (
           <div className="portal-empty" style={{ height: '100%', boxShadow: 'none' }}>
-            <p>No GPS data for {isToday ? 'today' : date} between {startTime} and {endTime}. A point is recorded at the start of each ad play.</p>
+            <p>{t('No GPS data for {date} between {from} and {to}. A point is recorded at the start of each ad play.', { date: isToday ? t('today') : date, from: startTime, to: endTime })}</p>
           </div>
         ) : (
           <MapView positions={devicePositions} allPoints={points} showDistricts={showDistricts} />

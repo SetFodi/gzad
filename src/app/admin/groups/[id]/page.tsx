@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { ArrowLeft, Monitor, Send } from 'lucide-react'
 import StatusBadge from '@/components/app/StatusBadge'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface DeviceGroup {
   id: string
@@ -34,6 +35,7 @@ interface CampaignRow {
 }
 
 export default function GroupDetailPage() {
+  const { t } = useAdminText()
   const params = useParams()
   const groupId = params.id as string
   const [group, setGroup] = useState<DeviceGroup | null>(null)
@@ -169,7 +171,7 @@ export default function GroupDetailPage() {
         .filter((d: { online: boolean; cardId: string }) => d.online && groupDeviceIds.has(d.cardId))
 
       if (onlineInGroup.length === 0) {
-        setSyncResult({ ok: false, msg: 'No online devices in this group' })
+        setSyncResult({ ok: false, msg: t('No screens in this group are online') })
         setSyncing(false)
         return
       }
@@ -200,10 +202,14 @@ export default function GroupDetailPage() {
         pushed++
       }
 
-      const action = mediaItems.length === 0 ? 'Cleared' : `Pushed ${mediaItems.length} ad(s) from ${campaignNames.length} campaign(s)`
-      setSyncResult({ ok: true, msg: `${action} to ${pushed} device(s)` })
+      setSyncResult({
+        ok: true,
+        msg: mediaItems.length === 0
+          ? t('Cleared the playlist on {devices} screen(s)', { devices: pushed })
+          : t('Pushed {ads} ad(s) from {campaigns} campaign(s) to {devices} screen(s)', { ads: mediaItems.length, campaigns: campaignNames.length, devices: pushed }),
+      })
     } catch (err) {
-      setSyncResult({ ok: false, msg: err instanceof Error ? err.message : 'Sync failed' })
+      setSyncResult({ ok: false, msg: err instanceof Error ? err.message : t('Push failed') })
     } finally {
       setSyncing(false)
     }
@@ -226,33 +232,33 @@ export default function GroupDetailPage() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>{t('Try again')}</button>
       </div>
     </div>
   )
 
-  if (loading) return <div className="portal-loading">Loading...</div>
-  if (!group) return <div className="portal-loading">Group not found</div>
+  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
+  if (!group) return <div className="portal-loading">{t('Group not found')}</div>
 
   const onlineCount = onlineDeviceIds ? devices.filter(d => onlineDeviceIds.has(d.id)).length : null
 
   return (
     <div className="portal-page">
       <Link href="/admin/groups" className="portal-back-link">
-        <ArrowLeft size={16} /> Groups
+        <ArrowLeft size={16} /> {t('Groups')}
       </Link>
 
       <div className="portal-page-header">
         <div>
           <h1 className="portal-page-title">{group.name}</h1>
           <p className="portal-subtitle">
-            {devices.length} {devices.length === 1 ? 'screen' : 'screens'} ({onlineCount === null ? 'live status unavailable' : `${onlineCount} online`}) · {campaigns.length} {campaigns.length === 1 ? 'campaign' : 'campaigns'}
+            {devices.length === 1 ? t('1 screen') : t('{n} screens', { n: devices.length })} ({onlineCount === null ? t('live status unavailable') : t('{n} online', { n: onlineCount })}) · {campaigns.length === 1 ? t('1 campaign') : t('{n} campaigns', { n: campaigns.length })}
           </p>
         </div>
         <button type="button" onClick={syncGroupToDevices} disabled={syncing} className="portal-btn-primary">
           <Send size={16} aria-hidden />
-          {syncing ? 'Pushing…' : 'Push ads to screens'}
+          {syncing ? t('Pushing…') : t('Push ads to screens')}
         </button>
       </div>
 
@@ -264,7 +270,7 @@ export default function GroupDetailPage() {
 
       <section className="portal-section" style={{ marginTop: 8 }}>
         <div className="section-head">
-          <h2>Campaigns</h2>
+          <h2>{t('Campaigns')}</h2>
           {unassignedCampaigns.length > 0 && (
             <select
               defaultValue=""
@@ -275,10 +281,10 @@ export default function GroupDetailPage() {
                 }
               }}
               disabled={assigning}
-              aria-label="Add a campaign to this group"
+              aria-label={t('Add a campaign to this group')}
               style={{ width: 'auto', minHeight: 36 }}
             >
-              <option value="">{assigning ? 'Adding…' : '+ Add campaign…'}</option>
+              <option value="">{assigning ? t('Adding…') : t('+ Add campaign…')}</option>
               {unassignedCampaigns.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -288,7 +294,7 @@ export default function GroupDetailPage() {
 
         {campaigns.length === 0 ? (
           <div className="portal-alert portal-alert-warning" style={{ margin: 0 }}>
-            No campaigns in this group yet, so its screens only play house ads. Add one above.
+            {t('No campaigns in this group yet, so its screens only play house ads. Add one above.')}
           </div>
         ) : (
           <div className="campaigns-table-wrapper">
@@ -307,13 +313,13 @@ export default function GroupDetailPage() {
                     <div className="cell-stack">
                       <Link href={`/admin/campaigns/${c.id}`} className="table-link">{c.name}</Link>
                       <span className="cell-sub">
-                        {c.clients?.company_name || 'No client'} · {c.approved_count} approved {c.approved_count === 1 ? 'file' : 'files'}
+                        {c.clients?.company_name || t('No client')} · {c.approved_count === 1 ? t('1 approved file') : t('{n} approved files', { n: c.approved_count })}
                         {c.start_date && c.end_date && ` · ${c.start_date} → ${c.end_date}`}
                       </span>
                     </div>
                   </div>
                   <StatusBadge status={c.status} />
-                  <button type="button" className="action-btn" onClick={() => unassignCampaign(c.id)}>Remove</button>
+                  <button type="button" className="action-btn" onClick={() => unassignCampaign(c.id)}>{t('Remove')}</button>
                 </li>
               ))}
             </ul>
@@ -322,10 +328,10 @@ export default function GroupDetailPage() {
       </section>
 
       <section className="portal-section">
-        <h2>Screens</h2>
+        <h2>{t('Screens')}</h2>
         {devices.length === 0 ? (
           <div className="portal-alert portal-alert-warning" style={{ margin: 0 }}>
-            No screens in this group. Assign them on the <Link href="/admin/groups" className="section-link">Groups</Link> page.
+            {t('No screens in this group. Assign them on the')} <Link href="/admin/groups" className="section-link">{t('Groups')}</Link> {t('page.')}
           </div>
         ) : (
           <div className="campaigns-table-wrapper">
@@ -339,7 +345,7 @@ export default function GroupDetailPage() {
                       <span className="recent-name"><Monitor size={14} aria-hidden style={{ verticalAlign: -2, marginRight: 6, color: 'var(--portal-faint)' }} />{d.name || d.id}</span>
                       {d.name && <span className="cell-sub"><code>{d.id}</code></span>}
                     </div>
-                    <StatusBadge status={online === null ? 'unknown' : online ? 'online' : 'offline'}>{online === null ? 'Unknown' : online ? 'Online' : 'Offline'}</StatusBadge>
+                    <StatusBadge status={online === null ? 'unknown' : online ? 'online' : 'offline'}>{online === null ? t('Unknown') : online ? t('Online') : t('Offline')}</StatusBadge>
                   </li>
                 )
               })}

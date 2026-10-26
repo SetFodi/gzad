@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { ArrowLeft, Minus, Plus } from 'lucide-react'
 import Link from 'next/link'
 import StatusBadge from '@/components/app/StatusBadge'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface ClientDetail {
   id: string
@@ -45,6 +46,7 @@ const TRANSACTION_LABELS: Record<string, string> = {
 const gel = (value: number) => `₾${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 export default function AdminClientDetailPage() {
+  const { t, locale } = useAdminText()
   const params = useParams()
   const id = params.id as string
   const [client, setClient] = useState<ClientDetail | null>(null)
@@ -102,10 +104,10 @@ export default function AdminClientDetailPage() {
   async function adjust(direction: 1 | -1) {
     const value = parseFloat(amount)
     if (!Number.isFinite(value) || value <= 0) {
-      setMessage({ ok: false, text: 'Enter an amount above zero.' })
+      setMessage({ ok: false, text: t('Enter an amount above zero.') })
       return
     }
-    if (direction < 0 && !confirm(`Deduct ${gel(value)} from ${client?.company_name}?`)) return
+    if (direction < 0 && !confirm(t('Deduct {amount} from {client}?', { amount: gel(value), client: client?.company_name ?? '' }))) return
 
     setSaving(true)
     setMessage(null)
@@ -117,18 +119,18 @@ export default function AdminClientDetailPage() {
       })
       const result = await res.json()
       if (!res.ok) {
-        setMessage({ ok: false, text: result.error || 'Balance update failed' })
+        setMessage({ ok: false, text: result.error || t('Balance update failed') })
         return
       }
       const resumed = result.reactivated
-        ? ` ${result.reactivated} campaign(s) resumed on ${result.devicesSynced} device(s).`
+        ? ' ' + t('{n} campaign(s) resumed on {devices} device(s).', { n: result.reactivated, devices: result.devicesSynced })
         : ''
-      setMessage({ ok: true, text: `Balance is now ${gel(Number(result.balance))}.${resumed}` })
+      setMessage({ ok: true, text: t('Balance is now {amount}.', { amount: gel(Number(result.balance)) }) + resumed })
       setAmount('')
       setNote('')
       await load()
     } catch {
-      setMessage({ ok: false, text: 'Could not reach the server' })
+      setMessage({ ok: false, text: t('Could not reach the server') })
     } finally {
       setSaving(false)
     }
@@ -137,14 +139,14 @@ export default function AdminClientDetailPage() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>{t('Try again')}</button>
       </div>
     </div>
   )
 
-  if (loading) return <div className="portal-loading">Loading…</div>
-  if (!client) return <div className="portal-loading">Client not found</div>
+  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
+  if (!client) return <div className="portal-loading">{t('Client not found')}</div>
 
   const balance = Number(client.balance ?? 0)
   const toppedUp = transactions
@@ -155,7 +157,7 @@ export default function AdminClientDetailPage() {
   return (
     <div className="portal-page">
       <Link href="/admin/clients" className="portal-back-link">
-        <ArrowLeft size={16} /> Clients
+        <ArrowLeft size={16} /> {t('Clients')}
       </Link>
 
       <div className="portal-page-header">
@@ -170,7 +172,7 @@ export default function AdminClientDetailPage() {
       <div className="overview-grid">
         <section className="balance-card" data-tone={balance <= 0 ? 'danger' : 'ok'}>
           <div className="balance-card-top">
-            <span className="balance-card-label">Balance</span>
+            <span className="balance-card-label">{t('Balance')}</span>
           </div>
           <div className="balance-card-value">
             <span className="balance-card-currency">₾</span>
@@ -187,23 +189,23 @@ export default function AdminClientDetailPage() {
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="Amount, ₾"
-              aria-label="Amount in lari"
+              placeholder={t('Amount, ₾')}
+              aria-label={t('Amount in lari')}
             />
             <input
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Note (optional), e.g. invoice number"
-              aria-label="Note"
+              placeholder={t('Note (optional), e.g. invoice number')}
+              aria-label={t('Note')}
               maxLength={500}
             />
             <div className="balance-form-actions">
               <button type="submit" className="portal-btn-primary" disabled={saving}>
-                <Plus size={15} aria-hidden /> Add
+                <Plus size={15} aria-hidden /> {t('Add')}
               </button>
               <button type="button" className="portal-btn-secondary" disabled={saving} onClick={() => adjust(-1)}>
-                <Minus size={15} aria-hidden /> Deduct
+                <Minus size={15} aria-hidden /> {t('Deduct')}
               </button>
             </div>
           </form>
@@ -219,36 +221,36 @@ export default function AdminClientDetailPage() {
             <span className="stat-card-value">
               {activeCount}<span className="stat-card-of"> / {campaigns.length}</span>
             </span>
-            <span className="stat-card-label">Active campaigns</span>
+            <span className="stat-card-label">{t('Active campaigns')}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
             <span className="stat-card-value">{gel(toppedUp)}</span>
-            <span className="stat-card-label">Topped up</span>
+            <span className="stat-card-label">{t('Topped up')}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
             <span className="stat-card-value">{gel(spent)}</span>
-            <span className="stat-card-label">Spent on airtime</span>
+            <span className="stat-card-label">{t('Spent on airtime')}</span>
           </div>
         </div>
       </div>
 
       <div className="portal-section">
-        <h2>Campaigns</h2>
+        <h2>{t('Campaigns')}</h2>
         {campaigns.length === 0 ? (
-          <div className="portal-empty portal-empty-sm"><p>No campaigns yet.</p></div>
+          <div className="portal-empty portal-empty-sm"><p>{t('No campaigns yet.')}</p></div>
         ) : (
           <div className="campaigns-table-wrapper">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Dates</th>
-                  <th>Price</th>
+                  <th>{t('Name')}</th>
+                  <th>{t('Status')}</th>
+                  <th>{t('Dates')}</th>
+                  <th>{t('Price')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,9 +263,9 @@ export default function AdminClientDetailPage() {
                       <StatusBadge status={c.status} />
                     </td>
                     <td className="cell-nowrap">
-                      {c.start_date || c.end_date ? `${c.start_date || '…'} → ${c.end_date || '…'}` : <span className="cell-sub">No end date</span>}
+                      {c.start_date || c.end_date ? `${c.start_date || '…'} → ${c.end_date || '…'}` : <span className="cell-sub">{t('No end date')}</span>}
                     </td>
-                    <td>{c.monthly_price ? `₾${c.monthly_price}/mo` : '—'}</td>
+                    <td>{c.monthly_price ? t('₾{amount}/mo', { amount: c.monthly_price }) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -273,28 +275,28 @@ export default function AdminClientDetailPage() {
       </div>
 
       <div className="portal-section">
-        <h2>Balance history</h2>
+        <h2>{t('Balance history')}</h2>
         {transactions.length === 0 ? (
-          <div className="portal-empty portal-empty-sm"><p>No top-ups or adjustments yet.</p></div>
+          <div className="portal-empty portal-empty-sm"><p>{t('No top-ups or adjustments yet.')}</p></div>
         ) : (
           <div className="campaigns-table-wrapper">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Note</th>
-                  <th style={{ textAlign: 'right' }}>Amount</th>
-                  <th style={{ textAlign: 'right' }}>Balance after</th>
+                  <th>{t('Date')}</th>
+                  <th>{t('Type')}</th>
+                  <th>{t('Note')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('Amount')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('Balance after')}</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map((tx) => (
                   <tr key={tx.id}>
                     <td className="cell-nowrap">
-                      {new Date(tx.created_at).toLocaleDateString('en-GB', { timeZone: 'Asia/Tbilisi', year: 'numeric', month: 'short', day: 'numeric' })}
+                      {new Date(tx.created_at).toLocaleDateString(locale, { timeZone: 'Asia/Tbilisi', year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
-                    <td>{TRANSACTION_LABELS[tx.type] || tx.type}</td>
+                    <td>{TRANSACTION_LABELS[tx.type] ? t(TRANSACTION_LABELS[tx.type]) : tx.type}</td>
                     <td className="cell-sub">{tx.note || '—'}</td>
                     <td style={{ textAlign: 'right', color: tx.amount > 0 ? 'var(--portal-success)' : 'var(--portal-danger)' }}>
                       {tx.amount > 0 ? '+' : '−'}{gel(Math.abs(Number(tx.amount)))}

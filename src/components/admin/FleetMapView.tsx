@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect } from 'react'
+import { useAdminText } from '@/lib/admin-i18n'
 
 export interface DevicePoint {
   id: string
@@ -44,6 +45,7 @@ const offlineIcon = new L.DivIcon({
 })
 
 export default function FleetMapView({ devices, focusedId }: FleetMapViewProps) {
+  const { t, locale } = useAdminText()
   const center: [number, number] = devices.length > 0
     ? [devices[0].lat, devices[0].lng]
     : [41.7151, 44.8271]
@@ -61,11 +63,11 @@ export default function FleetMapView({ devices, focusedId }: FleetMapViewProps) 
             <div style={{ color: '#050505', fontSize: 13, minWidth: 160 }}>
               <strong>{d.name || d.id}</strong><br />
               <span style={{ color: d.online ? '#16a34a' : '#6b7280', fontWeight: 500 }}>
-                {d.online ? '● Online' : '○ Offline'}
+                {d.online ? `● ${t('Online')}` : `○ ${t('Offline')}`}
               </span><br />
               {d.lastSeen && (
                 <span style={{ fontSize: 12 }}>
-                  Last seen: {new Date(d.lastSeen).toLocaleString()}
+                  {t('Last seen')}: {new Date(d.lastSeen).toLocaleString(locale, { timeZone: 'Asia/Tbilisi' })}
                 </span>
               )}
             </div>

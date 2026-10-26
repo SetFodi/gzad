@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { RefreshCw, Play, MapPin, Monitor } from 'lucide-react'
+import { useAdminText } from '@/lib/admin-i18n'
 
 type Tab = 'playlogs' | 'gps' | 'devices'
 
@@ -39,6 +40,7 @@ interface DeviceRecord {
 }
 
 export default function LogsPage() {
+  const { t, locale } = useAdminText()
   const [tab, setTab] = useState<Tab>('playlogs')
   const [playLogs, setPlayLogs] = useState<PlayLog[]>([])
   const [gpsLogs, setGpsLogs] = useState<GpsLog[]>([])
@@ -103,7 +105,7 @@ export default function LogsPage() {
   }, [])
 
   const at = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'
+    iso ? new Date(iso).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'
   const mapLink = (lat: number | string, lng: number | string, label: string) => (
     <a href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noopener noreferrer" className="section-link">{label}</a>
   )
@@ -111,60 +113,60 @@ export default function LogsPage() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>{t('Try again')}</button>
       </div>
     </div>
   )
 
   const tabs: { key: Tab; label: string; icon: typeof Play; count: number }[] = [
-    { key: 'playlogs', label: 'Plays', icon: Play, count: counts.play },
+    { key: 'playlogs', label: t('Plays'), icon: Play, count: counts.play },
     { key: 'gps', label: 'GPS', icon: MapPin, count: counts.gps },
-    { key: 'devices', label: 'Devices', icon: Monitor, count: counts.devices },
+    { key: 'devices', label: t('Devices'), icon: Monitor, count: counts.devices },
   ]
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Logs</h1>
-          <p className="portal-subtitle">The latest 100 reports per tab, straight from the controllers. Times are Tbilisi time.</p>
+          <h1 className="portal-page-title">{t('Logs')}</h1>
+          <p className="portal-subtitle">{t('The latest 100 reports per tab, straight from the controllers. Times are Tbilisi time.')}</p>
         </div>
         <button type="button" onClick={load} className="portal-btn-secondary">
-          <RefreshCw size={16} aria-hidden /> Refresh
+          <RefreshCw size={16} aria-hidden /> {t('Refresh')}
         </button>
       </div>
 
       <div className="table-toolbar">
-        <div className="segmented" role="tablist" aria-label="Log type">
-          {tabs.map(t => (
-            <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}>
-              <t.icon size={14} aria-hidden style={{ verticalAlign: -2, marginRight: 6 }} />
-              {t.label} <span className="cell-sub">{t.count}</span>
+        <div className="segmented" role="tablist" aria-label={t('Log type')}>
+          {tabs.map(item => (
+            <button key={item.key} type="button" role="tab" aria-selected={tab === item.key} onClick={() => setTab(item.key)}>
+              <item.icon size={14} aria-hidden style={{ verticalAlign: -2, marginRight: 6 }} />
+              {item.label} <span className="cell-sub">{item.count}</span>
             </button>
           ))}
         </div>
       </div>
 
       {loading ? (
-        <div className="portal-loading">Loading…</div>
+        <div className="portal-loading">{t('Loading…')}</div>
       ) : (
         <div className="campaigns-table-wrapper">
           {tab === 'playlogs' && (
             playLogs.length === 0 ? (
               <div className="portal-empty portal-empty-sm" style={{ boxShadow: 'none' }}>
-                <p>No plays reported yet. They appear once a controller starts sending play callbacks.</p>
+                <p>{t('No plays reported yet. They appear once a controller starts sending play callbacks.')}</p>
               </div>
             ) : (
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Program</th>
-                    <th>Device</th>
-                    <th>Length</th>
-                    <th>Location</th>
-                    <th>Played</th>
-                    <th>Received</th>
+                    <th>{t('Program')}</th>
+                    <th>{t('Device')}</th>
+                    <th>{t('Length')}</th>
+                    <th>{t('Location')}</th>
+                    <th>{t('Played')}</th>
+                    <th>{t('Received')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -173,7 +175,7 @@ export default function LogsPage() {
                       <td>
                         <div className="cell-stack">
                           <span style={{ fontWeight: 500 }}>{log.program_name}</span>
-                          {!log.campaign_id && <span className="cell-sub" style={{ color: 'var(--portal-warning)' }}>No matching campaign</span>}
+                          {!log.campaign_id && <span className="cell-sub" style={{ color: 'var(--portal-warning)' }}>{t('No matching campaign')}</span>}
                         </div>
                       </td>
                       <td><code>{log.device_id}</code></td>
@@ -195,16 +197,16 @@ export default function LogsPage() {
           {tab === 'gps' && (
             gpsLogs.length === 0 ? (
               <div className="portal-empty portal-empty-sm" style={{ boxShadow: 'none' }}>
-                <p>No GPS reports yet. They appear once a controller starts sending GPS callbacks.</p>
+                <p>{t('No GPS reports yet. They appear once a controller starts sending GPS callbacks.')}</p>
               </div>
             ) : (
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Device</th>
-                    <th>Position</th>
-                    <th>Speed</th>
-                    <th>Recorded</th>
+                    <th>{t('Device')}</th>
+                    <th>{t('Position')}</th>
+                    <th>{t('Speed')}</th>
+                    <th>{t('Recorded')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -212,7 +214,7 @@ export default function LogsPage() {
                     <tr key={log.id}>
                       <td><code>{log.device_serial}</code></td>
                       <td>{mapLink(log.lat, log.lng, `${Number(log.lat).toFixed(5)}, ${Number(log.lng).toFixed(5)}`)}</td>
-                      <td>{Number(log.speed).toFixed(1)} km/h</td>
+                      <td>{t('{n} km/h', { n: Number(log.speed).toFixed(1) })}</td>
                       <td className="cell-nowrap cell-sub">{at(log.recorded_at)}</td>
                     </tr>
                   ))}
@@ -224,16 +226,16 @@ export default function LogsPage() {
           {tab === 'devices' && (
             deviceRecords.length === 0 ? (
               <div className="portal-empty portal-empty-sm" style={{ boxShadow: 'none' }}>
-                <p>No devices registered yet. A device appears here when it first reports in.</p>
+                <p>{t('No devices registered yet. A device appears here when it first reports in.')}</p>
               </div>
             ) : (
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Device</th>
-                    <th>Last seen</th>
-                    <th>Last position</th>
-                    <th>Registered</th>
+                    <th>{t('Device')}</th>
+                    <th>{t('Last seen')}</th>
+                    <th>{t('Last position')}</th>
+                    <th>{t('Registered')}</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -8,6 +8,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { readAllRows } from '@/lib/supabase/read'
 import StatusBadge from '@/components/app/StatusBadge'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface RecentCampaign {
   id: string
@@ -28,12 +29,12 @@ interface Overview {
   lastPlayAt: string | null
   /** No play for SILENCE_MS; worked out at load time, not during render. */
   silent: boolean
-  lastPlayAgo: string | null
-  today: string
+  /** When this data was loaded; times are worded at render in the chosen language. */
+  now: number
   devices: number
   recent: RecentCampaign[]
   /** Last billing run from the activity log; null before that migration or any run. */
-  billing: { at: string; ago: string; failed: boolean; stale: boolean; title: string } | null
+  billing: { at: string; failed: boolean; stale: boolean; title: string } | null
   /** When money last moved: runs every 15 min often have nothing to charge. */
   lastChargeAt: string | null
 }
@@ -44,15 +45,16 @@ const SILENCE_MS = 60 * 60 * 1000
 // The realtime server triggers billing every 15 minutes; two missed runs is a problem.
 const BILLING_STALE_MS = 35 * 60 * 1000
 
-function timeAgo(iso: string, now: number) {
+function timeAgo(iso: string, now: number, t: (en: string, vars?: Record<string, number>) => string) {
   const minutes = Math.round((now - new Date(iso).getTime()) / 60000)
-  if (minutes < 60) return `${minutes} min ago`
+  if (minutes < 60) return t('{n} min ago', { n: minutes })
   const hours = Math.round(minutes / 60)
-  if (hours < 48) return `${hours} h ago`
-  return `${Math.round(hours / 24)} days ago`
+  if (hours < 48) return t('{n} h ago', { n: hours })
+  return t('{n} days ago', { n: Math.round(hours / 24) })
 }
 
 export default function AdminOverview() {
+  const { t, locale } = useAdminText()
   const [data, setData] = useState<Overview | null>(null)
   const [online, setOnline] = useState<number | null>(null)
   const [realtimeOk, setRealtimeOk] = useState<boolean | null>(null)
@@ -98,13 +100,11 @@ export default function AdminOverview() {
         openAlerts: alerts.count ?? 0,
         lastPlayAt: lastPlay.data?.[0]?.began_at ?? null,
         silent: !lastPlay.data?.[0] || now - new Date(lastPlay.data[0].began_at).getTime() > SILENCE_MS,
-        lastPlayAgo: lastPlay.data?.[0] ? timeAgo(lastPlay.data[0].began_at, now) : null,
-        today: new Date(now).toLocaleDateString('en-GB', { timeZone: 'Asia/Tbilisi', weekday: 'long', day: 'numeric', month: 'long' }),
+        now,
         devices: devices.count ?? 0,
         billing: lastRun.data?.[0]
           ? {
             at: lastRun.data[0].occurred_at,
-            ago: timeAgo(lastRun.data[0].occurred_at, now),
             failed: lastRun.data[0].severity === 'error',
             stale: now - new Date(lastRun.data[0].occurred_at).getTime() > BILLING_STALE_MS,
             title: lastRun.data[0].title,
@@ -141,63 +141,66 @@ export default function AdminOverview() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>{t('Try again')}</button>
       </div>
     </div>
   )
 
-  if (!data) return <div className="portal-loading">Loading…</div>
+  if (!data) return <div className="portal-loading">{t('Loading…')}</div>
 
   const attention = [
     data.pendingCampaigns > 0 && {
       icon: Megaphone,
       tone: 'warning',
-      text: `${data.pendingCampaigns} ${data.pendingCampaigns === 1 ? 'campaign is' : 'campaigns are'} waiting for review`,
+      text: data.pendingCampaigns === 1 ? t('1 campaign is waiting for review') : t('{n} campaigns are waiting for review', { n: data.pendingCampaigns }),
       href: '/admin/campaigns?status=pending_review',
     },
     data.pendingMedia > 0 && {
       icon: FileImage,
       tone: 'warning',
-      text: `${data.pendingMedia} media ${data.pendingMedia === 1 ? 'file' : 'files'} to review`,
+      text: data.pendingMedia === 1 ? t('1 media file to review') : t('{n} media files to review', { n: data.pendingMedia }),
       href: '/admin/campaigns?status=pending_review',
     },
     data.depleted.length > 0 && {
       icon: WalletMinimal,
       tone: 'danger',
-      text: `${data.depleted.length} ${data.depleted.length === 1 ? 'client is' : 'clients are'} out of balance: ${data.depleted.slice(0, 3).map(c => c.company_name).join(', ')}${data.depleted.length > 3 ? '…' : ''}`,
+      text: `${data.depleted.length === 1 ? t('1 client is out of balance') : t('{n} clients are out of balance', { n: data.depleted.length })}: ${data.depleted.slice(0, 3).map(c => c.company_name).join(', ')}${data.depleted.length > 3 ? '…' : ''}`,
       href: '/admin/clients',
     },
     !!data.openAlerts && {
       icon: BellRing,
       tone: 'warning',
-      text: `${data.openAlerts} billing ${data.openAlerts === 1 ? 'alert' : 'alerts'} this week (low balance or daily cap)`,
+      text: data.openAlerts === 1 ? t('1 billing alert this week (low balance or daily cap)') : t('{n} billing alerts this week (low balance or daily cap)', { n: data.openAlerts }),
       href: '/admin/clients',
     },
     data.billing?.failed && {
       icon: Receipt,
       tone: 'danger',
-      text: `${data.billing.title} (${data.billing.ago})`,
+      text: t('The last billing run failed ({ago})', { ago: timeAgo(data.billing.at, data.now, t) }),
       href: '/admin/activity',
     },
     data.billing && !data.billing.failed && data.billing.stale && {
       icon: Receipt,
       tone: 'danger',
-      text: `Billing hasn't run since ${data.billing.ago}. Check the realtime server's billing trigger.`,
+      text: t("Billing hasn't run since {ago}. Check the realtime server's billing trigger.", { ago: timeAgo(data.billing.at, data.now, t) }),
       href: '/admin/activity',
     },
     realtimeOk === false && {
       icon: Server,
       tone: 'danger',
-      text: "Can't reach the Realtime Server: screens can't be controlled and online status is unknown",
+      text: t("Can't reach the Realtime Server: screens can't be controlled and online status is unknown"),
       href: '/admin/devices',
     },
     data.silent && {
       icon: AlertTriangle,
       tone: 'danger',
       text: data.lastPlayAt
-        ? `No plays received since ${new Date(data.lastPlayAt).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} (${data.lastPlayAgo})`
-        : 'No plays have been received yet',
+        ? t('No plays received since {when} ({ago})', {
+          when: new Date(data.lastPlayAt).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          ago: timeAgo(data.lastPlayAt, data.now, t),
+        })
+        : t('No plays have been received yet'),
       href: '/admin/logs',
     },
   ].filter(Boolean) as { icon: typeof Megaphone; tone: string; text: string; href: string }[]
@@ -206,27 +209,27 @@ export default function AdminOverview() {
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Overview</h1>
-          <p className="portal-subtitle">{data.today}</p>
+          <h1 className="portal-page-title">{t('Overview')}</h1>
+          <p className="portal-subtitle">{new Date(data.now).toLocaleDateString(locale, { timeZone: 'Asia/Tbilisi', weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
-        <div className="system-status" aria-label="System status">
+        <div className="system-status" aria-label={t('System status')}>
           <Link
             href="/admin/activity"
             className="system-pill"
             data-tone={!data.billing ? 'idle' : data.billing.failed || data.billing.stale ? 'danger' : 'ok'}
-            title="Billing checks for new plays every 15 minutes and only charges when screens played ads"
+            title={t('Billing checks for new plays every 15 minutes and only charges when screens played ads')}
           >
             <span className="system-dot" aria-hidden />
-            {data.billing ? `Billing checked ${data.billing.ago}` : 'Billing: no runs logged yet'}
+            {data.billing ? t('Billing checked {ago}', { ago: timeAgo(data.billing.at, data.now, t) }) : t('Billing: no runs logged yet')}
             <span className="system-pill-sub">
-              · last charge {data.lastChargeAt
-                ? new Date(data.lastChargeAt).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                : 'never'}
+              · {t('last charge')} {data.lastChargeAt
+                ? new Date(data.lastChargeAt).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                : t('never')}
             </span>
           </Link>
           <Link href="/admin/devices" className="system-pill" data-tone={realtimeOk === null ? 'idle' : realtimeOk ? 'ok' : 'danger'}>
             <span className="system-dot" aria-hidden />
-            {realtimeOk === null ? 'Realtime Server: checking…' : realtimeOk ? 'Realtime Server reachable' : 'Realtime Server unreachable'}
+            {realtimeOk === null ? t('Realtime Server: checking…') : realtimeOk ? t('Realtime Server reachable') : t('Realtime Server unreachable')}
           </Link>
         </div>
       </div>
@@ -238,7 +241,7 @@ export default function AdminOverview() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{data.clients}</span>
-            <span className="stat-card-label">Clients</span>
+            <span className="stat-card-label">{t('Clients')}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -247,7 +250,7 @@ export default function AdminOverview() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{data.activeCampaigns}</span>
-            <span className="stat-card-label">Active campaigns</span>
+            <span className="stat-card-label">{t('Active campaigns')}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -256,7 +259,7 @@ export default function AdminOverview() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{data.totalPlays.toLocaleString()}</span>
-            <span className="stat-card-label">Plays, all time</span>
+            <span className="stat-card-label">{t('Plays, all time')}</span>
           </div>
         </div>
         <Link href="/admin/devices" className="stat-card stat-card-link">
@@ -268,19 +271,19 @@ export default function AdminOverview() {
               {online === null ? '—' : online}
               <span className="stat-card-of"> / {data.devices}</span>
             </span>
-            <span className="stat-card-label">Screens online</span>
+            <span className="stat-card-label">{t('Screens online')}</span>
           </div>
         </Link>
       </div>
 
       <div className="overview-columns">
         <section className="portal-section">
-          <h2>Needs attention</h2>
+          <h2>{t('Needs attention')}</h2>
           <ul className="attention-list">
             {attention.length === 0 ? (
               <li className="attention-row" data-tone="ok">
                 <span className="attention-icon"><CheckCircle2 size={18} aria-hidden /></span>
-                <span className="attention-text">All clear. Nothing is waiting on you.</span>
+                <span className="attention-text">{t('All clear. Nothing is waiting on you.')}</span>
               </li>
             ) : attention.map((item) => (
               <li key={item.text}>
@@ -296,14 +299,14 @@ export default function AdminOverview() {
 
         <section className="portal-section">
           <div className="section-head">
-            <h2>Recent campaigns</h2>
+            <h2>{t('Recent campaigns')}</h2>
             <Link href="/admin/campaigns" className="section-link">
-              All campaigns <ArrowRight size={14} aria-hidden />
+              {t('All campaigns')} <ArrowRight size={14} aria-hidden />
             </Link>
           </div>
           <div className="campaigns-table-wrapper">
             {data.recent.length === 0 ? (
-              <p className="portal-empty-text" style={{ padding: 20 }}>No campaigns yet.</p>
+              <p className="portal-empty-text" style={{ padding: 20 }}>{t('No campaigns yet.')}</p>
             ) : (
               <ul className="recent-list">
                 {data.recent.map((c) => (

@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { DollarSign, MapPin, Clock, Users, Receipt, Save, Plus, Minus, Map } from 'lucide-react'
 import { TBILISI_DISTRICTS } from '@/lib/districts'
+import { useAdminText } from '@/lib/admin-i18n'
 
 const DistrictMapEditor = dynamic(() => import('@/components/admin/DistrictMapEditor'), { ssr: false })
 
@@ -59,6 +60,7 @@ interface BillingLog {
 }
 
 export default function PricingPage() {
+  const { t, locale } = useAdminText()
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -172,34 +174,34 @@ export default function PricingPage() {
       const result = await res.json()
 
       if (!res.ok) {
-        setBalanceMsg({ ok: false, msg: result.error || 'Balance update failed' })
+        setBalanceMsg({ ok: false, msg: result.error || t('Balance update failed') })
         return
       }
 
       const resumed = result.reactivated
-        ? ` ${result.reactivated} campaign(s) resumed on ${result.devicesSynced} device(s).`
+        ? ' ' + t('{n} campaign(s) resumed on {devices} device(s).', { n: result.reactivated, devices: result.devicesSynced })
         : ''
       setBalanceMsg({
         ok: true,
-        msg: `Balance updated to ${formatGEL(result.balance)}.${resumed}`,
+        msg: t('Balance updated to {amount}.', { amount: formatGEL(result.balance) }) + resumed,
       })
       setTopUpAmounts(prev => ({ ...prev, [clientId]: '' }))
       await load()
     } catch {
-      setBalanceMsg({ ok: false, msg: 'Could not reach the server' })
+      setBalanceMsg({ ok: false, msg: t('Could not reach the server') })
     }
   }
 
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load pricing and balances from the database. No rates have been substituted. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+        <p>{t('Could not load pricing and balances from the database. No rates have been substituted. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>{t('Try again')}</button>
       </div>
     </div>
   )
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
 
   const vakeTier = districtTiers.Vake ?? 4
   const vakeMultiplier = districtMultipliers[vakeTier.toString()]
@@ -209,20 +211,20 @@ export default function PricingPage() {
   const offPeakMultiplier = timeMultipliers['2'] ?? 1
 
   const tabs = [
-    { key: 'rates', label: 'Rates', icon: DollarSign },
-    { key: 'districts', label: 'Districts', icon: MapPin },
-    { key: 'time', label: 'Time of day', icon: Clock },
-    { key: 'map', label: 'Map', icon: Map },
-    { key: 'balances', label: 'Balances', icon: Users },
-    { key: 'history', label: 'History', icon: Receipt },
+    { key: 'rates', label: t('Rates'), icon: DollarSign },
+    { key: 'districts', label: t('Districts'), icon: MapPin },
+    { key: 'time', label: t('Time of day'), icon: Clock },
+    { key: 'map', label: t('Map'), icon: Map },
+    { key: 'balances', label: t('Balances'), icon: Users },
+    { key: 'history', label: t('History'), icon: Receipt },
   ] as const
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Pricing</h1>
-          <p className="portal-subtitle">Rates, district and time multipliers, and client balances. Changes apply to the next billing run.</p>
+          <h1 className="portal-page-title">{t('Pricing')}</h1>
+          <p className="portal-subtitle">{t('Rates, district and time multipliers, and client balances. Changes apply to the next billing run.')}</p>
         </div>
       </div>
 
@@ -234,7 +236,7 @@ export default function PricingPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatGEL(clients.reduce((s, c) => s + c.balance, 0))}</span>
-            <span className="stat-card-label">Total client balance</span>
+            <span className="stat-card-label">{t('Total client balance')}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -243,7 +245,7 @@ export default function PricingPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{clients.filter(c => c.balance > 0).length} / {clients.length}</span>
-            <span className="stat-card-label">Clients with balance</span>
+            <span className="stat-card-label">{t('Clients with balance')}</span>
           </div>
         </div>
         <div className="stat-card">
@@ -252,13 +254,13 @@ export default function PricingPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value">{formatGEL(billingLogs.reduce((s, l) => s + Number(l.total_cost), 0))}</span>
-            <span className="stat-card-label">Last 100 charges</span>
+            <span className="stat-card-label">{t('Last 100 charges')}</span>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="segmented" role="tablist" aria-label="Pricing sections" style={{ marginTop: 28, marginBottom: 24 }}>
+      <div className="segmented" role="tablist" aria-label={t('Pricing sections')} style={{ marginTop: 28, marginBottom: 24 }}>
         {tabs.map(tab => (
           <button
             key={tab.key}
@@ -279,19 +281,19 @@ export default function PricingPage() {
         {/* ── Base Rates ── */}
         {activeTab === 'rates' && (
           <>
-            <h2>Base rates <span style={{ fontSize: 13, color: 'var(--muted-foreground)', fontWeight: 400 }}>per taxi-slot-hour</span></h2>
+            <h2>{t('Base rates')} <span style={{ fontSize: 13, color: 'var(--muted-foreground)', fontWeight: 400 }}>{t('per taxi-slot-hour')}</span></h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Ad length</th>
-                    <th style={{ textAlign: 'right' }}>Rate per hour</th>
+                    <th>{t('Ad length')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Rate per hour')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {['10', '20', '30'].map(dur => (
                     <tr key={dur}>
-                      <td style={{ fontWeight: 600 }}>{dur} seconds</td>
+                      <td style={{ fontWeight: 600 }}>{t('{n} seconds', { n: dur })}</td>
                       <td style={{ textAlign: 'right' }}>
                         <input
                           type="number"
@@ -321,7 +323,7 @@ export default function PricingPage() {
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
-                <Save size={16} /> {saving ? 'Saving...' : 'Save rates'}
+                <Save size={16} /> {saving ? t('Saving…') : t('Save rates')}
               </button>
             </div>
 
@@ -330,13 +332,13 @@ export default function PricingPage() {
               marginTop: 24, padding: 16, borderRadius: 12,
               background: 'var(--portal-surface)', border: '1px solid var(--portal-hairline)',
             }}>
-              <h3 style={{ margin: '0 0 8px', fontSize: 14 }}>Example</h3>
+              <h3 style={{ margin: '0 0 8px', fontSize: 14 }}>{t('Example')}</h3>
               <p style={{ margin: 0, fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.8 }}>
-                10s slot in <strong>Vake</strong> (Tier {vakeTier}, {vakeMultiplier.toFixed(2)}x) at <strong>08:00</strong> ({rushMultiplier.toFixed(2)}x):<br />
-                {formatGEL(baseRates['10'])} × {vakeMultiplier.toFixed(2)} × {rushMultiplier.toFixed(2)} = <strong>{formatGEL(baseRates['10'] * vakeMultiplier * rushMultiplier)}</strong> per taxi-slot-hour<br />
+                {t('10s slot in')} <strong>{t('Vake')}</strong> ({t('Tier {n}', { n: vakeTier })}, {vakeMultiplier.toFixed(2)}x) {t('at')} <strong>08:00</strong> ({rushMultiplier.toFixed(2)}x):<br />
+                {formatGEL(baseRates['10'])} × {vakeMultiplier.toFixed(2)} × {rushMultiplier.toFixed(2)} = <strong>{formatGEL(baseRates['10'] * vakeMultiplier * rushMultiplier)}</strong> {t('per taxi-slot-hour')}<br />
                 <br />
-                30s slot in <strong>Gldani</strong> (Tier {gldaniTier}, {gldaniMultiplier.toFixed(2)}x) at <strong>02:00</strong> ({offPeakMultiplier.toFixed(2)}x):<br />
-                {formatGEL(baseRates['30'])} × {gldaniMultiplier.toFixed(2)} × {offPeakMultiplier.toFixed(2)} = <strong>{formatGEL(baseRates['30'] * gldaniMultiplier * offPeakMultiplier)}</strong> per taxi-slot-hour
+                {t('30s slot in')} <strong>{t('Gldani')}</strong> ({t('Tier {n}', { n: gldaniTier })}, {gldaniMultiplier.toFixed(2)}x) {t('at')} <strong>02:00</strong> ({offPeakMultiplier.toFixed(2)}x):<br />
+                {formatGEL(baseRates['30'])} × {gldaniMultiplier.toFixed(2)} × {offPeakMultiplier.toFixed(2)} = <strong>{formatGEL(baseRates['30'] * gldaniMultiplier * offPeakMultiplier)}</strong> {t('per taxi-slot-hour')}
               </p>
             </div>
           </>
@@ -345,15 +347,15 @@ export default function PricingPage() {
         {/* ── District Tiers ── */}
         {activeTab === 'districts' && (
           <>
-            <h2>District tiers</h2>
+            <h2>{t('District tiers')}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>District</th>
-                    <th>Tier</th>
-                    <th style={{ textAlign: 'right' }}>Multiplier</th>
-                    <th style={{ textAlign: 'right' }}>Effective 10s Rate</th>
+                    <th>{t('District')}</th>
+                    <th>{t('Tier')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Multiplier')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Effective 10s rate')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -362,7 +364,7 @@ export default function PricingPage() {
                     const mult = districtMultipliers[tier.toString()] ?? 1.0
                     return (
                       <tr key={name}>
-                        <td style={{ fontWeight: 600 }}>{name}</td>
+                        <td style={{ fontWeight: 600 }}>{t(name)}</td>
                         <td>
                           <select
                             value={tier}
@@ -375,10 +377,10 @@ export default function PricingPage() {
                               border: '1px solid var(--border)', borderRadius: 6, fontSize: 14,
                             }}
                           >
-                            <option value={1}>Tier 1 (Premium)</option>
-                            <option value={2}>Tier 2</option>
-                            <option value={3}>Tier 3</option>
-                            <option value={4}>Tier 4 (Base)</option>
+                            <option value={1}>{t('Tier 1 (Premium)')}</option>
+                            <option value={2}>{t('Tier {n}', { n: 2 })}</option>
+                            <option value={3}>{t('Tier {n}', { n: 3 })}</option>
+                            <option value={4}>{t('Tier 4 (Base)')}</option>
                           </select>
                         </td>
                         <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{mult.toFixed(2)}x</td>
@@ -391,14 +393,14 @@ export default function PricingPage() {
             </div>
 
             {/* Tier multiplier config */}
-            <h3 style={{ marginTop: 24 }}>Tier multipliers</h3>
+            <h3 style={{ marginTop: 24 }}>{t('Tier multipliers')}</h3>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
               {[1, 2, 3, 4].map(tier => (
                 <div key={tier} style={{
                   padding: '12px 16px', borderRadius: 10,
                   border: '1px solid var(--border)', background: 'var(--card)', minWidth: 120,
                 }}>
-                  <div style={{ fontSize: 11, color: 'var(--muted-foreground)', marginBottom: 4 }}>Tier {tier}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted-foreground)', marginBottom: 4 }}>{t('Tier {n}', { n: tier })}</div>
                   <input
                     type="number"
                     step="0.05"
@@ -424,7 +426,7 @@ export default function PricingPage() {
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
-                <Save size={16} /> {saving ? 'Saving...' : 'Save districts'}
+                <Save size={16} /> {saving ? t('Saving…') : t('Save districts')}
               </button>
             </div>
           </>
@@ -433,7 +435,7 @@ export default function PricingPage() {
         {/* ── Time Multipliers ── */}
         {activeTab === 'time' && (
           <>
-            <h2>Time of day</h2>
+            <h2>{t('Time of day')}</h2>
 
             {/* Visual schedule bar */}
             <div style={{
@@ -446,7 +448,7 @@ export default function PricingPage() {
                 return (
                   <div
                     key={h}
-                    title={`${h.toString().padStart(2, '0')}:00 — ${info.label} (${mult}x)`}
+                    title={`${h.toString().padStart(2, '0')}:00 — ${t(info.label)} (${mult}x)`}
                     style={{
                       flex: 1, background: info.color, opacity: 0.7 + (mult - 0.75) * 0.5,
                       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -464,7 +466,7 @@ export default function PricingPage() {
               {Object.entries(TIME_LABELS).map(([mult, info]) => (
                 <div key={mult} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                   <div style={{ width: 14, height: 14, borderRadius: 3, background: info.color }} />
-                  {info.label} ({mult}x)
+                  {t(info.label)} ({mult}x)
                 </div>
               ))}
             </div>
@@ -474,9 +476,9 @@ export default function PricingPage() {
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Time Window</th>
-                    <th>Label</th>
-                    <th style={{ textAlign: 'right' }}>Multiplier</th>
+                    <th>{t('Time window')}</th>
+                    <th>{t('Label')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Multiplier')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -493,7 +495,7 @@ export default function PricingPage() {
                       <tr key={slot.range}>
                         <td style={{ fontWeight: 600 }}>{slot.range}</td>
                         <td>
-                          <span style={{ color: info.color, fontWeight: 500 }}>{info.label}</span>
+                          <span style={{ color: info.color, fontWeight: 500 }}>{t(info.label)}</span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <input
@@ -530,7 +532,7 @@ export default function PricingPage() {
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
-                <Save size={16} /> {saving ? 'Saving...' : 'Save times'}
+                <Save size={16} /> {saving ? t('Saving…') : t('Save times')}
               </button>
             </div>
           </>
@@ -541,9 +543,9 @@ export default function PricingPage() {
         {activeTab === 'map' && (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h2 style={{ margin: 0 }}>District boundaries</h2>
+              <h2 style={{ margin: 0 }}>{t('District boundaries')}</h2>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {mapDirty && <span style={{ fontSize: 12, color: 'var(--portal-warning)' }}>Unsaved changes</span>}
+                {mapDirty && <span style={{ fontSize: 12, color: 'var(--portal-warning)' }}>{t('Unsaved changes')}</span>}
                 <button
                   onClick={async () => {
                     setSaving(true)
@@ -565,7 +567,7 @@ export default function PricingPage() {
                     opacity: saving ? 0.6 : 1,
                   }}
                 >
-                  <Save size={16} /> {saving ? 'Saving...' : 'Save Boundaries'}
+                  <Save size={16} /> {saving ? t('Saving…') : t('Save boundaries')}
                 </button>
               </div>
             </div>
@@ -586,7 +588,7 @@ export default function PricingPage() {
                   color: !selectedMapDistrict ? 'var(--portal-info)' : 'var(--muted-foreground)',
                 }}
               >
-                All
+                {t('All')}
               </button>
               {editableDistricts.map(d => (
                 <button
@@ -604,7 +606,7 @@ export default function PricingPage() {
                     display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
                     background: d.color, marginRight: 6, verticalAlign: 'middle',
                   }} />
-                  {d.name}
+                  {t(d.name)}
                   <span style={{ marginLeft: 4, opacity: 0.6 }}>({d.polygon.length})</span>
                 </button>
               ))}
@@ -631,16 +633,16 @@ export default function PricingPage() {
               background: 'var(--portal-surface)', border: '1px solid var(--portal-hairline)',
               fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.7,
             }}>
-              <strong style={{ color: 'var(--foreground)' }}>How to edit:</strong><br />
-              Select a district above to focus on it. Drag vertices to adjust boundaries.<br />
-              Click the faint dots between vertices to add a new point. Right-click a vertex to remove it.
+              <strong style={{ color: 'var(--foreground)' }}>{t('How to edit:')}</strong><br />
+              {t('Select a district above to focus on it. Drag vertices to adjust boundaries.')}<br />
+              {t('Click the faint dots between vertices to add a new point. Right-click a vertex to remove it.')}
             </div>
           </>
         )}
 
         {activeTab === 'balances' && (
           <>
-            <h2>Client balances</h2>
+            <h2>{t('Client balances')}</h2>
             {balanceMsg && (
               <div style={{
                 padding: '10px 16px',
@@ -657,15 +659,15 @@ export default function PricingPage() {
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Client</th>
-                    <th style={{ textAlign: 'right' }}>Balance</th>
-                    <th style={{ textAlign: 'right' }}>Top Up / Deduct</th>
+                    <th>{t('Client')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Balance')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Top up / deduct')}</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {clients.length === 0 ? (
-                    <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No clients</td></tr>
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>{t('No clients yet.')}</td></tr>
                   ) : clients.map(c => (
                     <tr key={c.id}>
                       <td style={{ fontWeight: 600 }}>{c.company_name}</td>
@@ -679,7 +681,8 @@ export default function PricingPage() {
                         <input
                           type="number"
                           step="1"
-                          placeholder="Amount (₾)"
+                          placeholder={t('Amount, ₾')}
+                          aria-label={t('Amount in lari')}
                           value={topUpAmounts[c.id] || ''}
                           onChange={e => setTopUpAmounts({ ...topUpAmounts, [c.id]: e.target.value })}
                           style={{
@@ -693,28 +696,28 @@ export default function PricingPage() {
                         <div style={{ display: 'flex', gap: 4 }}>
                           <button
                             onClick={() => adjustBalance(c.id, parseFloat(topUpAmounts[c.id] || '0'))}
-                            title="Add balance"
+                            title={t('Add balance')}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px',
                               borderRadius: 6, border: 'none', background: 'var(--portal-success)', color: 'var(--portal-on-primary)',
                               cursor: 'pointer', fontSize: 12, fontWeight: 500,
                             }}
                           >
-                            <Plus size={14} /> Add
+                            <Plus size={14} /> {t('Add')}
                           </button>
                           <button
                             onClick={() => {
                               const amt = parseFloat(topUpAmounts[c.id] || '0')
                               if (amt > 0) adjustBalance(c.id, -amt)
                             }}
-                            title="Deduct balance"
+                            title={t('Deduct balance')}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px',
                               borderRadius: 6, border: '1px solid var(--border)', background: 'transparent',
                               color: 'var(--muted-foreground)', cursor: 'pointer', fontSize: 12, fontWeight: 500,
                             }}
                           >
-                            <Minus size={14} /> Deduct
+                            <Minus size={14} /> {t('Deduct')}
                           </button>
                         </div>
                       </td>
@@ -729,42 +732,42 @@ export default function PricingPage() {
         {/* ── Billing History ── */}
         {activeTab === 'history' && (
           <>
-            <h2>Recent charges</h2>
+            <h2>{t('Recent charges')}</h2>
             <div className="campaigns-table-wrapper">
               <table className="portal-table">
                 <thead>
                   <tr>
-                    <th>Time</th>
-                    <th>Client</th>
-                    <th>Campaign</th>
-                    <th>Device</th>
-                    <th>District</th>
-                    <th style={{ textAlign: 'right' }}>Base</th>
-                    <th style={{ textAlign: 'right' }}>Dist ×</th>
-                    <th style={{ textAlign: 'right' }}>Time ×</th>
-                    <th style={{ textAlign: 'right' }}>Played</th>
-                    <th style={{ textAlign: 'right' }}>Total</th>
+                    <th>{t('Time')}</th>
+                    <th>{t('Client')}</th>
+                    <th>{t('Campaign')}</th>
+                    <th>{t('Device')}</th>
+                    <th>{t('District')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Base')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('District ×')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Time ×')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Played')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('Total')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {billingLogs.length === 0 ? (
-                    <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>No billing history yet</td></tr>
+                    <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--muted-foreground)' }}>{t('No billing history yet')}</td></tr>
                   ) : billingLogs.map(l => (
                     <tr key={l.id}>
                       <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                        {new Date(l.period_start).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(l.period_start).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td>{l.clients?.company_name || '—'}</td>
                       <td>{l.campaigns?.name || '—'}</td>
                       <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{l.device_id?.slice(0, 12)}...</td>
-                      <td>{l.district} <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>(T{l.district_tier})</span></td>
+                      <td>{t(l.district)} <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>(T{l.district_tier})</span></td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatGEL(l.base_rate)}</td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{l.district_multiplier.toFixed(2)}x</td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{l.time_multiplier.toFixed(2)}x</td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 12, color: 'var(--muted-foreground)' }}>
                         {l.billing_unit === 'block_10m' && l.proration != null
                           ? `${l.plays}/${l.expected_plays} · ${Math.round(Number(l.proration) * 100)}%`
-                          : 'full hour'}
+                          : t('full hour')}
                       </td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{formatGEL(Number(l.total_cost))}</td>
                     </tr>

@@ -3,6 +3,7 @@
 import { MapContainer, TileLayer, CircleMarker, Popup, Polygon, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { TBILISI_DISTRICTS } from '@/lib/districts'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface PlayPoint {
   lat: number
@@ -19,6 +20,7 @@ interface StatsMapViewProps {
 }
 
 export default function StatsMapView({ points, showDistricts = true }: StatsMapViewProps) {
+  const { t, locale } = useAdminText()
   const center: [number, number] = points.length > 0
     ? [points[0].lat, points[0].lng]
     : [41.7151, 44.8271]
@@ -46,7 +48,7 @@ export default function StatsMapView({ points, showDistricts = true }: StatsMapV
             fillOpacity: 0.15,
           }}
         >
-          <Tooltip sticky>{district.name}</Tooltip>
+          <Tooltip sticky>{t(district.name)}</Tooltip>
         </Polygon>
       ))}
 
@@ -65,9 +67,9 @@ export default function StatsMapView({ points, showDistricts = true }: StatsMapV
           <Popup>
             <div style={{ color: '#050505', fontSize: 13, lineHeight: 1.5 }}>
               <strong>{p.program_name}</strong><br />
-              Device: <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{p.device_id}</span><br />
-              Time: {new Date(p.began_at).toLocaleString()}<br />
-              Duration: {p.duration_seconds}s
+              {t('Device')}: <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{p.device_id}</span><br />
+              {t('Time')}: {new Date(p.began_at).toLocaleString(locale, { timeZone: 'Asia/Tbilisi' })}<br />
+              {t('Duration')}: {t('{s}s', { s: p.duration_seconds })}
             </div>
           </Popup>
         </CircleMarker>

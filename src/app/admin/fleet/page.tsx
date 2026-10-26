@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { DevicePoint } from '@/components/admin/FleetMapView'
+import { useAdminText } from '@/lib/admin-i18n'
 
 const FleetMapView = dynamic(() => import('@/components/admin/FleetMapView'), { ssr: false })
 
@@ -18,6 +19,7 @@ interface ApiDevice {
 }
 
 export default function FleetPage() {
+  const { t, locale } = useAdminText()
   const [allDevices, setAllDevices] = useState<ApiDevice[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -49,8 +51,8 @@ export default function FleetPage() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void load()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void load()}>{t('Try again')}</button>
       </div>
     </div>
   )
@@ -73,21 +75,21 @@ export default function FleetPage() {
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Fleet map</h1>
+          <h1 className="portal-page-title">{t('Fleet map')}</h1>
           <p className="portal-subtitle">
-            {realtimeError ? 'Live status unavailable' : `${onlineCount} online · ${offlineCount} offline`} · {mappedDevices.length} of {allDevices.length} with a GPS fix · refreshes every 30 seconds
+            {realtimeError ? t('Live status unavailable') : `${t('{n} online', { n: onlineCount })} · ${t('{n} offline', { n: offlineCount })}`} · {t('{shown} of {total} with a GPS fix', { shown: mappedDevices.length, total: allDevices.length })} · {t('refreshes every 30 seconds')}
           </p>
         </div>
         <button type="button" onClick={load} className="portal-btn-secondary">
-          <RefreshCw size={16} aria-hidden /> Refresh
+          <RefreshCw size={16} aria-hidden /> {t('Refresh')}
         </button>
       </div>
 
-      {realtimeError && <div className="portal-alert portal-alert-warning" role="status">Live screen status is unavailable. Positions below are the last locations saved in the database.</div>}
+      {realtimeError && <div className="portal-alert portal-alert-warning" role="status">{t('Live screen status is unavailable. Positions below are the last locations saved in the database.')}</div>}
 
       <div className="map-layout">
         <div className="map-list">
-          {allDevices.length === 0 && <p className="cell-sub" style={{ padding: 16, margin: 0 }}>No screens yet.</p>}
+          {allDevices.length === 0 && <p className="cell-sub" style={{ padding: 16, margin: 0 }}>{t('No screens yet.')}</p>}
           {allDevices.map(d => {
             const hasFix = d.last_lat !== null && d.last_lng !== null
             return (
@@ -104,9 +106,9 @@ export default function FleetPage() {
                   <span className="recent-name">{d.name || d.cardId}</span>
                   <span className="cell-sub">
                     {d.lastSeen
-                      ? new Date(d.lastSeen).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                      : 'Never seen'}
-                    {!hasFix && ' · no GPS'}
+                      ? new Date(d.lastSeen).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                      : t('Never seen')}
+                    {!hasFix && ` · ${t('no GPS')}`}
                   </span>
                 </span>
               </button>
@@ -116,10 +118,10 @@ export default function FleetPage() {
 
         <div className="map-card map-card-tall">
           {loading && mappedDevices.length === 0 ? (
-            <div className="portal-loading" style={{ minHeight: '100%' }}>Loading…</div>
+            <div className="portal-loading" style={{ minHeight: '100%' }}>{t('Loading…')}</div>
           ) : mappedDevices.length === 0 ? (
             <div className="portal-empty" style={{ height: '100%', boxShadow: 'none' }}>
-              <p>No GPS positions yet. Screens appear on the map once they report a location.</p>
+              <p>{t('No GPS positions yet. Screens appear on the map once they report a location.')}</p>
             </div>
           ) : (
             <FleetMapView devices={mappedDevices} focusedId={focusedId} />

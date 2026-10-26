@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildActivity, type EventRow, type StatusRow } from './activity'
+import { translate } from './admin-i18n'
+import { billingRunEvent, deviceEvent, type SystemEvent } from './system-events'
 
 const event = (over: Partial<EventRow>): EventRow => ({
   id: 1,
@@ -84,5 +86,27 @@ describe('buildActivity', () => {
     ])
     expect(items[2].detail).toContainEqual(['By', 'Luka'])
     expect(items[0].detail).toContainEqual(['Email', 'Sent'])
+  })
+
+  it('rebuilds stored event titles word for word, then in Georgian', () => {
+    const run = billingRunEvent({
+      mode: 'hourly', totalCharged: 14.4, blocks: 0, lateBlocks: 0, failedClients: 0, durationMs: 900, devicesSynced: 1,
+      charges: [{ clientId: 'k', client: 'PSP', charged: 14.4, balance: 2 }],
+      paused: [{ campaignId: 'c', campaign: 'sunny', client: 'PSP', reason: 'balance' }, { campaignId: 'd', campaign: 'rain', client: 'PSP', reason: 'cap' }],
+      completed: ['old'], resumed: [],
+    })
+    const stored: SystemEvent[] = [
+      run,
+      deviceEvent('960-D24-A1', 'connected'),
+      deviceEvent('960-D24-A1', 'disconnected', { connected_seconds: 12_000 }),
+      { category: 'screen', kind: 'playlist_pushed', title: '960-D24-A1: playlist pushed, 2 campaigns, 1 file', device_id: '960-D24-A1', detail: { pushed: true, campaigns: 2, media: 1 } },
+    ]
+    const rows = stored.map((e, i) => event({ ...e, id: i, severity: e.severity ?? 'info', device_id: e.device_id ?? null, detail: e.detail ?? {} }))
+    const input = { events: rows, statuses: [], transactions: [], alerts: [] }
+
+    expect(buildActivity(input).map((i) => i.title).sort()).toEqual(stored.map((e) => e.title).sort())
+    const ge = buildActivity(input, (en, vars) => translate('ge', en, vars)).map((i) => i.title)
+    expect(ge).toContain('960-D24-A1 გაითიშა 3 სთ 20 წთ ონლაინ ყოფნის შემდეგ')
+    expect(ge.join(' ')).not.toMatch(/connected|playlist|charged|paused/)
   })
 })

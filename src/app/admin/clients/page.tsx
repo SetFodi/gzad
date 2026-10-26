@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Plus, Search, X } from 'lucide-react'
 import AppDialog from '@/components/app/AppDialog'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface Client {
   id: string
@@ -21,6 +22,7 @@ interface Client {
 }
 
 export default function AdminClientsPage() {
+  const { t, locale } = useAdminText()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -82,13 +84,13 @@ export default function AdminClientsPage() {
       })
 
       const result = await res.json()
-      if (!res.ok) throw new Error(result.error || 'Failed to create client')
+      if (!res.ok) throw new Error(result.error || t('Failed to create client'))
 
       setShowCreate(false)
       setForm({ email: '', password: '', company_name: '', contact_name: '', phone: '' })
       await loadClients()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create client')
+      setError(err instanceof Error ? err.message : t('Failed to create client'))
     } finally {
       setCreating(false)
     }
@@ -97,13 +99,13 @@ export default function AdminClientsPage() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void loadClients()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadClients()}>{t('Try again')}</button>
       </div>
     </div>
   )
 
-  if (loading) return <div className="portal-loading">Loading...</div>
+  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
 
   const visible = clients.filter(c => {
     const q = query.trim().toLowerCase()
@@ -114,82 +116,82 @@ export default function AdminClientsPage() {
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Clients</h1>
-          <p className="portal-subtitle">Advertiser accounts, their balances and campaigns.</p>
+          <h1 className="portal-page-title">{t('Clients')}</h1>
+          <p className="portal-subtitle">{t('Advertiser accounts, their balances and campaigns.')}</p>
         </div>
         <button type="button" onClick={() => setShowCreate(true)} className="portal-btn-primary">
-          <Plus size={16} aria-hidden /> Add client
+          <Plus size={16} aria-hidden /> {t('Add client')}
         </button>
       </div>
 
       {showCreate && (
         <AppDialog labelledBy="new-client-title" onClose={() => setShowCreate(false)}>
             <div className="admin-modal-header">
-              <h2 id="new-client-title">New client account</h2>
-              <button type="button" onClick={() => setShowCreate(false)} className="admin-modal-close" aria-label="Close"><X size={20} /></button>
+              <h2 id="new-client-title">{t('New client account')}</h2>
+              <button type="button" onClick={() => setShowCreate(false)} className="admin-modal-close" aria-label={t('Close')}><X size={20} /></button>
             </div>
             <form onSubmit={handleCreate} className="portal-form">
               {error && <div className="portal-login-error" role="alert">{error}</div>}
               <div className="admin-form-row">
                 <div className="portal-input-group">
-                  <label htmlFor="c-company">Company</label>
+                  <label htmlFor="c-company">{t('Company')}</label>
                   <input id="c-company" type="text" value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} required autoFocus />
                 </div>
                 <div className="portal-input-group">
-                  <label htmlFor="c-contact">Contact name</label>
+                  <label htmlFor="c-contact">{t('Contact name')}</label>
                   <input id="c-contact" type="text" value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} required />
                 </div>
               </div>
               <div className="admin-form-row">
                 <div className="portal-input-group">
-                  <label htmlFor="c-email">Email</label>
+                  <label htmlFor="c-email">{t('Email')}</label>
                   <input id="c-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
                 </div>
                 <div className="portal-input-group">
-                  <label htmlFor="c-phone">Phone</label>
+                  <label htmlFor="c-phone">{t('Phone')}</label>
                   <input id="c-phone" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 </div>
               </div>
               <div className="portal-input-group">
-                <label htmlFor="c-password">Temporary password</label>
+                <label htmlFor="c-password">{t('Temporary password')}</label>
                 <input id="c-password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} autoComplete="new-password" />
-                <span className="field-hint">Share it with the client privately; they sign in at /portal/login.</span>
+                <span className="field-hint">{t('Share it with the client privately; they sign in at /portal/login.')}</span>
               </div>
               <button type="submit" disabled={creating} className="portal-btn-primary full-width">
-                {creating ? 'Creating…' : 'Create account'}
+                {creating ? t('Creating…') : t('Create account')}
               </button>
             </form>
         </AppDialog>
       )}
 
       <div className="table-toolbar">
-        <span className="cell-sub">{clients.length} {clients.length === 1 ? 'client' : 'clients'}</span>
+        <span className="cell-sub">{clients.length === 1 ? t('1 client') : t('{n} clients', { n: clients.length })}</span>
         <label className="search-field">
           <Search size={16} aria-hidden />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name, email or phone"
-            aria-label="Search clients"
+            placeholder={t('Search name, email or phone')}
+            aria-label={t('Search clients')}
           />
         </label>
       </div>
 
       {visible.length === 0 ? (
         <div className="portal-empty">
-          <p>{clients.length === 0 ? 'No clients yet.' : 'No clients match your search.'}</p>
+          <p>{clients.length === 0 ? t('No clients yet.') : t('No clients match your search.')}</p>
         </div>
       ) : (
         <div className="campaigns-table-wrapper">
           <table className="portal-table">
             <thead>
               <tr>
-                <th>Company</th>
-                <th>Contact</th>
-                <th>Campaigns</th>
-                <th style={{ textAlign: 'right' }}>Balance</th>
-                <th>Joined</th>
+                <th>{t('Company')}</th>
+                <th>{t('Contact')}</th>
+                <th>{t('Campaigns')}</th>
+                <th style={{ textAlign: 'right' }}>{t('Balance')}</th>
+                <th>{t('Joined')}</th>
               </tr>
             </thead>
             <tbody>
@@ -202,8 +204,8 @@ export default function AdminClientsPage() {
                         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Link href={`/admin/clients/${c.id}`} className="table-link">{c.company_name}</Link>
                           {(c.is_admin || c.role === 'fleet') && (
-                            <span className="portal-chip" title={`${c.is_admin ? 'Staff' : 'Driver'} account that owns campaigns`}>
-                              {c.is_admin ? 'Staff' : 'Driver'}
+                            <span className="portal-chip" title={c.is_admin ? t('Staff account that owns campaigns') : t('Driver account that owns campaigns')}>
+                              {c.is_admin ? t('Staff') : t('Driver')}
                             </span>
                           )}
                         </span>
@@ -217,13 +219,13 @@ export default function AdminClientsPage() {
                       </div>
                     </td>
                     <td>
-                      {c.active_count ? <span>{c.active_count} active</span> : null}
-                      <span className="cell-sub">{c.active_count ? ` · ${c.campaign_count} total` : `${c.campaign_count} total`}</span>
+                      {c.active_count ? <span>{t('{n} active', { n: c.active_count })}</span> : null}
+                      <span className="cell-sub">{c.active_count ? ` · ${t('{n} total', { n: c.campaign_count ?? 0 })}` : t('{n} total', { n: c.campaign_count ?? 0 })}</span>
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 500, color: balance <= 0 ? 'var(--portal-danger)' : 'var(--portal-text)' }}>
                       {balance < 0 ? `−₾${Math.abs(balance).toFixed(2)}` : `₾${balance.toFixed(2)}`}
                     </td>
-                    <td className="cell-nowrap cell-sub">{new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                    <td className="cell-nowrap cell-sub">{new Date(c.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                   </tr>
                 )
               })}

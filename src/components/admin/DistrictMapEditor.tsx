@@ -4,6 +4,7 @@ import { Fragment } from 'react'
 import { MapContainer, TileLayer, Polygon, Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface DistrictData {
   name: string
@@ -37,6 +38,7 @@ function midpointIcon(color: string) {
 }
 
 export default function DistrictMapEditor({ districts, selectedDistrict, onChange }: DistrictMapEditorProps) {
+  const { t } = useAdminText()
   const center: [number, number] = [41.7351, 44.8271]
 
   function handleVertexDrag(districtIndex: number, vertexIndex: number, latlng: L.LatLng) {
@@ -105,7 +107,7 @@ export default function DistrictMapEditor({ districts, selectedDistrict, onChang
                 fillOpacity: isSelected ? 0.25 : 0.08,
               }}
             >
-              <Tooltip sticky>{district.name}</Tooltip>
+              <Tooltip sticky>{t(district.name)}</Tooltip>
             </Polygon>
 
             {/* Draggable vertex markers (only for selected/all) */}
@@ -124,9 +126,9 @@ export default function DistrictMapEditor({ districts, selectedDistrict, onChang
                 }}
               >
                 <Tooltip direction="top" offset={[0, -10]}>
-                  {district.name} #{vi + 1}<br />
+                  {t(district.name)} #{vi + 1}<br />
                   {vertex[0].toFixed(4)}, {vertex[1].toFixed(4)}<br />
-                  <em style={{ fontSize: 10 }}>Right-click to remove</em>
+                  <em style={{ fontSize: 10 }}>{t('Right-click to remove')}</em>
                 </Tooltip>
               </Marker>
             ))}
@@ -144,7 +146,7 @@ export default function DistrictMapEditor({ districts, selectedDistrict, onChang
                     click: () => addVertex(di, vi),
                   }}
                 >
-                  <Tooltip direction="top" offset={[0, -6]}>Click to add vertex</Tooltip>
+                  <Tooltip direction="top" offset={[0, -6]}>{t('Click to add a point')}</Tooltip>
                 </Marker>
               )
             })}

@@ -5,50 +5,53 @@ import {
   Megaphone, Monitor, ScrollText, Users, Eye,
 } from 'lucide-react'
 import AppSidebar from '@/components/app/AppSidebar'
+import { useAdminText } from '@/lib/admin-i18n'
 
 export default function AdminSidebar() {
+  const { t } = useAdminText()
   return (
     <AppSidebar
-      area="Admin"
+      area={t('Admin')}
       sections={[
         {
-          items: [{ href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true }],
+          items: [{ href: '/admin', label: t('Overview'), icon: LayoutDashboard, exact: true }],
         },
         {
-          title: 'Business',
+          title: t('Business'),
           items: [
-            { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
-            { href: '/admin/clients', label: 'Clients', icon: Users },
-            { href: '/admin/pricing', label: 'Pricing', icon: DollarSign },
+            { href: '/admin/campaigns', label: t('Campaigns'), icon: Megaphone },
+            { href: '/admin/clients', label: t('Clients'), icon: Users },
+            { href: '/admin/pricing', label: t('Pricing'), icon: DollarSign },
           ],
         },
         {
-          title: 'Screens',
+          title: t('Screens'),
           items: [
-            { href: '/admin/devices', label: 'Devices', icon: Monitor },
-            { href: '/admin/slots', label: 'Slots', icon: LayoutGrid },
-            { href: '/admin/groups', label: 'Groups', icon: FolderOpen },
+            { href: '/admin/devices', label: t('Devices'), icon: Monitor },
+            { href: '/admin/slots', label: t('Slots'), icon: LayoutGrid },
+            { href: '/admin/groups', label: t('Groups'), icon: FolderOpen },
           ],
         },
         {
-          title: 'Fleet',
+          title: t('Fleet'),
           items: [
-            { href: '/admin/fleet-users', label: 'Fleet users', icon: Car },
-            { href: '/admin/fleet', label: 'Fleet map', icon: Map },
-            { href: '/admin/map', label: 'GPS trails', icon: MapPin },
+            { href: '/admin/fleet-users', label: t('Fleet users'), icon: Car },
+            { href: '/admin/fleet', label: t('Fleet map'), icon: Map },
+            { href: '/admin/map', label: t('GPS trails'), icon: MapPin },
           ],
         },
         {
-          title: 'Insights',
+          title: t('Insights'),
           items: [
-            { href: '/admin/activity', label: 'Activity', icon: Activity },
-            { href: '/admin/stats', label: 'Stats', icon: BarChart3 },
-            { href: '/admin/logs', label: 'Logs', icon: ScrollText },
+            { href: '/admin/activity', label: t('Activity'), icon: Activity },
+            { href: '/admin/stats', label: t('Stats'), icon: BarChart3 },
+            { href: '/admin/logs', label: t('Logs'), icon: ScrollText },
           ],
         },
       ]}
-      links={[{ href: '/portal/dashboard', label: 'Client view', icon: Eye }]}
-      signOutLabel="Sign out"
+      links={[{ href: '/portal/dashboard', label: t('Client view'), icon: Eye }]}
+      signOutLabel={t('Sign out')}
+      language
     />
   )
 }

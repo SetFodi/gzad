@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Plus, X, Trash2, Search } from 'lucide-react'
 import StatusBadge from '@/components/app/StatusBadge'
 import AppDialog from '@/components/app/AppDialog'
+import { useAdminText } from '@/lib/admin-i18n'
 
 interface CampaignWithClient {
   id: string
@@ -53,6 +54,7 @@ function initialFilter() {
 }
 
 export default function AdminCampaignsPage() {
+  const { t } = useAdminText()
   const [campaigns, setCampaigns] = useState<CampaignWithClient[]>([])
   const [filter, setFilter] = useState<string>(initialFilter)
   const [query, setQuery] = useState('')
@@ -74,11 +76,11 @@ export default function AdminCampaignsPage() {
   const createCampaign = async () => {
     const name = newCampaign.name.trim()
     if (!name || !NAME_REGEX.test(name)) {
-      setCreateError('Only lowercase English letters, numbers, and spaces allowed')
+      setCreateError(t('Only lowercase English letters, numbers, and spaces allowed'))
       return
     }
     if (!newCampaign.client_id) {
-      setCreateError('Select a client')
+      setCreateError(t('Select a client'))
       return
     }
 
@@ -92,7 +94,7 @@ export default function AdminCampaignsPage() {
         .limit(1)
 
       if (existing && existing.length > 0) {
-        setCreateError('A campaign with this name already exists')
+        setCreateError(t('A campaign with this name already exists'))
         setCreating(false)
         return
       }
@@ -106,7 +108,7 @@ export default function AdminCampaignsPage() {
       setNewCampaign({ name: '', client_id: '' })
       await loadCampaigns()
     } catch {
-      setCreateError('Failed to create campaign')
+      setCreateError(t('Failed to create campaign'))
     } finally {
       setCreating(false)
     }
@@ -184,7 +186,7 @@ export default function AdminCampaignsPage() {
   }
 
   const deleteCampaign = async (campaignId: string, campaignName: string) => {
-    if (!confirm(`Delete campaign "${campaignName}"? This will also delete all its media files. This cannot be undone.`)) return
+    if (!confirm(t('Delete campaign "{name}"? This will also delete all its media files. This cannot be undone.', { name: campaignName }))) return
 
     const campaign = campaigns.find(c => c.id === campaignId)
     const groupId = campaign?.device_group_id || null
@@ -270,20 +272,20 @@ export default function AdminCampaignsPage() {
   if (loadError) return (
     <div className="portal-page">
       <div className="portal-empty" role="alert">
-        <p>Could not load this page from the database. Please try again.</p>
-        <button type="button" className="portal-btn-primary" onClick={() => void loadCampaigns()}>Try again</button>
+        <p>{t('Could not load this page from the database. Please try again.')}</p>
+        <button type="button" className="portal-btn-primary" onClick={() => void loadCampaigns()}>{t('Try again')}</button>
       </div>
     </div>
   )
 
-  if (loading) return <div className="portal-loading">Loading…</div>
+  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Campaigns</h1>
-          <p className="portal-subtitle">Review new ads, and pause, resume or remove campaigns.</p>
+          <h1 className="portal-page-title">{t('Campaigns')}</h1>
+          <p className="portal-subtitle">{t('Review new ads, and pause, resume or remove campaigns.')}</p>
         </div>
         <button
           type="button"
@@ -291,15 +293,15 @@ export default function AdminCampaignsPage() {
           className="portal-btn-primary"
         >
           <Plus size={16} aria-hidden />
-          New campaign
+          {t('New campaign')}
         </button>
       </div>
 
       {showCreate && (
         <AppDialog labelledBy="new-campaign-title" onClose={() => setShowCreate(false)}>
             <div className="admin-modal-header">
-              <h2 id="new-campaign-title">New campaign</h2>
-              <button type="button" onClick={() => setShowCreate(false)} className="admin-modal-close" aria-label="Close"><X size={20} /></button>
+              <h2 id="new-campaign-title">{t('New campaign')}</h2>
+              <button type="button" onClick={() => setShowCreate(false)} className="admin-modal-close" aria-label={t('Close')}><X size={20} /></button>
             </div>
             <form
               className="portal-form"
@@ -307,40 +309,40 @@ export default function AdminCampaignsPage() {
             >
               {createError && <div className="portal-login-error" role="alert">{createError}</div>}
               <div className="portal-input-group">
-                <label htmlFor="new-campaign-name">Name</label>
+                <label htmlFor="new-campaign-name">{t('Name')}</label>
                 <input
                   id="new-campaign-name"
                   type="text"
                   value={newCampaign.name}
                   onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value.toLowerCase().replace(/[^a-z0-9 ]/g, '') })}
-                  placeholder="e.g. summer sale promo"
+                  placeholder={t('e.g. summer sale promo')}
                   autoFocus
                 />
-                <span className="field-hint">Lowercase English letters, numbers and spaces. Play logs match campaigns by this name.</span>
+                <span className="field-hint">{t('Lowercase English letters, numbers and spaces. Play logs match campaigns by this name.')}</span>
               </div>
               <div className="portal-input-group">
-                <label htmlFor="new-campaign-client">Client</label>
+                <label htmlFor="new-campaign-client">{t('Client')}</label>
                 <select
                   id="new-campaign-client"
                   value={newCampaign.client_id}
                   onChange={(e) => setNewCampaign({ ...newCampaign, client_id: e.target.value })}
                 >
-                  <option value="">Select a client…</option>
+                  <option value="">{t('Select a client…')}</option>
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.company_name}</option>
                   ))}
                 </select>
               </div>
-              <span className="field-hint">Campaigns created here start as Active.</span>
+              <span className="field-hint">{t('Campaigns created here start as Active.')}</span>
               <button type="submit" disabled={creating} className="portal-btn-primary full-width">
-                {creating ? 'Creating…' : 'Create campaign'}
+                {creating ? t('Creating…') : t('Create campaign')}
               </button>
             </form>
         </AppDialog>
       )}
 
       <div className="table-toolbar">
-        <div className="admin-filters" role="tablist" aria-label="Status">
+        <div className="admin-filters" role="tablist" aria-label={t('Status')}>
           {FILTERS.map((f) => (
             <button
               key={f}
@@ -350,7 +352,7 @@ export default function AdminCampaignsPage() {
               className={`admin-filter-btn ${filter === f ? 'active' : ''}`}
               onClick={() => setFilter(f)}
             >
-              {FILTER_LABELS[f]}
+              {t(FILTER_LABELS[f])}
               <span className="filter-count">{counts[f] ?? 0}</span>
             </button>
           ))}
@@ -361,28 +363,28 @@ export default function AdminCampaignsPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search campaigns or clients"
-            aria-label="Search campaigns or clients"
+            placeholder={t('Search campaigns or clients')}
+            aria-label={t('Search campaigns or clients')}
           />
         </label>
       </div>
 
       {visible.length === 0 ? (
         <div className="portal-empty">
-          <p>{campaigns.length === 0 ? 'No campaigns yet.' : 'No campaigns match this view.'}</p>
+          <p>{campaigns.length === 0 ? t('No campaigns yet.') : t('No campaigns match this view.')}</p>
         </div>
       ) : (
         <div className="campaigns-table-wrapper">
           <table className="portal-table">
             <thead>
               <tr>
-                <th>Campaign</th>
-                <th>Status</th>
-                <th>Group</th>
-                <th>Media</th>
-                <th>Dates</th>
-                <th>Price</th>
-                <th aria-label="Actions" />
+                <th>{t('Campaign')}</th>
+                <th>{t('Status')}</th>
+                <th>{t('Group')}</th>
+                <th>{t('Media')}</th>
+                <th>{t('Dates')}</th>
+                <th>{t('Price')}</th>
+                <th aria-label={t('Actions')} />
               </tr>
             </thead>
             <tbody>
@@ -402,7 +404,7 @@ export default function AdminCampaignsPage() {
                       </div>
                       <div className="cell-stack">
                         <Link href={`/admin/campaigns/${c.id}`} className="table-link">{c.name}</Link>
-                        <span className="cell-sub">{c.clients?.company_name || 'No client'}</span>
+                        <span className="cell-sub">{c.clients?.company_name || t('No client')}</span>
                       </div>
                     </div>
                   </td>
@@ -415,31 +417,31 @@ export default function AdminCampaignsPage() {
                   <td>
                     <div className="cell-stack">
                       <span>{c.media_count}</span>
-                      {c.pending_media! > 0 && <span className="cell-sub" style={{ color: 'var(--portal-warning)' }}>{c.pending_media} to review</span>}
+                      {c.pending_media! > 0 && <span className="cell-sub" style={{ color: 'var(--portal-warning)' }}>{t('{n} to review', { n: c.pending_media ?? 0 })}</span>}
                     </div>
                   </td>
-                  <td className="cell-nowrap">{c.start_date || c.end_date ? `${c.start_date || '…'} → ${c.end_date || '…'}` : <span className="cell-sub">No end date</span>}</td>
-                  <td className="cell-nowrap">{c.monthly_price ? `₾${c.monthly_price}/mo` : '—'}</td>
+                  <td className="cell-nowrap">{c.start_date || c.end_date ? `${c.start_date || '…'} → ${c.end_date || '…'}` : <span className="cell-sub">{t('No end date')}</span>}</td>
+                  <td className="cell-nowrap">{c.monthly_price ? t('₾{amount}/mo', { amount: c.monthly_price }) : '—'}</td>
                   <td>
                     <div className="admin-actions" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
                       {c.status === 'pending_review' && (
                         <>
-                          <button type="button" className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>Approve</button>
-                          <button type="button" className="action-btn reject" onClick={() => updateStatus(c.id, 'paused')}>Reject</button>
+                          <button type="button" className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>{t('Approve')}</button>
+                          <button type="button" className="action-btn reject" onClick={() => updateStatus(c.id, 'paused')}>{t('Reject')}</button>
                         </>
                       )}
                       {c.status === 'active' && (
-                        <button type="button" className="action-btn" onClick={() => updateStatus(c.id, 'paused')}>Pause</button>
+                        <button type="button" className="action-btn" onClick={() => updateStatus(c.id, 'paused')}>{t('Pause')}</button>
                       )}
                       {(c.status === 'paused' || c.status === 'paused_billing' || c.status === 'paused_cap') && (
-                        <button type="button" className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>Resume</button>
+                        <button type="button" className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>{t('Resume')}</button>
                       )}
                       <button
                         type="button"
                         className="app-icon-btn danger"
                         onClick={() => deleteCampaign(c.id, c.name)}
-                        aria-label={`Delete ${c.name}`}
-                        title="Delete"
+                        aria-label={t('Delete {name}', { name: c.name })}
+                        title={t('Delete')}
                       >
                         <Trash2 size={16} aria-hidden />
                       </button>

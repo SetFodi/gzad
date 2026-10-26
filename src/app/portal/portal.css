@@ -3341,6 +3341,28 @@ a.attention-row:hover {
         margin-bottom: 22px;
     }
 
+    .system-status {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .admin-header-actions,
+    .admin-header-actions select {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .system-pill {
+        min-width: 0;
+        max-width: 100%;
+        height: auto;
+        min-height: 32px;
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
     .stats-grid,
     .stats-grid.three-col {
         grid-template-columns: repeat(2, minmax(0, 1fr));

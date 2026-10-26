@@ -9,10 +9,11 @@ import { createClient } from '@/lib/supabase/client'
 import {
   buildActivity, type ActivityCategory, type ActivityItem, type AlertRow, type EventRow, type StatusRow, type TransactionRow,
 } from '@/lib/activity'
+import { useAdminText } from '@/lib/admin-i18n'
 
 type Range = '24h' | '7d' | '30d'
 const RANGE_HOURS: Record<Range, number> = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30 }
-const RANGE_LABEL: Record<Range, string> = { '24h': '24 hours', '7d': '7 days', '30d': '30 days' }
+const RANGE_LABEL: Record<Range, string> = { '24h': 'last 24 hours', '7d': 'last 7 days', '30d': 'last 30 days' }
 
 const CATEGORIES: { key: ActivityCategory | 'all'; label: string; icon?: LucideIcon }[] = [
   { key: 'all', label: 'All' },
@@ -39,16 +40,17 @@ function initialDevice() {
   return new URLSearchParams(window.location.search).get('device') ?? ''
 }
 
-function dayLabel(iso: string, now: number) {
-  const day = (t: number) => new Date(t).toLocaleDateString('en-CA', { timeZone: TZ })
+function dayLabel(iso: string, now: number, t: (en: string, vars?: Record<string, string>) => string, locale: string) {
+  const day = (ms: number) => new Date(ms).toLocaleDateString('en-CA', { timeZone: TZ })
   const d = day(new Date(iso).getTime())
-  const pretty = new Date(iso).toLocaleDateString('en-GB', { timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short' })
-  if (d === day(now)) return `Today · ${pretty}`
-  if (d === day(now - 86_400_000)) return `Yesterday · ${pretty}`
+  const pretty = new Date(iso).toLocaleDateString(locale, { timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short' })
+  if (d === day(now)) return t('Today · {date}', { date: pretty })
+  if (d === day(now - 86_400_000)) return t('Yesterday · {date}', { date: pretty })
   return pretty
 }
 
 export default function ActivityPage() {
+  const { t, locale } = useAdminText()
   const [items, setItems] = useState<ActivityItem[] | null>(null)
   const [missingTable, setMissingTable] = useState(false)
   const [error, setError] = useState('')
@@ -95,7 +97,7 @@ export default function ActivityPage() {
     ])
 
     if (statuses.error || transactions.error) {
-      setError((statuses.error || transactions.error)?.message ?? 'Could not load activity')
+      setError((statuses.error || transactions.error)?.message ?? t('Could not load activity'))
       setLoading(false)
       return
     }
@@ -138,12 +140,12 @@ export default function ActivityPage() {
         client: one(a.clients as unknown as { company_name: string } | null)?.company_name ?? null,
         campaign: one(a.campaigns as unknown as { name: string } | null)?.name ?? null,
       }) satisfies AlertRow),
-    }).filter((item) => item.at >= since)
+    }, t).filter((item) => item.at >= since)
 
     setItems(built)
     setLoadedAt(now)
     setLoading(false)
-  }, [range])
+  }, [range, t])
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- load() is async: it fetches, then sets state
   useEffect(() => { void load() }, [load])
@@ -183,7 +185,7 @@ export default function ActivityPage() {
       charged,
       runs: runs.length,
       failedRuns: runs.filter((i) => i.severity === 'error').length,
-      drops: all.filter((i) => i.category === 'screen' && i.title.includes(' disconnected')).length,
+      drops: all.filter((i) => i.kind === 'disconnected').length,
       changes: all.filter((i) => i.category === 'campaign').length,
     }
   }, [items])
@@ -191,13 +193,13 @@ export default function ActivityPage() {
   const groups = useMemo(() => {
     const out: { label: string; items: ActivityItem[] }[] = []
     for (const item of visible) {
-      const label = dayLabel(item.at, loadedAt)
+      const label = dayLabel(item.at, loadedAt, t, locale)
       const last = out[out.length - 1]
       if (last?.label === label) last.items.push(item)
       else out.push({ label, items: [item] })
     }
     return out
-  }, [visible, loadedAt])
+  }, [visible, loadedAt, t, locale])
 
   const toggle = (id: string) => setOpen((prev) => {
     const next = new Set(prev)
@@ -206,15 +208,15 @@ export default function ActivityPage() {
     return next
   })
 
-  if (items === null && !error) return <div className="portal-loading">Loading activity…</div>
+  if (items === null && !error) return <div className="portal-loading">{t('Loading activity…')}</div>
 
   return (
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">Activity</h1>
+          <h1 className="portal-page-title">{t('Activity')}</h1>
           <p className="portal-subtitle">
-            Everything that happened across screens, billing, campaigns and balances. Times are Tbilisi time.
+            {t('Everything that happened across screens, billing, campaigns and balances. Times are Tbilisi time.')}
           </p>
         </div>
         <div className="admin-header-actions">
@@ -223,20 +225,20 @@ export default function ActivityPage() {
             className="portal-btn-secondary"
             aria-pressed={live}
             onClick={() => setLive((v) => !v)}
-            title={live ? `Refreshing every ${LIVE_MS / 1000} seconds` : 'Live updates paused'}
+            title={live ? t('Refreshing every {n} seconds', { n: LIVE_MS / 1000 }) : t('Live updates paused')}
           >
-            <span className="live-dot" data-on={live || undefined} aria-hidden /> {live ? 'Live' : 'Paused'}
+            <span className="live-dot" data-on={live || undefined} aria-hidden /> {live ? t('Live') : t('Paused')}
           </button>
           <button type="button" className="portal-btn-secondary" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={16} aria-hidden className={loading ? 'spin' : undefined} /> Refresh
+            <RefreshCw size={16} aria-hidden className={loading ? 'spin' : undefined} /> {t('Refresh')}
           </button>
         </div>
       </div>
 
-      {error && <div className="portal-alert portal-alert-danger" role="alert">Could not load activity: {error}</div>}
+      {error && <div className="portal-alert portal-alert-danger" role="alert">{t('Could not load activity')}: {error}</div>}
       {missingTable && (
         <div className="portal-alert portal-alert-warning">
-          Billing runs and screen events start appearing once the activity migration is applied. Campaign, balance and alert history below is complete.
+          {t('Billing runs and screen events start appearing once the activity migration is applied. Campaign, balance and alert history below is complete.')}
         </div>
       )}
 
@@ -244,34 +246,34 @@ export default function ActivityPage() {
         <div className="stat-card">
           <div className="stat-card-info">
             <span className="stat-card-value">₾{summary.charged.toFixed(2)}</span>
-            <span className="stat-card-label">Charged in the last {RANGE_LABEL[range]}</span>
+            <span className="stat-card-label">{t('Charged in the {range}', { range: t(RANGE_LABEL[range]) })}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
             <span className="stat-card-value" style={summary.failedRuns ? { color: 'var(--portal-danger)' } : undefined}>
               {summary.runs}
-              {summary.failedRuns > 0 && <span className="stat-card-of"> · {summary.failedRuns} failed</span>}
+              {summary.failedRuns > 0 && <span className="stat-card-of"> · {t('{n} failed', { n: summary.failedRuns })}</span>}
             </span>
-            <span className="stat-card-label">Billing runs</span>
+            <span className="stat-card-label">{t('Billing runs')}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
             <span className="stat-card-value">{summary.drops}</span>
-            <span className="stat-card-label">Screen disconnections</span>
+            <span className="stat-card-label">{t('Screen disconnections')}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-info">
             <span className="stat-card-value">{summary.changes}</span>
-            <span className="stat-card-label">Campaign status changes</span>
+            <span className="stat-card-label">{t('Campaign status changes')}</span>
           </div>
         </div>
       </div>
 
       <div className="activity-toolbar">
-        <div className="admin-filters" role="tablist" aria-label="Area">
+        <div className="admin-filters" role="tablist" aria-label={t('Area')}>
           {CATEGORIES.map((c) => (
             <button
               key={c.key}
@@ -282,15 +284,15 @@ export default function ActivityPage() {
               onClick={() => setCategory(c.key)}
             >
               {c.icon && <c.icon size={14} aria-hidden />}
-              {c.label}
+              {t(c.label)}
               <span className="filter-count">{counts[c.key] ?? 0}</span>
             </button>
           ))}
         </div>
-        <div className="segmented activity-range" role="group" aria-label="Time range">
+        <div className="segmented activity-range" role="group" aria-label={t('Time range')}>
           {(Object.keys(RANGE_HOURS) as Range[]).map((r) => (
             <button key={r} type="button" aria-pressed={range === r} onClick={() => setRange(r)}>
-              {r === '24h' ? '24 h' : r === '7d' ? '7 days' : '30 days'}
+              {r === '24h' ? t('24 h') : r === '7d' ? t('7 days') : t('30 days')}
             </button>
           ))}
         </div>
@@ -303,19 +305,19 @@ export default function ActivityPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search screen, client, campaign"
-            aria-label="Search activity"
+            placeholder={t('Search screen, client, campaign')}
+            aria-label={t('Search activity')}
           />
         </label>
         <label className="activity-quiet">
           <input type="checkbox" checked={showQuiet} onChange={(e) => setShowQuiet(e.target.checked)} />
-          Show billing runs that charged nothing
+          {t('Show billing runs that charged nothing')}
         </label>
       </div>
 
       {visible.length === 0 ? (
         <div className="portal-empty portal-empty-sm">
-          <p>Nothing in the last {RANGE_LABEL[range]}{category !== 'all' || query ? ' for these filters' : ''}.</p>
+          <p>{category !== 'all' || query ? t('Nothing in the {range} for these filters.', { range: t(RANGE_LABEL[range]) }) : t('Nothing in the {range}.', { range: t(RANGE_LABEL[range]) })}</p>
         </div>
       ) : (
         <div className="activity-days">
@@ -337,14 +339,14 @@ export default function ActivityPage() {
                         disabled={!hasDetail}
                       >
                         <time className="activity-time" dateTime={item.at}>
-                          {new Date(item.at).toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          {new Date(item.at).toLocaleTimeString(locale, { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </time>
                         <span className="activity-icon" aria-hidden><Icon size={15} /></span>
                         <span className="activity-text">
                           <span className="activity-title">{item.title}</span>
                           {item.subtitle && <span className="cell-sub">{item.subtitle}</span>}
                         </span>
-                        <span className="activity-tag">{CATEGORIES.find((c) => c.key === item.category)?.label}</span>
+                        <span className="activity-tag">{t(CATEGORIES.find((c) => c.key === item.category)?.label ?? '')}</span>
                         {hasDetail && <ChevronDown size={16} aria-hidden className="activity-chevron" />}
                       </button>
                       {expanded && (
@@ -357,7 +359,7 @@ export default function ActivityPage() {
                               </div>
                             ))}
                           </dl>
-                          {item.href && <Link href={item.href} className="section-link">Open</Link>}
+                          {item.href && <Link href={item.href} className="section-link">{t('Open')}</Link>}
                         </div>
                       )}
                     </li>
@@ -371,8 +373,8 @@ export default function ActivityPage() {
 
       {loadedAt > 0 && (
         <p className="field-hint" style={{ marginTop: 18 }}>
-          Updated {new Date(loadedAt).toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-          {live ? `, refreshing every ${LIVE_MS / 1000} seconds` : ''}.
+          {t('Updated {time}', { time: new Date(loadedAt).toLocaleTimeString(locale, { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit' }) })}
+          {live ? `, ${t('refreshing every {n} seconds', { n: LIVE_MS / 1000 })}` : ''}.
         </p>
       )}
     </div>
