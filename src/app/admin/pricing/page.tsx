@@ -317,7 +317,7 @@ export default function PricingPage() {
                 disabled={saving}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
-                  borderRadius: 980, border: 'none', background: 'var(--portal-primary)', color: '#fff',
+                  borderRadius: 980, border: 'none', background: 'var(--portal-primary)', color: 'var(--portal-on-primary)',
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
@@ -420,7 +420,7 @@ export default function PricingPage() {
                 disabled={saving}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
-                  borderRadius: 980, border: 'none', background: 'var(--portal-primary)', color: '#fff',
+                  borderRadius: 980, border: 'none', background: 'var(--portal-primary)', color: 'var(--portal-on-primary)',
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
@@ -526,7 +526,7 @@ export default function PricingPage() {
                 disabled={saving}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
-                  borderRadius: 980, border: 'none', background: 'var(--portal-primary)', color: '#fff',
+                  borderRadius: 980, border: 'none', background: 'var(--portal-primary)', color: 'var(--portal-on-primary)',
                   cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: saving ? 0.6 : 1,
                 }}
               >
@@ -559,8 +559,8 @@ export default function PricingPage() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px',
                     borderRadius: 8, border: 'none',
-                    background: mapDirty ? 'var(--portal-info)' : 'var(--border)',
-                    color: mapDirty ? '#fff' : 'var(--muted-foreground)',
+                    background: mapDirty ? 'var(--portal-primary)' : 'var(--border)',
+                    color: mapDirty ? 'var(--portal-on-primary)' : 'var(--muted-foreground)',
                     cursor: mapDirty ? 'pointer' : 'default', fontSize: 14, fontWeight: 500,
                     opacity: saving ? 0.6 : 1,
                   }}
@@ -696,7 +696,7 @@ export default function PricingPage() {
                             title="Add balance"
                             style={{
                               display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px',
-                              borderRadius: 6, border: 'none', background: 'var(--portal-success)', color: '#fff',
+                              borderRadius: 6, border: 'none', background: 'var(--portal-success)', color: 'var(--portal-on-primary)',
                               cursor: 'pointer', fontSize: 12, fontWeight: 500,
                             }}
                           >

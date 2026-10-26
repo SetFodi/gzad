@@ -34,6 +34,8 @@ interface Overview {
   recent: RecentCampaign[]
   /** Last billing run from the activity log; null before that migration or any run. */
   billing: { at: string; ago: string; failed: boolean; stale: boolean; title: string } | null
+  /** When money last moved: runs every 15 min often have nothing to charge. */
+  lastChargeAt: string | null
 }
 
 // Screens report a play every few seconds while on air; an hour of silence
@@ -65,7 +67,7 @@ export default function AdminOverview() {
       const now = Date.now()
       const since = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-      const [clients, active, pending, pendingMedia, plays, depleted, alerts, lastPlay, devices, recent, lastRun] = await Promise.all([
+      const [clients, active, pending, pendingMedia, plays, depleted, alerts, lastPlay, devices, recent, lastRun, lastCharge] = await Promise.all([
         supabase.from('clients').select('*', { count: 'exact', head: true }).eq('is_admin', false).neq('role', 'fleet'),
         supabase.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
@@ -80,6 +82,7 @@ export default function AdminOverview() {
         supabase.from('campaigns').select('id, name, status, created_at, clients(company_name)').order('created_at', { ascending: false }).limit(6),
         // Optional: the activity log may not exist yet, so it isn't in failedRead.
         supabase.from('system_events').select('occurred_at, severity, title').eq('category', 'billing').order('occurred_at', { ascending: false }).limit(1),
+        supabase.from('billing_logs').select('created_at').order('created_at', { ascending: false }).limit(1),
       ])
 
       const failedRead = [clients, active, pending, pendingMedia, depleted, alerts, lastPlay, devices, recent].find(result => result.error)
@@ -107,6 +110,7 @@ export default function AdminOverview() {
             title: lastRun.data[0].title,
           }
           : null,
+        lastChargeAt: lastCharge.data?.[0]?.created_at ?? null,
         recent: (recent.data || []).map((c: Record<string, unknown>) => ({
           id: c.id as string,
           name: c.name as string,
@@ -206,9 +210,19 @@ export default function AdminOverview() {
           <p className="portal-subtitle">{data.today}</p>
         </div>
         <div className="system-status" aria-label="System status">
-          <Link href="/admin/activity" className="system-pill" data-tone={!data.billing ? 'idle' : data.billing.failed || data.billing.stale ? 'danger' : 'ok'}>
+          <Link
+            href="/admin/activity"
+            className="system-pill"
+            data-tone={!data.billing ? 'idle' : data.billing.failed || data.billing.stale ? 'danger' : 'ok'}
+            title="Billing checks for new plays every 15 minutes and only charges when screens played ads"
+          >
             <span className="system-dot" aria-hidden />
-            {data.billing ? `Billing ran ${data.billing.ago}` : 'Billing: no runs logged yet'}
+            {data.billing ? `Billing checked ${data.billing.ago}` : 'Billing: no runs logged yet'}
+            <span className="system-pill-sub">
+              · last charge {data.lastChargeAt
+                ? new Date(data.lastChargeAt).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                : 'never'}
+            </span>
           </Link>
           <Link href="/admin/devices" className="system-pill" data-tone={realtimeOk === null ? 'idle' : realtimeOk ? 'ok' : 'danger'}>
             <span className="system-dot" aria-hidden />

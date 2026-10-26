@@ -47,6 +47,19 @@ body:has(.portal-layout) {
     --portal-shadow-lift: 0 10px 30px -12px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
     --portal-ease: cubic-bezier(0.22, 1, 0.36, 1);
     --sidebar-width: 252px;
+    --portal-row-hover: #fafafc;
+    --portal-field-border: #d2d2d7;
+    --portal-field-hover: #a1a1a6;
+    --portal-placeholder: #a1a1a6;
+    --portal-dashed: #c7c7cc;
+    --portal-ink: #1d1d1f;
+    --portal-on-ink: #ffffff;
+    --portal-on-primary: #ffffff;
+    --portal-option-bg: #ffffff;
+    --portal-option-text: #1d1d1f;
+    --portal-topbar: rgba(251, 251, 253, 0.82);
+    --portal-chip-on-alert: rgba(255, 255, 255, 0.7);
+    --portal-alert-warning-text: #7a4500;
 
     /* Older names some pages still use inline. */
     --background: var(--portal-bg);
@@ -340,7 +353,7 @@ body:has(.portal-layout) {
     min-height: 38px;
     padding: 0 18px;
     background: var(--portal-primary);
-    color: #ffffff;
+    color: var(--portal-on-primary);
     font-size: 14px;
 }
 
@@ -452,8 +465,8 @@ body:has(.portal-layout) {
 }
 
 .admin-filter-btn.active {
-    background: var(--portal-text);
-    color: #ffffff;
+    background: var(--portal-ink);
+    color: var(--portal-on-ink);
     box-shadow: none;
 }
 
@@ -641,7 +654,7 @@ a.campaign-card:hover {
 }
 
 .portal-table tbody tr:hover td {
-    background: #fafafc;
+    background: var(--portal-row-hover);
 }
 
 .campaign-link,
@@ -743,7 +756,7 @@ a.campaign-card:hover {
 
 .portal-alert-warning {
     background: var(--portal-warning-soft);
-    color: #7a4500;
+    color: var(--portal-alert-warning-text);
 }
 
 .portal-alert-danger {
@@ -845,7 +858,7 @@ a.campaign-card:hover {
     min-height: 40px;
     box-sizing: border-box;
     padding: 9px 12px;
-    border: 1px solid #d2d2d7;
+    border: 1px solid var(--portal-field-border);
     border-radius: 10px;
     background: var(--portal-surface);
     color: var(--portal-text);
@@ -876,7 +889,7 @@ a.campaign-card:hover {
 .portal-input-group textarea::placeholder,
 .portal-page input::placeholder,
 .portal-page textarea::placeholder {
-    color: #a1a1a6;
+    color: var(--portal-placeholder);
 }
 
 .portal-input-group input:hover,
@@ -885,7 +898,7 @@ a.campaign-card:hover {
 .portal-page input:where(:not([type='checkbox'], [type='radio'], [type='range'])):hover,
 .portal-page select:hover,
 .portal-page textarea:hover {
-    border-color: #a1a1a6;
+    border-color: var(--portal-field-hover);
 }
 
 .portal-input-group input:focus,
@@ -919,8 +932,8 @@ a.campaign-card:hover {
 }
 
 select option {
-    background: #ffffff;
-    color: #1d1d1f;
+    background: var(--portal-option-bg);
+    color: var(--portal-option-text);
 }
 
 .file-upload-zone {
@@ -944,7 +957,7 @@ select option {
     gap: 6px;
     min-height: 180px;
     padding: 28px;
-    border: 1.5px dashed #c7c7cc;
+    border: 1.5px dashed var(--portal-dashed);
     border-radius: var(--portal-radius);
     background: var(--portal-surface);
     color: var(--portal-text);
@@ -1578,8 +1591,8 @@ dialog.admin-modal::backdrop {
 }
 
 .admin-filter-btn.active .filter-count {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    background: color-mix(in srgb, var(--portal-on-ink) 20%, transparent);
+    color: var(--portal-on-ink);
 }
 
 .search-field {
@@ -1755,7 +1768,7 @@ a.attention-row:hover {
 }
 
 .recent-row:hover {
-    background: #fafafc;
+    background: var(--portal-row-hover);
 }
 
 .group-campaign-row {
@@ -1848,8 +1861,8 @@ a.attention-row:hover {
 }
 
 .action-btn[aria-pressed='true'] {
-    background: var(--portal-text);
-    color: #ffffff;
+    background: var(--portal-ink);
+    color: var(--portal-on-ink);
 }
 
 .device-sliders {
@@ -2193,7 +2206,7 @@ a.attention-row:hover {
 }
 
 .portal-alert .device-chip {
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--portal-chip-on-alert);
 }
 
 .chip-remove {
@@ -2419,8 +2432,8 @@ a.attention-row:hover {
 }
 
 .portal-btn-secondary[aria-pressed='true'] {
-    background: var(--portal-text);
-    color: #ffffff;
+    background: var(--portal-ink);
+    color: var(--portal-on-ink);
     box-shadow: none;
 }
 
@@ -2446,6 +2459,11 @@ a.attention-row:hover {
     font-weight: 500;
     text-decoration: none;
     white-space: nowrap;
+}
+
+.system-pill-sub {
+    color: var(--portal-muted);
+    font-weight: 400;
 }
 
 .system-pill:hover {
@@ -2585,7 +2603,7 @@ a.attention-row:hover {
 }
 
 .activity-row:not(:disabled):hover {
-    background: #fafafc;
+    background: var(--portal-row-hover);
 }
 
 .activity-time {
@@ -2810,7 +2828,7 @@ a.attention-row:hover {
     margin: 0 4px 14px;
     border-radius: 980px;
     background: var(--portal-primary);
-    color: #ffffff;
+    color: var(--portal-on-primary);
     font-size: 14px;
     font-weight: 500;
     text-decoration: none;
@@ -2937,8 +2955,8 @@ a.attention-row:hover {
     height: 32px;
     flex: none;
     border-radius: 50%;
-    background: var(--portal-text);
-    color: #ffffff;
+    background: var(--portal-ink);
+    color: var(--portal-on-ink);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -2993,6 +3011,202 @@ a.attention-row:hover {
 
 .app-scrim {
     display: none;
+}
+
+/* ── LED theme switch (sidebar) ─────────────────────────────────────────── */
+
+.led-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 38px;
+    padding: 4px 10px 4px 6px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--portal-text-soft);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.led-switch:hover {
+    background: var(--portal-fill);
+    color: var(--portal-text);
+}
+
+/* A 3:1 panel with an LED dot grid, like the screens on the taxis. */
+.led-switch-screen {
+    position: relative;
+    display: block;
+    flex: none;
+    width: 66px;
+    height: 22px;
+    overflow: hidden;
+    border-radius: 5px;
+    background: #050505;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.led-switch-word {
+    position: absolute;
+    top: 50%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    transform: translateY(-50%);
+    transition: opacity 0.35s var(--portal-ease);
+}
+
+.led-switch-day {
+    right: 7px;
+    color: #ffc53d;
+    text-shadow: 0 0 4px rgba(255, 197, 61, 0.8);
+}
+
+.led-switch-night {
+    left: 6px;
+    color: #3ddc97;
+    text-shadow: 0 0 5px rgba(61, 220, 151, 0.9);
+    opacity: 0;
+}
+
+.led-switch-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 16px;
+    border-radius: 3px;
+    background: #ffc53d;
+    color: #3a2600;
+    box-shadow: 0 0 8px rgba(255, 197, 61, 0.75);
+    transition: transform 0.35s var(--portal-ease), background-color 0.35s, box-shadow 0.35s;
+}
+
+.led-switch[data-dark] .led-switch-knob {
+    transform: translateX(42px);
+    background: #3ddc97;
+    color: #03140c;
+    box-shadow: 0 0 10px rgba(61, 220, 151, 0.85);
+}
+
+.led-switch[data-dark] .led-switch-day {
+    opacity: 0;
+}
+
+.led-switch[data-dark] .led-switch-night {
+    opacity: 1;
+}
+
+.led-switch-pixels {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle at center, transparent 0 0.55px, rgba(0, 0, 0, 0.55) 0.9px);
+    background-size: 2px 2px;
+}
+
+.led-switch-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .led-switch-knob,
+    .led-switch-word {
+        transition: none;
+    }
+}
+
+/* ── Night mode ─────────────────────────────────────────────────────────────
+   A street after dark: near-black canvas, soft grey surfaces, and the accent
+   glowing like the green of a lit LED panel. Set by the LED switch in the
+   sidebar (data-app-theme on <html>, see ThemeSwitch.tsx).            */
+
+:root[data-app-theme='dark'] body:has(.portal-layout) {
+    background: #0b0b0c;
+}
+
+:root[data-app-theme='dark'] .portal-layout {
+    --portal-bg: #0b0b0c;
+    --portal-bg-soft: #111113;
+    --portal-surface: #161618;
+    --portal-surface-strong: #1c1c1e;
+    --portal-surface-muted: #111113;
+    --portal-fill: #232326;
+    --portal-fill-strong: #2e2e31;
+    --portal-text: #f5f5f7;
+    --portal-text-soft: #d1d1d6;
+    --portal-muted: #98989d;
+    --portal-faint: #6e6e73;
+    --portal-border: rgba(255, 255, 255, 0.12);
+    --portal-border-strong: rgba(255, 255, 255, 0.22);
+    --portal-hairline: rgba(255, 255, 255, 0.08);
+    --portal-primary: #3ddc97;
+    --portal-primary-rgb: 61, 220, 151;
+    --portal-primary-deep: #5fe6ab;
+    --portal-primary-soft: rgba(61, 220, 151, 0.14);
+    --portal-accent: #3ddc97;
+    --portal-ring: rgba(61, 220, 151, 0.3);
+    --portal-success: #32d74b;
+    --portal-success-soft: rgba(50, 215, 75, 0.16);
+    --portal-info: #64d2ff;
+    --portal-info-soft: rgba(100, 210, 255, 0.14);
+    --portal-warning: #ffb340;
+    --portal-warning-soft: rgba(255, 159, 10, 0.18);
+    --portal-danger: #ff6961;
+    --portal-danger-soft: rgba(255, 69, 58, 0.16);
+    --portal-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
+    --portal-shadow-lift: 0 14px 34px -14px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12);
+    --portal-row-hover: #1d1d20;
+    --portal-field-border: #3a3a3c;
+    --portal-field-hover: #545458;
+    --portal-placeholder: #6e6e73;
+    --portal-dashed: #48484a;
+    --portal-ink: #f5f5f7;
+    --portal-on-ink: #0b0b0c;
+    --portal-on-primary: #03140c;
+    --portal-option-bg: #1c1c1e;
+    --portal-option-text: #f5f5f7;
+    --portal-topbar: rgba(17, 17, 19, 0.82);
+    --portal-chip-on-alert: rgba(0, 0, 0, 0.3);
+    --portal-alert-warning-text: #ffcf80;
+    --primary-foreground: #03140c;
+    color-scheme: dark;
+}
+
+/* Primary buttons and the brand mark glow a little, like a lit panel. */
+:root[data-app-theme='dark'] .portal-btn-primary,
+:root[data-app-theme='dark'] .app-primary-action {
+    box-shadow: 0 0 18px -4px rgba(61, 220, 151, 0.55);
+}
+
+:root[data-app-theme='dark'] .app-brand-mark {
+    box-shadow: 0 0 12px rgba(61, 220, 151, 0.55);
+}
+
+/* Map tiles have no dark style; invert them so they sit in the night canvas. */
+:root[data-app-theme='dark'] .portal-layout .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
+}
+
+:root[data-app-theme='dark'] .portal-layout .leaflet-container {
+    background: #0b0b0c;
+}
+
+/* Number plates stay real: black on white. */
+:root[data-app-theme='dark'] .plate {
+    border-color: #f5f5f7;
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
@@ -3059,7 +3273,7 @@ a.attention-row:hover {
         gap: 8px;
         height: 56px;
         padding: 0 12px;
-        background: rgba(251, 251, 253, 0.82);
+        background: var(--portal-topbar);
         border-bottom: 1px solid var(--portal-hairline);
         backdrop-filter: saturate(180%) blur(20px);
         -webkit-backdrop-filter: saturate(180%) blur(20px);

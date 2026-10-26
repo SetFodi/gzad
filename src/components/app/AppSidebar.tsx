@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { LogOut, Menu, X, type LucideIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from '@/lib/i18n'
+import ThemeSwitch from './ThemeSwitch'
 
 export interface NavItem {
   href: string
@@ -234,6 +235,8 @@ export default function AppSidebar({
               <span>{item.label}</span>
             </Link>
           ))}
+
+          <ThemeSwitch georgian={language && lang === 'ge'} />
 
           {language && (
             <div className="app-lang" role="group" aria-label="Language">
