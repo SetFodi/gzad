@@ -2,7 +2,7 @@
 
 import {
   Activity, BarChart3, Car, DollarSign, FolderOpen, LayoutDashboard, LayoutGrid, Map, MapPin,
-  Megaphone, Monitor, ScrollText, Users, Eye,
+  Megaphone, Monitor, MonitorPlay, ScrollText, Users, Eye,
 } from 'lucide-react'
 import AppSidebar from '@/components/app/AppSidebar'
 import { useAdminText } from '@/lib/admin-i18n'
@@ -28,6 +28,7 @@ export default function AdminSidebar() {
           title: t('Screens'),
           items: [
             { href: '/admin/devices', label: t('Devices'), icon: Monitor },
+            { href: '/admin/monitor', label: t('Live view'), icon: MonitorPlay },
             { href: '/admin/slots', label: t('Slots'), icon: LayoutGrid },
             { href: '/admin/groups', label: t('Groups'), icon: FolderOpen },
           ],

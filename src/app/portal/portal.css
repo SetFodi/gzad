@@ -3474,3 +3474,657 @@ a.attention-row:hover {
     font-size: 12px;
     line-height: 1.4;
 }
+
+/* ─── Live view ───────────────────────────────────────────────────────────────
+   A camera-style wall of LED screens. Each cell is a size container; the frame
+   inside takes the largest size its screen's aspect allows, with a caption strip
+   above the picture so nothing is drawn over the LED. The canvas holds the LED's
+   native pixels and is enlarged with hard edges. The wall is dark in both themes:
+   an unlit LED is black. */
+
+.portal-main:has(> .live-view) {
+    padding-bottom: 24px;
+}
+
+.portal-page.live-view {
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 64px);
+    min-height: 560px;
+}
+
+.live-view .portal-page-header {
+    margin-bottom: 16px;
+}
+
+.live-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.live-layouts {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 11px;
+    background: var(--portal-fill);
+}
+
+.live-layouts button {
+    height: 30px;
+    min-width: 40px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--portal-text-soft);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.live-layouts button:hover {
+    color: var(--portal-text);
+}
+
+.live-layouts button[aria-pressed='true'] {
+    background: var(--portal-surface);
+    color: var(--portal-text);
+    box-shadow: var(--portal-shadow);
+}
+
+.live-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 980px;
+    color: var(--portal-text-soft);
+    font-size: 13.5px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.live-toggle input {
+    accent-color: var(--portal-primary);
+}
+
+.live-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 284px minmax(0, 1fr);
+    gap: 16px;
+}
+
+/* Panel: screens and groups to put on the wall */
+
+.live-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: var(--portal-radius);
+    background: var(--portal-surface);
+    box-shadow: var(--portal-shadow);
+}
+
+.live-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 6px;
+    border-bottom: 1px solid var(--portal-hairline);
+}
+
+.live-tabs button {
+    height: 32px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--portal-muted);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.live-tabs button[aria-selected='true'] {
+    background: var(--portal-fill);
+    color: var(--portal-text);
+}
+
+.live-tabs button span {
+    margin-left: 4px;
+    color: var(--portal-faint);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.live-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 8px 4px;
+    padding: 0 10px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--portal-fill);
+    color: var(--portal-muted);
+}
+
+.live-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--portal-text);
+    font: inherit;
+    font-size: 13.5px;
+}
+
+.live-search:focus-within {
+    box-shadow: 0 0 0 3px var(--portal-ring);
+}
+
+.live-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+    padding: 4px 6px 8px;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.live-list-empty {
+    padding: 20px 12px;
+    color: var(--portal-muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.live-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--portal-text);
+    font: inherit;
+    text-align: left;
+    cursor: grab;
+}
+
+.live-item:hover:not(:disabled) {
+    background: var(--portal-row-hover);
+}
+
+.live-item:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--portal-ring);
+}
+
+.live-item:disabled {
+    cursor: default;
+    color: var(--portal-muted);
+}
+
+.live-item > svg:last-child {
+    flex: none;
+    color: var(--portal-muted);
+}
+
+.live-item:disabled > svg:last-child {
+    color: var(--portal-success);
+}
+
+.live-item-icon {
+    flex: none;
+    color: var(--portal-muted);
+}
+
+.live-item-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.live-item-name,
+.live-item-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.live-item-name {
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.live-item-sub {
+    color: var(--portal-muted);
+    font-size: 12px;
+}
+
+.live-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--portal-faint);
+}
+
+.live-dot[data-online] {
+    background: #30d158;
+    box-shadow: 0 0 0 3px rgba(48, 209, 88, 0.22);
+}
+
+.live-plate.plate {
+    height: 18px;
+    padding: 0 5px;
+    border-width: 1px;
+    border-radius: 3px;
+    font-size: 10.5px;
+}
+
+/* Wall */
+
+.live-wall {
+    --live-bg: #0b0b0c;
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    padding: 8px;
+    overflow: hidden;
+    border-radius: var(--portal-radius);
+    background: var(--live-bg);
+    color: #f5f5f7;
+}
+
+.live-wall[data-drop] {
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.live-wall:fullscreen {
+    --live-bg: #000;
+    padding: 6px;
+    border-radius: 0;
+}
+
+.live-grid {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    height: 100%;
+}
+
+.live-cell {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 8px;
+    container-type: size;
+}
+
+.live-cell[data-empty] {
+    outline: 1px dashed rgba(255, 255, 255, 0.14);
+    outline-offset: -1px;
+}
+
+.live-cell[data-drop] {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: -2px;
+}
+
+.live-cell-empty {
+    padding: 8px;
+    color: rgba(255, 255, 255, 0.32);
+    font-size: 12px;
+    text-align: center;
+}
+
+.live-wall-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 24px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    text-align: center;
+    pointer-events: none;
+}
+
+.live-wall-empty span {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 12.5px;
+}
+
+.live-notice {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    border-radius: 980px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #1d1d1f;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Tile: caption strip, then the LED */
+
+.live-frame {
+    display: flex;
+    flex-direction: column;
+    width: min(100cqw, calc((100cqh - 26px) * var(--aspect, 3)));
+    min-width: 0;
+}
+
+.live-caption {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 26px;
+    padding: 0 2px 2px;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 12px;
+    cursor: grab;
+    user-select: none;
+}
+
+.live-caption-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.live-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.live-caption-meta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11.5px;
+    white-space: nowrap;
+}
+
+.live-now {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.live-res,
+.live-age {
+    font-variant-numeric: tabular-nums;
+}
+
+.live-pill {
+    flex: none;
+    padding: 1px 6px;
+    border-radius: 980px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1.5;
+}
+
+.live-pill-live {
+    background: #d70015;
+    color: #fff;
+}
+
+.live-pill-warn {
+    background: rgba(255, 159, 10, 0.22);
+    color: #ffcc66;
+}
+
+.live-pill-off {
+    background: rgba(255, 69, 58, 0.22);
+    color: #ff8a80;
+}
+
+.live-tile-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding-left: 18px;
+    /* Floats over the caption on hover instead of reserving space in it. */
+    background: linear-gradient(to right, transparent, var(--live-bg) 14px);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.live-frame:hover .live-tile-actions,
+.live-caption:focus-within .live-tile-actions {
+    opacity: 1;
+}
+
+.live-tile-actions button {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    cursor: pointer;
+}
+
+.live-tile-actions button:hover {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.live-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.live-progress > span {
+    display: block;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: scaleX(0);
+    transform-origin: left;
+}
+
+.live-tile {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+.live-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+}
+
+.live-frame[data-state='stale'] .live-canvas {
+    opacity: 0.45;
+    filter: grayscale(0.4);
+}
+
+/* The LED's own pixel grid: one cell per LED, a dark seam between them. */
+.live-led-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(to right, rgba(0, 0, 0, 0.5) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 1px, transparent 1px);
+    background-size: calc(100% / var(--led-w)) calc(100% / var(--led-h));
+}
+
+.live-screen-message {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 12px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12.5px;
+    text-align: center;
+}
+
+.live-screen-message span {
+    max-width: 44ch;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11.5px;
+}
+
+.live-media-host {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Smaller tiles shed caption details, least useful first. The name and the
+   state pill always stay. */
+@container (max-width: 760px) {
+    .live-res {
+        display: none;
+    }
+}
+
+@container (max-width: 600px) {
+    .live-age {
+        display: none;
+    }
+}
+
+@container (max-width: 480px) {
+    .live-now {
+        display: none;
+    }
+}
+
+@container (max-width: 380px) {
+    .live-plate {
+        display: none;
+    }
+}
+
+@container (max-width: 260px) {
+    .live-screen-message span {
+        display: none;
+    }
+}
+
+@media (max-width: 1180px) {
+    .live-body {
+        grid-template-columns: 240px minmax(0, 1fr);
+    }
+}
+
+/* Phones and tablets: list above, screens stacked full width. */
+@media (max-width: 1023px) {
+    .portal-main:has(> .live-view) {
+        padding-bottom: 56px;
+    }
+
+    .portal-page.live-view {
+        height: auto;
+        min-height: 0;
+    }
+
+    .live-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .live-list {
+        max-height: 260px;
+    }
+
+    .live-wall {
+        min-height: 280px;
+    }
+
+    .live-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: none !important;
+        grid-auto-rows: auto;
+        height: auto;
+    }
+
+    .live-cell {
+        container-type: inline-size;
+    }
+
+    .live-cell[data-empty] {
+        min-height: 72px;
+    }
+
+    .live-frame {
+        width: 100%;
+    }
+
+    /* No hover on touch screens: keep the buttons visible, in the caption's flow. */
+    .live-tile-actions {
+        position: static;
+        padding-left: 0;
+        background: none;
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-tile-actions {
+        transition: none;
+    }
+}
