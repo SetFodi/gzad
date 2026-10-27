@@ -90,7 +90,7 @@ const en = {
     title: 'Everything a campaign needs. Nothing it doesn’t.',
     items: [
       { title: 'Double-sided', body: 'Two screens, back to back. Both sides of the street see your ad.' },
-      { title: '4,500+ nits', body: 'Readable at noon, impossible to miss at night.' },
+      { title: 'Ultra-bright screen', body: 'Readable even in direct sun, impossible to miss at night (4,500+ nits).' },
       { title: 'Change it any time', body: 'Upload a new creative and the screens switch over once it’s approved. Nothing to reprint.' },
       { title: 'Checked before it airs', body: 'Our team reviews every creative before it reaches the street.' },
       { title: 'Prepaid, metered', body: 'Top up a balance. Airtime is metered in 10-minute blocks and deducted every 15 minutes. Set a daily cap, and we’ll warn you before the balance runs out.' },
@@ -280,7 +280,7 @@ const ge: Copy = {
     title: 'ყველაფერი, რაც კამპანიას სჭირდება. ზედმეტის გარეშე.',
     items: [
       { title: 'ორმხრივი', body: 'ორი ეკრანი ზურგით ერთმანეთზე. თქვენს რეკლამას ქუჩის ორივე მხარე ხედავს.' },
-      { title: '4,500+ ნიტი', body: 'შუადღისასაც იკითხება, ღამით კი შეუმჩნეველი ვერ დარჩება.' },
+      { title: 'ულტრაკაშკაშა ეკრანი', body: 'იკითხება მზის პირდაპირ სხივებზეც, ღამით კი შეუმჩნეველი ვერ დარჩება (4,500+ ნიტი).' },
       { title: 'შეცვალეთ ნებისმიერ დროს', body: 'ატვირთეთ ახალი ვიზუალი და დამტკიცების შემდეგ ეკრანები მასზე გადაერთვება. ხელახლა ბეჭდვა არ სჭირდება.' },
       { title: 'მოწმდება ეთერამდე', body: 'ჩვენი გუნდი ყველა ვიზუალს ამოწმებს, სანამ ის ქუჩაში გავა.' },
       { title: 'წინასწარი, გაზომილი', body: 'შეავსეთ ბალანსი. ეთერი იზომება 10-წუთიანი ბლოკებით და ჩამოიჭრება ყოველ 15 წუთში. დააწესეთ დღიური ლიმიტი და გაგაფრთხილებთ, სანამ ბალანსი ამოიწურება.' },
