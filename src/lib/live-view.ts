@@ -8,13 +8,15 @@
 //
 // Reports arrive in batches (every 5 minutes), so between batches the position
 // is projected forward through the loop and corrected when the next batch lands.
+// A screen only plays while it is connected and its batches keep arriving: an
+// offline or silent screen is shown dark, never as a guess.
 // Pure functions only: the API uses the parser, the browser uses the rest.
 
 export const DEFAULT_WIDTH = 240
 export const DEFAULT_HEIGHT = 80
 
-/** Two missed upload batches plus slack: past this the position is a guess. */
-export const STALE_AFTER_MS = 12 * 60 * 1000
+/** The upload interval the Realtime Server gives each screen, until a screen's own pace is measured. */
+export const DEFAULT_UPLOAD_EVERY_MS = 5 * 60_000
 
 export type SourceKind = 'image' | 'video' | 'other'
 
@@ -63,6 +65,17 @@ export interface PlayReport {
   beganAt: number
   /** Seconds. */
   duration: number
+  /** Epoch milliseconds, by the server's clock: when the upload holding this report arrived. */
+  receivedAt?: number
+}
+
+/** What the Realtime Server knows about a screen's connection. Times are by the server's clock. */
+export interface Connection {
+  online: boolean
+  /** When the current connection opened; null while offline. */
+  connectedAt: number | null
+  /** When the screen was last heard from. */
+  lastSeen: number | null
 }
 
 type Json = Record<string, unknown>
@@ -369,6 +382,71 @@ export function activeSources(item: LiveItem, offset: number): { source: LiveSou
     if (chosen) active.push({ source: chosen, offset: Math.max(0, offset - chosen.start) })
   }
   return active
+}
+
+// ─── Whether it is playing at all ────────────────────────────────────────────
+
+/** Uploads closer together than this are one batch, not the screen's pace. */
+const SAME_BATCH_MS = 20_000
+/** Waits longer than this between batches are outages, not the screen's pace. */
+const MAX_UPLOAD_EVERY_MS = 65 * 60_000
+
+/**
+ * How long this screen goes between uploads while it plays normally: the
+ * longest wait between the batches we hold. A batch is stored in one insert, so
+ * its reports share a receive time. The longest wait rather than the typical
+ * one, so uneven uploads don't read as silence. Until three batches are in,
+ * the configured interval is assumed.
+ */
+export function uploadGap(reports: PlayReport[]): number {
+  const times = [...new Set(reports.flatMap((r) => (r.receivedAt === undefined ? [] : [r.receivedAt])))]
+    .sort((a, b) => a - b)
+  const gaps: number[] = []
+  for (let k = 1; k < times.length; k++) {
+    const gap = times[k] - times[k - 1]
+    if (gap >= SAME_BATCH_MS && gap <= MAX_UPLOAD_EVERY_MS) gaps.push(gap)
+  }
+  return gaps.length >= 2 ? Math.max(...gaps) : DEFAULT_UPLOAD_EVERY_MS
+}
+
+/** How long after its last upload a connected screen counts as silent. */
+export function silentAfter(reports: PlayReport[]): number {
+  const gap = uploadGap(reports)
+  return gap + Math.max(60_000, gap / 4)
+}
+
+export type Activity =
+  /** Not connected to the Realtime Server. */
+  | { state: 'offline'; since: number | null }
+  /** Back after a break, and its first upload since isn't due yet. */
+  | { state: 'connecting'; since: number }
+  /** Its uploads stopped: it has played nothing since `since`. */
+  | { state: 'silent'; since: number | null }
+  /** Its uploads arrive on time. */
+  | { state: 'reporting'; since: number }
+
+/**
+ * Whether a screen is playing at all. A screen uploads only what it played, so
+ * an upload that doesn't come means nothing played. `connection` is undefined
+ * when the Realtime Server can't be asked; the uploads alone decide then.
+ * `now` is by the server's clock.
+ */
+export function screenActivity(connection: Connection | undefined, reports: PlayReport[], now: number): Activity {
+  if (connection && !connection.online) return { state: 'offline', since: connection.lastSeen }
+
+  const last = reports.reduce<number | null>((max, r) => {
+    const at = r.receivedAt ?? r.beganAt + r.duration * 1000
+    return max === null || at > max ? at : max
+  }, null)
+  const limit = silentAfter(reports)
+  if (last !== null && now - last <= limit) return { state: 'reporting', since: last }
+
+  // Reconnected after a break: its uploads are overdue only because it was away.
+  const connectedAt = connection?.connectedAt ?? null
+  if (connectedAt !== null && (last === null || connectedAt > last) && now - connectedAt <= limit) {
+    return { state: 'connecting', since: connectedAt }
+  }
+  return { state: 'silent', since: last }
 }
 
 // ─── Wall layout ──────────────────────────────────────────────────────────────

@@ -3989,11 +3989,6 @@ a.attention-row:hover {
     image-rendering: pixelated;
 }
 
-.live-frame[data-state='stale'] .live-canvas {
-    opacity: 0.45;
-    filter: grayscale(0.4);
-}
-
 /* The LED's own pixel grid: one cell per LED, a dark seam between them. */
 .live-led-grid {
     position: absolute;

@@ -533,7 +533,15 @@ const allowedDeviceSet = new Set(
 wss.on('connection', (ws) => {
   let cardId = null
 
+  // Heartbeat: see the ping loop below.
+  ws.isAlive = true
+  ws.on('pong', () => {
+    ws.isAlive = true
+    ws.answersPings = true
+  })
+
   ws.on('message', (raw) => {
+    ws.isAlive = true
     let data
     const rawStr = raw.toString()
     try {
@@ -680,12 +688,22 @@ wss.on('connection', (ws) => {
   })
 })
 
-// Ping all connected devices to keep connections alive
+// Ping all connected devices to keep connections alive, and drop the ones that
+// stopped answering. A screen that loses power or signal never closes its
+// socket, and TCP can take many minutes to notice; until then it would show as
+// online. Only screens that have answered a ping before are dropped, so a
+// controller that doesn't answer pings at all is left alone.
 setInterval(() => {
   for (const [cardId, d] of Object.entries(devices)) {
-    if (d.ws && d.ws.readyState === 1) {
-      try { d.ws.ping() } catch (e) {}
+    const ws = d.ws
+    if (!ws || ws.readyState !== 1) continue
+    if (ws.answersPings && !ws.isAlive) {
+      console.log(`[${new Date().toISOString()}] No answer to ping, dropping: ${cardId}`)
+      ws.terminate()
+      continue
     }
+    ws.isAlive = false
+    try { ws.ping() } catch (e) {}
   }
 }, config.pingInterval)
 

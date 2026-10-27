@@ -32,6 +32,24 @@ export function serviceClient(): SupabaseClient {
   )
 }
 
+export interface RealtimeDevice {
+  cardId: string
+  online: boolean
+  connectedAt?: string
+  lastSeen?: string
+}
+
+/** Every screen the Realtime Server holds (connected, or dropped within the hour), by card id. */
+export async function realtimeDevices(timeoutMs?: number): Promise<{ devices: Map<string, RealtimeDevice> } | { error: string }> {
+  try {
+    const res = await realtime('/devices', {}, timeoutMs)
+    if (!res.ok) return { error: `Realtime Server: ${res.status}` }
+    return { devices: new Map(((await res.json()) as RealtimeDevice[]).map((d) => [d.cardId, d])) }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Realtime Server unreachable' }
+  }
+}
+
 export function realtime(path: string, init: RequestInit = {}, timeoutMs = 8000): Promise<Response> {
   return fetch(`${REALTIME_SERVER_URL}${path}`, {
     ...init,

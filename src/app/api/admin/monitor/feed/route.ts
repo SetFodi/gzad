@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CARD_ID, isAdmin, serviceClient } from '@/lib/live-view-server'
-import { MAX_TILES, type PlayReport } from '@/lib/live-view'
+import { CARD_ID, isAdmin, realtimeDevices, serviceClient } from '@/lib/live-view-server'
+import { MAX_TILES, type Connection, type PlayReport } from '@/lib/live-view'
 
 // Enough history to measure each item's real timing across a couple of loops,
-// and to anchor on the newest play.
-const REPORTS_PER_SCREEN = 40
+// to see the last few upload batches, and to anchor on the newest play.
+const REPORTS_PER_SCREEN = 60
+// The wall polls this every few seconds; a slow Realtime Server mustn't hold the reports up.
+const STATUS_TIMEOUT_MS = 4000
 
-// GET /api/admin/monitor/feed?devices=a,b,c — the newest play reports for every
-// screen on the wall, in one request. serverTime lets the browser correct its clock.
+const time = (iso: string | null | undefined): number | null => {
+  const ms = iso ? Date.parse(iso) : NaN
+  return Number.isFinite(ms) ? ms : null
+}
+
+// GET /api/admin/monitor/feed?devices=a,b,c — for every screen on the wall, its
+// newest play reports and whether it is connected right now, in one request.
+// serverTime lets the browser correct its clock.
 export async function GET(request: NextRequest) {
   if (!await isAdmin()) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
@@ -21,13 +29,17 @@ export async function GET(request: NextRequest) {
   )].slice(0, MAX_TILES)
 
   const db = serviceClient()
-  const results = await Promise.all(ids.map((id) =>
-    db.from('play_logs')
-      .select('program_id, program_name, began_at, duration_seconds')
-      .eq('device_id', id)
-      .order('began_at', { ascending: false })
-      .limit(REPORTS_PER_SCREEN),
-  ))
+  const [results, status, seen] = await Promise.all([
+    Promise.all(ids.map((id) =>
+      db.from('play_logs')
+        .select('program_id, program_name, began_at, duration_seconds, received_at')
+        .eq('device_id', id)
+        .order('began_at', { ascending: false })
+        .limit(REPORTS_PER_SCREEN),
+    )),
+    realtimeDevices(STATUS_TIMEOUT_MS),
+    ids.length > 0 ? db.from('devices').select('id, last_seen_at').in('id', ids) : Promise.resolve({ data: [] }),
+  ])
 
   const reports: Record<string, PlayReport[]> = {}
   ids.forEach((id, i) => {
@@ -37,9 +49,26 @@ export async function GET(request: NextRequest) {
         name: (r.program_name as string | null) ?? '',
         beganAt: Date.parse(r.began_at as string),
         duration: Number(r.duration_seconds) || 0,
+        receivedAt: time(r.received_at as string | null) ?? undefined,
       }))
       .filter((r) => Number.isFinite(r.beganAt))
   })
 
-  return NextResponse.json({ serverTime: Date.now(), reports })
+  // Without the Realtime Server nobody knows who is connected: leave it out
+  // rather than call every screen offline.
+  let connections: Record<string, Connection> | undefined
+  if ('devices' in status) {
+    const lastSeen = new Map((seen.data ?? []).map((d) => [d.id as string, d.last_seen_at as string | null]))
+    connections = {}
+    for (const id of ids) {
+      const live = status.devices.get(id)
+      connections[id] = {
+        online: live?.online ?? false,
+        connectedAt: live?.online ? time(live.connectedAt) : null,
+        lastSeen: time(live?.lastSeen) ?? time(lastSeen.get(id)),
+      }
+    }
+  }
+
+  return NextResponse.json({ serverTime: Date.now(), reports, connections })
 }

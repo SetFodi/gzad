@@ -8,7 +8,9 @@ import {
   findAnchor,
   itemSteps,
   locate,
-  STALE_AFTER_MS,
+  screenActivity,
+  uploadGap,
+  type Connection,
   type LiveProgram,
   type LiveSource,
   type PlayReport,
@@ -20,7 +22,8 @@ import { useAdminText } from '@/lib/admin-i18n'
 // canvas at the screen's native resolution (240×80 on the current fleet), then
 // CSS scales the canvas up with hard pixel edges, so what you see is what the
 // LED can physically show, not a sharper copy of the source file. Captions sit
-// above the picture, never on it.
+// above the picture, never on it. The picture only plays while the screen is
+// connected and reporting; otherwise it stays dark, as the LED does.
 
 /** Re-seek a video only when it has drifted further than this from the screen. */
 const SEEK_TOLERANCE = 1.2
@@ -31,13 +34,16 @@ const GRID_MIN_SCALE = 3.5
 /** Stills only change when the item does; repaint them a few times a second, not every frame. */
 const STILL_FRAME_MS = 250
 
-export type ScreenState = 'loading' | 'no_program' | 'waiting' | 'unmatched' | 'stale' | 'live'
+export type ScreenState =
+  | 'loading' | 'offline' | 'no_program' | 'waiting' | 'reconnected' | 'silent' | 'unmatched' | 'live'
 
 interface Props {
   program: LiveProgram | null
   reason?: ProgramReason
   loading: boolean
   reports: PlayReport[] | undefined
+  /** Undefined until known, or when the Realtime Server can't be asked. */
+  connection: Connection | undefined
   /** Add to Date.now() to get the server's clock. */
   clockOffset: number
   pixelGrid: boolean
@@ -73,7 +79,7 @@ function placeholder(ctx: CanvasRenderingContext2D, source: LiveSource) {
 }
 
 export default function LiveScreen({
-  program, reason, loading, reports, clockOffset, pixelGrid, onProgramChanged, title, actions, captionProps, onEnlarge,
+  program, reason, loading, reports, connection, clockOffset, pixelGrid, onProgramChanged, title, actions, captionProps, onEnlarge,
 }: Props) {
   const { t } = useAdminText()
   const tileRef = useRef<HTMLDivElement>(null)
@@ -93,30 +99,39 @@ export default function LiveScreen({
   }, [program, reports])
 
   const latestReport = useMemo(() => (reports ?? []).reduce((max, r) => Math.max(max, r.beganAt), 0), [reports])
+  const uploadMinutes = Math.max(1, Math.round(uploadGap(reports ?? []) / 60_000))
+
+  const serverNow = now + clockOffset
+  const activity = screenActivity(connection, reports ?? [], serverNow)
 
   let state: ScreenState
-  if (!program) state = loading ? 'loading' : 'no_program'
-  else if (!reports || reports.length === 0) state = 'waiting'
+  if (activity.state === 'offline') state = 'offline'
+  else if (!program) state = loading ? 'loading' : 'no_program'
+  else if (!reports) state = 'loading'
+  else if (reports.length === 0) state = 'waiting'
+  else if (activity.state === 'connecting') state = 'reconnected'
+  else if (activity.state === 'silent') state = 'silent'
   else if (!timing?.anchor) state = 'unmatched'
-  else if (now + clockOffset - latestReport > STALE_AFTER_MS) state = 'stale'
   else state = 'live'
 
   // The newest report isn't in the program we hold: maybe we hold an old one.
   // Keep asking while it lasts; the wall backs off so the screen isn't flooded.
-  const recheck = state === 'unmatched' || (timing?.anchor ? !timing.anchor.current : false)
+  const recheck = state === 'unmatched' || (state === 'live' && timing?.anchor ? !timing.anchor.current : false)
 
   // The draw loop reads these through refs so new reports or a clock correction
   // don't restart it, which would pause and re-seek every video on the wall.
   const timingRef = useRef(timing)
+  const liveRef = useRef(state === 'live')
   const offsetRef = useRef(clockOffset)
   const changedRef = useRef(onProgramChanged)
   const unavailableRef = useRef(t('Media unavailable'))
   useEffect(() => {
     timingRef.current = timing
+    liveRef.current = state === 'live'
     offsetRef.current = clockOffset
     changedRef.current = onProgramChanged
     unavailableRef.current = t('Media unavailable')
-  }, [timing, clockOffset, onProgramChanged, t])
+  }, [timing, state, clockOffset, onProgramChanged, t])
 
   useEffect(() => {
     if (recheck) changedRef.current()
@@ -217,7 +232,8 @@ export default function LiveScreen({
     const draw = () => {
       frame = requestAnimationFrame(draw)
 
-      const current = timingRef.current
+      // Offline or silent: the LED is dark, so the replica is too.
+      const current = liveRef.current ? timingRef.current : null
       const pos = current?.anchor ? locate(current.steps, current.anchor, Date.now() + offsetRef.current) : null
       const item = pos ? program.items[pos.index] : undefined
       const index = pos && item ? pos.index : -1
@@ -242,6 +258,8 @@ export default function LiveScreen({
         if (progressRef.current) {
           progressRef.current.style.transform = `scaleX(${Math.min(1, pos.offset / Math.max(pos.seconds, 0.001))})`
         }
+      } else if (progressRef.current) {
+        progressRef.current.style.transform = 'scaleX(0)'
       }
       if (index !== lastIndex) setNowPlaying(item ? item.name : null)
       lastIndex = index
@@ -280,19 +298,23 @@ export default function LiveScreen({
     unreachable: t('The Realtime Server can’t be reached.'),
   }
 
+  const since = activity.since
   const message: { title: string; detail?: string } | null =
     state === 'loading' ? { title: t('Reading the screen’s program…') }
-      : state === 'no_program' ? { title: t('Nothing to show'), detail: reason ? reasonText[reason] : undefined }
-        : state === 'waiting' ? { title: t('Waiting for play reports'), detail: t('Screens upload what they played every 5 minutes.') }
-          : state === 'unmatched' ? { title: t('Its play reports don’t match its current program yet'), detail: t('Normal right after new ads are pushed: reports catch up within about 5 minutes.') }
-            : null
+      : state === 'offline' ? { title: t('Offline'), detail: since ? t('Last seen {when}', { when: ago(serverNow - since, t) }) : undefined }
+        : state === 'no_program' ? { title: t('Nothing to show'), detail: reason ? reasonText[reason] : undefined }
+          : state === 'waiting' ? { title: t('Waiting for play reports'), detail: t('This screen uploads what it played every {n} min.', { n: uploadMinutes }) }
+            : state === 'reconnected' ? { title: t('Back online — waiting for play reports'), detail: t('Its first upload since reconnecting is due within {n} min.', { n: uploadMinutes }) }
+              : state === 'silent' ? { title: t('Not playing'), detail: since ? t('No play reports for {n} min.', { n: Math.max(1, Math.round((serverNow - since) / 60_000)) }) : undefined }
+                : state === 'unmatched' ? { title: t('Its play reports don’t match its current program yet'), detail: t('Normal right after new ads are pushed: reports catch up within about 5 minutes.') }
+                  : null
 
   return (
     <div className="live-frame" data-state={state} style={{ '--aspect': width / height } as CSSProperties}>
       <div className="live-caption" {...captionProps}>
         <span className="live-caption-title">{title}</span>
         <span className="live-caption-meta">
-          {(state === 'live' || state === 'stale') && nowPlaying && <span className="live-now">{nowPlaying}</span>}
+          {state === 'live' && nowPlaying && <span className="live-now">{nowPlaying}</span>}
           <span className="live-res">{width}×{height}</span>
           {latestReport > 0 && (
             <span className="live-age" title={t('Newest play report from this screen')}>
@@ -308,9 +330,10 @@ export default function LiveScreen({
           {state === 'live' && (
             <span className="live-pill live-pill-live" title={t('Rebuilt from play reports and positioned in real time.')}>{t('Live')}</span>
           )}
-          {state === 'stale' && (
-            <span className="live-pill live-pill-warn" title={t('No play report for over 12 minutes. The screen may be off or offline; this shows where its loop would be.')}>
-              {t('Unconfirmed')}
+          {state === 'offline' && <span className="live-pill live-pill-off">{t('Offline')}</span>}
+          {state === 'silent' && (
+            <span className="live-pill live-pill-warn" title={t('Connected, but its play reports stopped arriving, so it isn’t playing anything.')}>
+              {t('Not playing')}
             </span>
           )}
         </span>

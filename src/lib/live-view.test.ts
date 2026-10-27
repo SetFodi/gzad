@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   activeSources,
   autoGrid,
+  DEFAULT_UPLOAD_EVERY_MS,
   expectedProgram,
   findAnchor,
   itemSteps,
@@ -13,7 +14,10 @@ import {
   parseProgramTask,
   placeOnWall,
   removeFromWall,
+  screenActivity,
   setWallLayout,
+  silentAfter,
+  uploadGap,
   WALL_LAYOUTS,
   type LiveProgram,
   type PlayReport,
@@ -258,6 +262,62 @@ describe('activeSources', () => {
   it('stacks layers and holds a finished layer on its last frame', () => {
     expect(activeSources(it0, 3).map((a) => a.source.url)).toEqual(['https://x/1.png', 'https://x/badge.png'])
     expect(activeSources(it0, 9).map((a) => a.source.url)).toEqual(['https://x/2.mp4', 'https://x/badge.png'])
+  })
+})
+
+describe('whether a screen is playing', () => {
+  const MIN = 60_000
+  const T = Date.UTC(2026, 9, 27, 12, 0, 0)
+  // 15-second plays, uploaded in batches that arrive at the given minutes past T.
+  const batches = (...minutes: number[]): PlayReport[] =>
+    minutes.flatMap((m) => [0, 1, 2].map((k) => ({
+      pid: 'p', name: 'alpha', beganAt: T + m * MIN - (3 - k) * 15_000, duration: 15, receivedAt: T + m * MIN,
+    })))
+  const online = (connectedAt: number | null = T - 60 * MIN) => ({ online: true, connectedAt, lastSeen: T })
+
+  it('measures the screen\'s own upload pace once three batches are in', () => {
+    expect(uploadGap(batches(0, 1))).toBe(DEFAULT_UPLOAD_EVERY_MS)
+    expect(uploadGap(batches(0, 1, 2, 3))).toBe(MIN)
+    // Uneven uploads: the longest regular wait counts, an outage doesn't.
+    expect(uploadGap(batches(0, 1, 3, 4))).toBe(2 * MIN)
+    expect(uploadGap(batches(0, 5, 10, 120))).toBe(5 * MIN)
+    // Two upload paths a few seconds apart are one batch.
+    expect(uploadGap([...batches(0, 1, 2), ...batches(0.1)])).toBe(MIN)
+  })
+
+  it('allows one upload wait plus slack before calling a screen silent', () => {
+    expect(silentAfter(batches(0, 1, 2))).toBe(2 * MIN)
+    expect(silentAfter(batches(0, 5, 10))).toBe(6.25 * MIN)
+  })
+
+  it('is offline whenever the Realtime Server says so, however fresh the reports', () => {
+    const reports = batches(0, 5, 10)
+    expect(screenActivity({ online: false, connectedAt: null, lastSeen: T + 9 * MIN }, reports, T + 10 * MIN))
+      .toEqual({ state: 'offline', since: T + 9 * MIN })
+  })
+
+  it('plays while uploads arrive on time, and goes silent when they stop', () => {
+    const reports = batches(0, 5, 10)
+    expect(screenActivity(online(), reports, T + 16 * MIN)).toEqual({ state: 'reporting', since: T + 10 * MIN })
+    expect(screenActivity(online(), reports, T + 17 * MIN)).toEqual({ state: 'silent', since: T + 10 * MIN })
+  })
+
+  it('without live status, the uploads alone decide', () => {
+    const reports = batches(0, 1, 2)
+    expect(screenActivity(undefined, reports, T + 3 * MIN).state).toBe('reporting')
+    expect(screenActivity(undefined, reports, T + 5 * MIN).state).toBe('silent')
+  })
+
+  it('waits for the first upload after a reconnect instead of replaying old reports', () => {
+    const reports = batches(0, 5, 10)
+    const back = T + 60 * MIN
+    expect(screenActivity(online(back), reports, back + 2 * MIN)).toEqual({ state: 'connecting', since: back })
+    expect(screenActivity(online(back), reports, back + 7 * MIN)).toEqual({ state: 'silent', since: T + 10 * MIN })
+  })
+
+  it('keeps playing through a short reconnect when its uploads are still on time', () => {
+    const reports = batches(0, 5, 10)
+    expect(screenActivity(online(T + 12 * MIN), reports, T + 13 * MIN).state).toBe('reporting')
   })
 })
 

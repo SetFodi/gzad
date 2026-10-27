@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { isAdmin, realtime, serviceClient } from '@/lib/live-view-server'
+import { isAdmin, realtimeDevices, serviceClient, type RealtimeDevice } from '@/lib/live-view-server'
 
 // GET /api/admin/monitor — every screen the live view can show, with its group,
 // vehicle plate and live connection status.
@@ -20,20 +20,9 @@ export async function GET() {
   }
 
   // Live status is best-effort: the wall still replays from play reports without it.
-  const live = new Map<string, { online: boolean; lastSeen?: string }>()
-  let realtimeError: string | undefined
-  try {
-    const res = await realtime('/devices')
-    if (res.ok) {
-      for (const d of (await res.json()) as { cardId: string; online: boolean; lastSeen?: string }[]) {
-        live.set(d.cardId, d)
-      }
-    } else {
-      realtimeError = `Realtime Server: ${res.status}`
-    }
-  } catch (err) {
-    realtimeError = err instanceof Error ? err.message : 'Realtime Server unreachable'
-  }
+  const status = await realtimeDevices()
+  const live = 'devices' in status ? status.devices : new Map<string, RealtimeDevice>()
+  const realtimeError = 'error' in status ? status.error : undefined
 
   const plates = new Map<string, string>()
   for (const v of vehiclesRes.data ?? []) {

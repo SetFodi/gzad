@@ -25,8 +25,10 @@ module.exports = {
   billingTriggerEnabled: process.env.ENABLE_BILLING_TRIGGER === 'true',
   billingIntervalMs: parseInt(process.env.BILLING_INTERVAL_MS) || 15 * 60 * 1000,
 
-  // WebSocket ping interval (ms) — keeps connections alive
-  pingInterval: 30000,
+  // WebSocket ping interval (ms) — keeps connections alive. A screen that misses
+  // a ping is dropped by the next one, so a dead connection shows as offline
+  // within two intervals.
+  pingInterval: parseInt(process.env.PING_INTERVAL_MS) || 30000,
 
   // Command timeout (ms) — how long to wait for controller response
   commandTimeout: 30000,

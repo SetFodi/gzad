@@ -13,6 +13,7 @@ import {
   removeFromWall,
   setWallLayout,
   WALL_LAYOUTS,
+  type Connection,
   type LiveProgram,
   type PlayReport,
   type ProgramReason,
@@ -20,8 +21,10 @@ import {
 } from '@/lib/live-view'
 import { useAdminText } from '@/lib/admin-i18n'
 
-const CATALOG_EVERY = 15_000
-const FEED_EVERY = 20_000
+/** The list's online dots; tiles get their own, fresher status with the feed. */
+const CATALOG_EVERY = 30_000
+/** Reports and connection status for the screens on the wall: a tile goes dark this soon after its screen does. */
+const FEED_EVERY = 10_000
 /** Re-read a screen's program this often even when nothing looks wrong. */
 const PROGRAM_EVERY = 10 * 60_000
 /** Don't ask a screen for its program more often than this. */
@@ -58,6 +61,7 @@ export default function LiveWall({ source }: { source: LiveDataSource }) {
   const [wall, setWall] = useState<Wall>(EMPTY_WALL)
   const [programs, setPrograms] = useState<Record<string, ProgramState>>({})
   const [reports, setReports] = useState<Record<string, PlayReport[]>>({})
+  const [connections, setConnections] = useState<Record<string, Connection | undefined>>({})
   const [clockOffset, setClockOffset] = useState(0)
   const [maximized, setMaximized] = useState<string | null>(null)
   const [tab, setTab] = useState<'screens' | 'groups'>('screens')
@@ -129,8 +133,14 @@ export default function LiveWall({ source }: { source: LiveDataSource }) {
       feedApplied.current = sent
       setClockOffset(feed.serverTime - (started + Date.now()) / 2)
       setReports((prev) => ({ ...prev, ...feed.reports }))
+      setConnections((prev) => {
+        const next = { ...prev }
+        for (const id of ids) next[id] = feed.connections?.[id]
+        return next
+      })
     } catch {
-      // Keep the last reports: tiles keep playing from them until the next poll.
+      // Keep the last reports and status: tiles go dark by themselves once the
+      // reports they hold run out.
     }
   }, [source])
 
@@ -275,13 +285,14 @@ export default function LiveWall({ source }: { source: LiveDataSource }) {
   const renderTile = (id: string, index: number) => {
     const device = devices.get(id)
     const state = programs[id]
-    const offline = catalog && !catalog.realtimeError && device && !device.online
+    const online = connections[id]?.online ?? device?.online
     return (
       <LiveScreen
         program={state?.program ?? null}
         reason={state?.reason}
         loading={!state || state.loading}
         reports={reports[id]}
+        connection={connections[id]}
         clockOffset={clockOffset}
         pixelGrid={pixelGrid}
         onProgramChanged={() => programChanged(id)}
@@ -296,10 +307,9 @@ export default function LiveWall({ source }: { source: LiveDataSource }) {
         }}
         title={
           <>
-            <span className="live-dot" data-online={device?.online || undefined} aria-hidden />
+            <span className="live-dot" data-online={online || undefined} aria-hidden />
             <span className="live-name">{device?.name || id}</span>
             {device?.plate && <span className="plate live-plate">{device.plate}</span>}
-            {offline && <span className="live-pill live-pill-off">{t('Offline')}</span>}
           </>
         }
         actions={
