@@ -10,6 +10,11 @@
 // is projected forward through the loop and corrected when the next batch lands.
 // A screen only plays while it is connected and its batches keep arriving: an
 // offline or silent screen is shown dark, never as a guess.
+//
+// Screens that can be asked what they're playing (getPlayingProgram) do better:
+// the Realtime Server asks them every second while they're watched, so each
+// ad's start is known to about a second, and the reports only fill in how long
+// each item runs and which of several same-named items is on.
 // Pure functions only: the API uses the parser, the browser uses the rest.
 
 export const DEFAULT_WIDTH = 240
@@ -77,6 +82,21 @@ export interface Connection {
   /** When the screen was last heard from. */
   lastSeen: number | null
 }
+
+/** What a screen said it is playing, asked directly. Times are by the server's clock. */
+export interface NowPlaying {
+  /** Program name; empty when the player says nothing is playing. */
+  name: string
+  /** When it started, if the switch was seen; otherwise when it was first seen. */
+  since: number
+  /** How far `since` may be off, in ms. Null when no switch was seen: it began at or before `since`. */
+  accuracyMs: number | null
+  /** When the screen last answered. */
+  checkedAt: number
+}
+
+/** An answer older than this no longer says what is on screen; the reports take over again. */
+export const NOW_PLAYING_FRESH_MS = 15_000
 
 type Json = Record<string, unknown>
 
@@ -303,7 +323,8 @@ export function itemSteps(program: LiveProgram, reports: PlayReport[]): number[]
 export interface Anchor {
   index: number
   beganAt: number
-  matchedBy: MatchMode
+  /** 'screen': from asking the screen what it's playing, not from its reports. */
+  matchedBy: MatchMode | 'screen'
   /**
    * False when the newest report isn't in this program: either the program was
    * re-pushed and we hold the old one, or the screen hasn't reported the new one yet.
@@ -368,6 +389,53 @@ export function locate(steps: number[], anchor: Anchor, now: number): Position {
     i = (i + 1) % n
   }
   return { index: i, offset: t, seconds: steps[i] }
+}
+
+/** A switch seen at least this precisely fixes the position; a looser one only says which item is on. */
+const PINNED_MS = 2_500
+
+export type ScreenFix =
+  | { kind: 'playing'; anchor: Anchor }
+  /** The player says it is playing nothing. */
+  | { kind: 'idle' }
+  /** It is playing something the program we hold doesn't contain. */
+  | { kind: 'unknown'; name: string }
+
+/**
+ * Positions the loop from what the screen says it is playing. One campaign's
+ * rotating creatives share a name; where the reports put the loop says which
+ * of them is on. `reportAnchor` and `steps` come from the reports.
+ */
+export function anchorFromScreen(
+  program: LiveProgram, steps: number[], reportAnchor: Anchor | null, playing: NowPlaying,
+): ScreenFix {
+  if (!playing.name) return { kind: 'idle' }
+  const candidates = program.items.flatMap((item, i) => (sameName(item.name, playing.name) ? [i] : []))
+  if (candidates.length === 0) return { kind: 'unknown', name: playing.name }
+
+  let index = candidates[0]
+  const cycle = steps.reduce((sum, s) => sum + s, 0)
+  if (candidates.length > 1 && reportAnchor && cycle > 0) {
+    // Seconds into the loop at which each item starts, and where the reports
+    // put the loop when this one started: the nearest candidate is the one.
+    const starts = steps.map((_, i) => steps.slice(0, i).reduce((sum, s) => sum + s, 0))
+    const expected = locate(steps, reportAnchor, playing.since)
+    const at = starts[expected.index] + expected.offset
+    const distance = (c: number) => {
+      const d = (((starts[c] - at) % cycle) + cycle) % cycle
+      return Math.min(d, cycle - d)
+    }
+    index = candidates.reduce((best, c) => (distance(c) < distance(best) ? c : best))
+  }
+
+  let beganAt = playing.since
+  if (playing.accuracyMs === null || playing.accuracyMs > PINNED_MS) {
+    // Only known to be on, not when it started. If the reports agree it's on,
+    // their timing beats assuming it started when it was first seen.
+    const fromReports = reportAnchor ? locate(steps, reportAnchor, playing.checkedAt) : null
+    if (fromReports && fromReports.index === index) beganAt = playing.checkedAt - fromReports.offset * 1000
+  }
+  return { kind: 'playing', anchor: { index, beganAt, matchedBy: 'screen', current: true } }
 }
 
 /** What each layer of an item shows `offset` seconds in. A finished layer holds its last frame. */

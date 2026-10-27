@@ -1,4 +1,4 @@
-import type { Connection, LiveProgram, PlayReport, ProgramReason } from '@/lib/live-view'
+import type { Connection, LiveProgram, NowPlaying, PlayReport, ProgramReason } from '@/lib/live-view'
 
 // Where the live view gets its data. The page uses the admin API; keeping it
 // behind an interface lets the wall run against sample data too.
@@ -29,6 +29,8 @@ export interface Feed {
   reports: Record<string, PlayReport[]>
   /** Absent when the Realtime Server couldn't be asked. */
   connections?: Record<string, Connection>
+  /** What each screen says it's playing; missing for screens that can't be asked. */
+  playing?: Record<string, NowPlaying>
 }
 
 export interface ProgramResult {

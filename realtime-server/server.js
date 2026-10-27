@@ -107,6 +107,32 @@ app.get('/devices/:cardId', (req, res) => {
   })
 })
 
+// What the given screens are playing right now, with their connection status,
+// for the admin live view. Asking (re)starts watching them: see "Now playing".
+app.post('/now-playing', (req, res) => {
+  const ids = Array.isArray(req.body && req.body.devices) ? req.body.devices : []
+  const now = Date.now()
+  const list = [...new Set(ids)]
+    .filter((id) => typeof id === 'string' && /^[a-zA-Z0-9_-]{3,64}$/.test(id))
+    .slice(0, 48)
+    .map((cardId) => {
+      const w = watches[cardId] || (watches[cardId] = {
+        until: 0, inFlight: false, failures: 0, backoffUntil: 0, supported: null, playing: null,
+      })
+      w.until = now + config.watchTtlMs
+      const d = devices[cardId]
+      return {
+        cardId,
+        online: Boolean(d && d.ws && d.ws.readyState === 1),
+        connectedAt: d ? d.connectedAt : undefined,
+        lastSeen: d ? d.lastSeen : undefined,
+        supported: w.supported,
+        playing: w.playing,
+      }
+    })
+  res.json(list)
+})
+
 // Send command to device
 app.post('/command/:cardId', async (req, res) => {
   const { cardId } = req.params
@@ -587,6 +613,11 @@ wss.on('connection', (ws) => {
         lastSeen: new Date().toISOString(),
         info: {},
       }
+      // A watched screen that comes back is asked again straight away.
+      if (watches[cardId]) {
+        watches[cardId].backoffUntil = 0
+        watches[cardId].failures = 0
+      }
       console.log(`[${new Date().toISOString()}] Device connected: ${cardId}`)
       if (!wasOnline) {
         postDeviceEvent(cardId, 'connected', {
@@ -715,7 +746,8 @@ function redactSecrets(text) {
   return text.replace(/([?&]key=)[^&"\\\s]+/g, '$1***')
 }
 
-function sendCommand(cardId, data) {
+// `quiet` skips the "Sent to" log line, for commands sent every second.
+function sendCommand(cardId, data, { quiet = false, timeoutMs = config.commandTimeout } = {}) {
   return new Promise((resolve, reject) => {
     const d = devices[cardId]
     if (!d || !d.ws || d.ws.readyState !== 1) {
@@ -728,7 +760,7 @@ function sendCommand(cardId, data) {
     const timer = setTimeout(() => {
       delete pendingCommands[commandId]
       reject(new Error('Command timeout'))
-    }, config.commandTimeout)
+    }, timeoutMs)
 
     pendingCommands[commandId] = { resolve, reject, timer }
 
@@ -737,12 +769,87 @@ function sendCommand(cardId, data) {
         clearTimeout(timer)
         delete pendingCommands[commandId]
         reject(err)
-      } else {
+      } else if (!quiet) {
         console.log(`[${new Date().toISOString()}] Sent to ${cardId}:`, redactSecrets(JSON.stringify(data)).slice(0, 200))
       }
     })
   })
 }
+
+// ─── Now playing ─────────────────────────────────────────────────────────────
+// The admin live view asks what its screens are playing right now. A watched
+// screen is asked (getPlayingProgram, conn 10.0.9+) every nowPlayingEveryMs.
+// The answer is only a program name, so when an ad started is known from the
+// moment the name changes: to within one interval, plus half the round trip.
+// Watching lapses watchTtlMs after the last request, so screens nobody is
+// looking at are never asked.
+
+// cardId → { until, inFlight, failures, backoffUntil, supported, playing }
+const watches = {}
+
+// After a gap this long without an answer, a name seen again may be a later
+// play of the same ad, so its start is unknown again.
+const nowPlayingMaxGap = () => config.nowPlayingEveryMs * 3 + 2000
+
+function checkNowPlaying(cardId, w) {
+  w.inFlight = true
+  const sent = Date.now()
+  sendCommand(cardId, { type: 'getPlayingProgram' }, { quiet: true, timeoutMs: config.nowPlayingTimeoutMs })
+    .then((reply) => {
+      if (/^error$/i.test(String(reply._type || ''))) {
+        throw new Error(reply.errorMessage || reply.message || 'getPlayingProgram failed')
+      }
+      const raw = reply.name !== undefined ? reply.name : reply.result && reply.result.name
+      if (raw !== null && typeof raw !== 'string') throw new Error('No program name in reply')
+
+      const got = Date.now()
+      const at = Math.round((sent + got) / 2)
+      const name = raw || '' // empty: the player says nothing is playing
+      const prev = w.playing
+      if (prev && prev.name === name && at - prev.checkedAt <= nowPlayingMaxGap()) {
+        prev.checkedAt = at
+      } else if (prev && at - prev.checkedAt <= nowPlayingMaxGap()) {
+        // It switched between the last answer and this one.
+        w.playing = {
+          name,
+          since: Math.round((prev.checkedAt + at) / 2),
+          accuracyMs: Math.round((at - prev.checkedAt) / 2 + (got - sent) / 2),
+          checkedAt: at,
+        }
+      } else {
+        // First sight: it is on now, but nobody saw it start.
+        w.playing = { name, since: at, accuracyMs: null, checkedAt: at }
+      }
+      w.supported = true
+      w.failures = 0
+    })
+    .catch(() => {
+      // Three failures in a row: older firmware, or a screen that's struggling.
+      // Leave it alone for a while rather than keep asking every second.
+      w.failures += 1
+      if (w.failures >= 3) {
+        if (w.supported !== true) w.supported = false
+        w.backoffUntil = Date.now() + 5 * 60 * 1000
+        w.failures = 0
+      }
+    })
+    .finally(() => {
+      w.inFlight = false
+    })
+}
+
+setInterval(() => {
+  const now = Date.now()
+  for (const [cardId, w] of Object.entries(watches)) {
+    if (now > w.until) {
+      delete watches[cardId]
+      continue
+    }
+    const d = devices[cardId]
+    if (w.inFlight || now < w.backoffUntil || !d || !d.ws || d.ws.readyState !== 1) continue
+    checkNowPlaying(cardId, w)
+  }
+}, config.nowPlayingEveryMs)
 
 function buildProgram({ name, mediaItems, totalSize = 0, schedule = {}, width = 240, height = 80 }) {
   // Build an XixunPlayer PlayXixunTask program

@@ -15,6 +15,7 @@ import {
   WALL_LAYOUTS,
   type Connection,
   type LiveProgram,
+  type NowPlaying,
   type PlayReport,
   type ProgramReason,
   type Wall,
@@ -23,7 +24,12 @@ import { useAdminText } from '@/lib/admin-i18n'
 
 /** The list's online dots; tiles get their own, fresher status with the feed. */
 const CATALOG_EVERY = 30_000
-/** Reports and connection status for the screens on the wall: a tile goes dark this soon after its screen does. */
+/**
+ * Reports, connection status and what each screen on the wall says it's
+ * playing. The switch times it brings are exact to about a second; in between,
+ * tiles run the loop on their own, so this only bounds how soon a surprise
+ * (a skipped ad, a screen going dark) shows.
+ */
 const FEED_EVERY = 10_000
 /** Re-read a screen's program this often even when nothing looks wrong. */
 const PROGRAM_EVERY = 10 * 60_000
@@ -62,6 +68,7 @@ export default function LiveWall({ source }: { source: LiveDataSource }) {
   const [programs, setPrograms] = useState<Record<string, ProgramState>>({})
   const [reports, setReports] = useState<Record<string, PlayReport[]>>({})
   const [connections, setConnections] = useState<Record<string, Connection | undefined>>({})
+  const [playing, setPlaying] = useState<Record<string, NowPlaying | undefined>>({})
   const [clockOffset, setClockOffset] = useState(0)
   const [maximized, setMaximized] = useState<string | null>(null)
   const [tab, setTab] = useState<'screens' | 'groups'>('screens')
@@ -136,6 +143,11 @@ export default function LiveWall({ source }: { source: LiveDataSource }) {
       setConnections((prev) => {
         const next = { ...prev }
         for (const id of ids) next[id] = feed.connections?.[id]
+        return next
+      })
+      setPlaying((prev) => {
+        const next = { ...prev }
+        for (const id of ids) next[id] = feed.playing?.[id]
         return next
       })
     } catch {
@@ -293,6 +305,7 @@ export default function LiveWall({ source }: { source: LiveDataSource }) {
         loading={!state || state.loading}
         reports={reports[id]}
         connection={connections[id]}
+        playing={playing[id]}
         clockOffset={clockOffset}
         pixelGrid={pixelGrid}
         onProgramChanged={() => programChanged(id)}
@@ -343,7 +356,7 @@ export default function LiveWall({ source }: { source: LiveDataSource }) {
       <div className="portal-page-header">
         <div>
           <h1 className="portal-page-title">{t('Live view')}</h1>
-          <p className="portal-subtitle">{t('What each screen is showing, rebuilt from its play reports at the LED’s own resolution.')}</p>
+          <p className="portal-subtitle">{t('What each screen is showing right now, at the LED’s own resolution.')}</p>
         </div>
         <div className="live-toolbar">
           <div className="live-layouts" role="group" aria-label={t('Layout')}>

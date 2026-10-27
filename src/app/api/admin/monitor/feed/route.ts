@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CARD_ID, isAdmin, realtimeDevices, serviceClient } from '@/lib/live-view-server'
-import { MAX_TILES, type Connection, type PlayReport } from '@/lib/live-view'
+import { CARD_ID, isAdmin, serviceClient, watchScreens, type RealtimeDevice } from '@/lib/live-view-server'
+import { MAX_TILES, type Connection, type NowPlaying, type PlayReport } from '@/lib/live-view'
 
 // Enough history to measure each item's real timing across a couple of loops,
 // to see the last few upload batches, and to anchor on the newest play.
@@ -13,8 +13,19 @@ const time = (iso: string | null | undefined): number | null => {
   return Number.isFinite(ms) ? ms : null
 }
 
+function nowPlaying(p: RealtimeDevice['playing']): NowPlaying | null {
+  if (!p || typeof p.name !== 'string' || !Number.isFinite(p.since) || !Number.isFinite(p.checkedAt)) return null
+  return {
+    name: p.name,
+    since: p.since,
+    accuracyMs: typeof p.accuracyMs === 'number' && Number.isFinite(p.accuracyMs) ? p.accuracyMs : null,
+    checkedAt: p.checkedAt,
+  }
+}
+
 // GET /api/admin/monitor/feed?devices=a,b,c — for every screen on the wall, its
-// newest play reports and whether it is connected right now, in one request.
+// newest play reports, whether it is connected, and what it says it's playing,
+// in one request. Asking also keeps the Realtime Server checking these screens.
 // serverTime lets the browser correct its clock.
 export async function GET(request: NextRequest) {
   if (!await isAdmin()) {
@@ -37,7 +48,7 @@ export async function GET(request: NextRequest) {
         .order('began_at', { ascending: false })
         .limit(REPORTS_PER_SCREEN),
     )),
-    realtimeDevices(STATUS_TIMEOUT_MS),
+    ids.length > 0 ? watchScreens(ids, STATUS_TIMEOUT_MS) : Promise.resolve({ error: 'No screens' }),
     ids.length > 0 ? db.from('devices').select('id, last_seen_at').in('id', ids) : Promise.resolve({ data: [] }),
   ])
 
@@ -57,6 +68,7 @@ export async function GET(request: NextRequest) {
   // Without the Realtime Server nobody knows who is connected: leave it out
   // rather than call every screen offline.
   let connections: Record<string, Connection> | undefined
+  const playing: Record<string, NowPlaying> = {}
   if ('devices' in status) {
     const lastSeen = new Map((seen.data ?? []).map((d) => [d.id as string, d.last_seen_at as string | null]))
     connections = {}
@@ -67,8 +79,10 @@ export async function GET(request: NextRequest) {
         connectedAt: live?.online ? time(live.connectedAt) : null,
         lastSeen: time(live?.lastSeen) ?? time(lastSeen.get(id)),
       }
+      const now = live?.online ? nowPlaying(live.playing) : null
+      if (now) playing[id] = now
     }
   }
 
-  return NextResponse.json({ serverTime: Date.now(), reports, connections })
+  return NextResponse.json({ serverTime: Date.now(), reports, connections, playing })
 }

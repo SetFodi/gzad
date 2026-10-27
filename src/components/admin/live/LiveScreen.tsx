@@ -3,16 +3,19 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
 import {
   activeSources,
+  anchorFromScreen,
   DEFAULT_HEIGHT,
   DEFAULT_WIDTH,
   findAnchor,
   itemSteps,
   locate,
+  NOW_PLAYING_FRESH_MS,
   screenActivity,
   uploadGap,
   type Connection,
   type LiveProgram,
   type LiveSource,
+  type NowPlaying,
   type PlayReport,
   type ProgramReason,
 } from '@/lib/live-view'
@@ -23,7 +26,8 @@ import { useAdminText } from '@/lib/admin-i18n'
 // CSS scales the canvas up with hard pixel edges, so what you see is what the
 // LED can physically show, not a sharper copy of the source file. Captions sit
 // above the picture, never on it. The picture only plays while the screen is
-// connected and reporting; otherwise it stays dark, as the LED does.
+// connected and says (or reports) it is playing; otherwise it stays dark, as
+// the LED does.
 
 /** Re-seek a video only when it has drifted further than this from the screen. */
 const SEEK_TOLERANCE = 1.2
@@ -44,6 +48,8 @@ interface Props {
   reports: PlayReport[] | undefined
   /** Undefined until known, or when the Realtime Server can't be asked. */
   connection: Connection | undefined
+  /** What the screen itself says it's playing; undefined when it can't be asked. */
+  playing: NowPlaying | undefined
   /** Add to Date.now() to get the server's clock. */
   clockOffset: number
   pixelGrid: boolean
@@ -79,7 +85,7 @@ function placeholder(ctx: CanvasRenderingContext2D, source: LiveSource) {
 }
 
 export default function LiveScreen({
-  program, reason, loading, reports, connection, clockOffset, pixelGrid, onProgramChanged, title, actions, captionProps, onEnlarge,
+  program, reason, loading, reports, connection, playing, clockOffset, pixelGrid, onProgramChanged, title, actions, captionProps, onEnlarge,
 }: Props) {
   const { t } = useAdminText()
   const tileRef = useRef<HTMLDivElement>(null)
@@ -93,20 +99,31 @@ export default function LiveScreen({
   const width = program?.width ?? DEFAULT_WIDTH
   const height = program?.height ?? DEFAULT_HEIGHT
 
+  const serverNow = now + clockOffset
+  const activity = screenActivity(connection, reports ?? [], serverNow)
+  // The screen's own answer, while it is recent, outranks its reports.
+  const asked = playing && activity.state !== 'offline' && serverNow - playing.checkedAt <= NOW_PLAYING_FRESH_MS
+    ? playing
+    : null
+
   const timing = useMemo(() => {
-    if (!program || !reports) return null
-    return { anchor: findAnchor(program, reports), steps: itemSteps(program, reports) }
-  }, [program, reports])
+    if (!program || (!reports && !asked)) return null
+    const logs = reports ?? []
+    const steps = itemSteps(program, logs)
+    const fromReports = logs.length > 0 ? findAnchor(program, logs) : null
+    if (!asked) return { anchor: fromReports, steps, fix: null }
+    const fix = anchorFromScreen(program, steps, fromReports, asked)
+    return { anchor: fix.kind === 'playing' ? fix.anchor : null, steps, fix }
+  }, [program, reports, asked])
 
   const latestReport = useMemo(() => (reports ?? []).reduce((max, r) => Math.max(max, r.beganAt), 0), [reports])
   const uploadMinutes = Math.max(1, Math.round(uploadGap(reports ?? []) / 60_000))
 
-  const serverNow = now + clockOffset
-  const activity = screenActivity(connection, reports ?? [], serverNow)
-
+  const fix = timing?.fix ?? null
   let state: ScreenState
   if (activity.state === 'offline') state = 'offline'
   else if (!program) state = loading ? 'loading' : 'no_program'
+  else if (fix) state = fix.kind === 'idle' ? 'silent' : fix.kind === 'unknown' ? 'unmatched' : 'live'
   else if (!reports) state = 'loading'
   else if (reports.length === 0) state = 'waiting'
   else if (activity.state === 'connecting') state = 'reconnected'
@@ -114,8 +131,9 @@ export default function LiveScreen({
   else if (!timing?.anchor) state = 'unmatched'
   else state = 'live'
 
-  // The newest report isn't in the program we hold: maybe we hold an old one.
-  // Keep asking while it lasts; the wall backs off so the screen isn't flooded.
+  // The screen is playing something the program we hold doesn't have: maybe we
+  // hold an old one. Keep asking while it lasts; the wall backs off so the
+  // screen isn't flooded.
   const recheck = state === 'unmatched' || (state === 'live' && timing?.anchor ? !timing.anchor.current : false)
 
   // The draw loop reads these through refs so new reports or a clock correction
@@ -305,9 +323,11 @@ export default function LiveScreen({
         : state === 'no_program' ? { title: t('Nothing to show'), detail: reason ? reasonText[reason] : undefined }
           : state === 'waiting' ? { title: t('Waiting for play reports'), detail: t('This screen uploads what it played every {n} min.', { n: uploadMinutes }) }
             : state === 'reconnected' ? { title: t('Back online — waiting for play reports'), detail: t('Its first upload since reconnecting is due within {n} min.', { n: uploadMinutes }) }
-              : state === 'silent' ? { title: t('Not playing'), detail: since ? t('No play reports for {n} min.', { n: Math.max(1, Math.round((serverNow - since) / 60_000)) }) : undefined }
-                : state === 'unmatched' ? { title: t('Its play reports don’t match its current program yet'), detail: t('Normal right after new ads are pushed: reports catch up within about 5 minutes.') }
-                  : null
+              : state === 'silent' && fix ? { title: t('Not playing'), detail: t('The screen says nothing is playing.') }
+                : state === 'silent' ? { title: t('Not playing'), detail: since ? t('No play reports for {n} min.', { n: Math.max(1, Math.round((serverNow - since) / 60_000)) }) : undefined }
+                  : state === 'unmatched' && fix?.kind === 'unknown' ? { title: t('Playing “{name}”, which isn’t in the program read from it', { name: fix.name }), detail: t('Reading the screen’s program again…') }
+                    : state === 'unmatched' ? { title: t('Its play reports don’t match its current program yet'), detail: t('Normal right after new ads are pushed: reports catch up within about 5 minutes.') }
+                      : null
 
   return (
     <div className="live-frame" data-state={state} style={{ '--aspect': width / height } as CSSProperties}>
@@ -327,12 +347,20 @@ export default function LiveScreen({
               {t('Expected playlist')}
             </span>
           )}
-          {state === 'live' && (
-            <span className="live-pill live-pill-live" title={t('Rebuilt from play reports and positioned in real time.')}>{t('Live')}</span>
+          {state === 'live' && fix && (
+            <span className="live-pill live-pill-live" title={t('The screen itself is asked what it’s playing, every second.')}>{t('Live')}</span>
+          )}
+          {state === 'live' && !fix && (
+            <span className="live-pill live-pill-warn" title={t('Rebuilt from play reports: this screen isn’t answering what it’s playing, so it may be a few seconds off.')}>
+              {t('From logs')}
+            </span>
           )}
           {state === 'offline' && <span className="live-pill live-pill-off">{t('Offline')}</span>}
           {state === 'silent' && (
-            <span className="live-pill live-pill-warn" title={t('Connected, but its play reports stopped arriving, so it isn’t playing anything.')}>
+            <span
+              className="live-pill live-pill-warn"
+              title={fix ? t('The screen says nothing is playing.') : t('Connected, but its play reports stopped arriving, so it isn’t playing anything.')}
+            >
               {t('Not playing')}
             </span>
           )}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   activeSources,
+  anchorFromScreen,
   autoGrid,
   DEFAULT_UPLOAD_EVERY_MS,
   expectedProgram,
@@ -262,6 +263,42 @@ describe('activeSources', () => {
   it('stacks layers and holds a finished layer on its last frame', () => {
     expect(activeSources(it0, 3).map((a) => a.source.url)).toEqual(['https://x/1.png', 'https://x/badge.png'])
     expect(activeSources(it0, 9).map((a) => a.source.url)).toEqual(['https://x/2.mp4', 'https://x/badge.png'])
+  })
+})
+
+describe('asking the screen what it is playing', () => {
+  // a1 b1 a2 b2, 10/20/10/20 s: items start 0, 10, 30 and 40 s into a 60 s loop.
+  const program = parseProgramTask(REPLY)!
+  const reports = [report('p-a1', 'alpha', 0, 10)]
+  const steps = itemSteps(program, reports)
+  const fromReports = findAnchor(program, reports)
+  const at = (seconds: number) => T0 + seconds * 1000
+  const seen = (name: string, since: number, accuracyMs: number | null, checkedAt = since) =>
+    ({ name, since: at(since), accuracyMs, checkedAt: at(checkedAt) })
+
+  it('goes dark when the player says nothing is playing, and flags names it doesn\'t know', () => {
+    expect(anchorFromScreen(program, steps, fromReports, seen('', 5, null))).toEqual({ kind: 'idle' })
+    expect(anchorFromScreen(program, steps, fromReports, seen('gamma', 5, 300))).toEqual({ kind: 'unknown', name: 'gamma' })
+  })
+
+  it('starts the item when the screen switched, telling same-named creatives apart by the reports', () => {
+    expect(anchorFromScreen(program, steps, fromReports, seen('alpha', 30, 300)))
+      .toEqual({ kind: 'playing', anchor: { index: 2, beganAt: at(30), matchedBy: 'screen', current: true } })
+    // next loop: back to the first creative
+    expect(anchorFromScreen(program, steps, fromReports, seen('Alpha', 61, 300))).toMatchObject({ anchor: { index: 0, beganAt: at(61) } })
+    // reports drifted 6 s: still the nearest one
+    expect(anchorFromScreen(program, steps, fromReports, seen('alpha', 36, 300))).toMatchObject({ anchor: { index: 2, beganAt: at(36) } })
+  })
+
+  it('trusts a seen switch over the reports\' timing', () => {
+    expect(anchorFromScreen(program, steps, fromReports, seen('beta', 12, 500))).toMatchObject({ anchor: { index: 1, beganAt: at(12) } })
+  })
+
+  it('without a seen switch, takes the start from the reports when they agree, else from first sight', () => {
+    expect(anchorFromScreen(program, steps, fromReports, seen('beta', 15, null))).toMatchObject({ anchor: { index: 1, beganAt: at(10) } })
+    expect(anchorFromScreen(program, steps, null, seen('beta', 15, null))).toMatchObject({ anchor: { index: 1, beganAt: at(15) } })
+    // reports put the loop in a1, the screen says beta: the screen wins, from first sight
+    expect(anchorFromScreen(program, steps, fromReports, seen('beta', 65, null))).toMatchObject({ anchor: { beganAt: at(65) } })
   })
 })
 

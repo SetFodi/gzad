@@ -32,4 +32,11 @@ module.exports = {
 
   // Command timeout (ms) — how long to wait for controller response
   commandTimeout: 30000,
+
+  // Live view: how often a watched screen is asked what it is playing. An ad's
+  // start is known to within this interval. Only screens open in the live view
+  // are asked; watching lapses watchTtlMs after the view stops asking.
+  nowPlayingEveryMs: parseInt(process.env.NOW_PLAYING_EVERY_MS) || 1000,
+  nowPlayingTimeoutMs: 4000,
+  watchTtlMs: parseInt(process.env.WATCH_TTL_MS) || 30000,
 }

@@ -37,6 +37,25 @@ export interface RealtimeDevice {
   online: boolean
   connectedAt?: string
   lastSeen?: string
+  /** From /now-playing only. False when the screen can't be asked what it's playing. */
+  supported?: boolean | null
+  playing?: { name: string; since: number; accuracyMs: number | null; checkedAt: number } | null
+}
+
+/**
+ * Connection status for these screens and what they say they're playing.
+ * Asking keeps the Realtime Server checking them for half a minute. A server
+ * from before /now-playing existed answers with status alone.
+ */
+export async function watchScreens(ids: string[], timeoutMs?: number): Promise<{ devices: Map<string, RealtimeDevice> } | { error: string }> {
+  try {
+    const res = await realtime('/now-playing', { method: 'POST', body: JSON.stringify({ devices: ids }) }, timeoutMs)
+    if (res.status === 404) return realtimeDevices(timeoutMs)
+    if (!res.ok) return { error: `Realtime Server: ${res.status}` }
+    return { devices: new Map(((await res.json()) as RealtimeDevice[]).map((d) => [d.cardId, d])) }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Realtime Server unreachable' }
+  }
 }
 
 /** Every screen the Realtime Server holds (connected, or dropped within the hour), by card id. */
