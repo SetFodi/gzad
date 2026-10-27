@@ -155,9 +155,9 @@ export default function AdminFleetUsersPage() {
     <div className="portal-page">
       <div className="portal-page-header">
         <div>
-          <h1 className="portal-page-title">{t('Fleet users')}</h1>
+          <h1 className="portal-page-title">{t('Fleets')}</h1>
           <p className="portal-subtitle">
-            {fleetUsers.length === 1 ? t('1 driver') : t('{n} drivers', { n: fleetUsers.length })} · {vehicleCount === 1 ? t('1 vehicle') : t('{n} vehicles', { n: vehicleCount })} · {t('{n} with a screen', { n: withLed })}
+            {fleetUsers.length === 1 ? t('1 fleet') : t('{n} fleets', { n: fleetUsers.length })} · {vehicleCount === 1 ? t('1 vehicle') : t('{n} vehicles', { n: vehicleCount })} · {t('{n} with a screen', { n: withLed })}
           </p>
         </div>
       </div>
@@ -199,8 +199,8 @@ export default function AdminFleetUsersPage() {
 
       {fleetUsers.length === 0 ? (
         <div className="portal-empty">
-          <p>{t('No drivers have signed up yet.')}</p>
-          <p style={{ fontSize: 14 }}>{t('Drivers sign up at')} <code>/portal/fleet-signup?role=fleet</code>.</p>
+          <p>{t('No fleets have signed up yet.')}</p>
+          <p style={{ fontSize: 14 }}>{t('Fleets sign up at')} <code>/portal/fleet-signup?role=fleet</code>.</p>
         </div>
       ) : (
         <div className="group-grid">

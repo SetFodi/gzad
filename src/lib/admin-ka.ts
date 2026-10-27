@@ -14,8 +14,8 @@ export const KA: Record<string, string> = {
   'Devices': 'მოწყობილობები',
   'Slots': 'სლოტები',
   'Groups': 'ჯგუფები',
-  'Fleet': 'ფლოტი',
-  'Fleet users': 'მძღოლები',
+  'Fleet': 'ავტოპარკი',
+  'Fleets': 'ავტოპარკები',
   'Fleet map': 'ფლოტის რუკა',
   'GPS trails': 'GPS მარშრუტები',
   'Insights': 'ანალიტიკა',
@@ -185,9 +185,7 @@ export const KA: Record<string, string> = {
   'Balance': 'ბალანსი',
   'Joined': 'დარეგისტრირდა',
   'Staff account that owns campaigns': 'თანამშრომლის ანგარიში, რომელსაც კამპანიები აქვს',
-  'Driver account that owns campaigns': 'მძღოლის ანგარიში, რომელსაც კამპანიები აქვს',
   'Staff': 'თანამშრომელი',
-  'Driver': 'მძღოლი',
   '{n} active': '{n} აქტიური',
   '{n} total': 'სულ {n}',
   // ── Client detail
@@ -423,8 +421,6 @@ export const KA: Record<string, string> = {
   // ── Fleet users
   'Could not assign the screen': 'ეკრანი ვერ მიება',
   'Remove the screen from this vehicle?': 'მოვხსნათ ეკრანი ამ მანქანას?',
-  '1 driver': '1 მძღოლი',
-  '{n} drivers': '{n} მძღოლი',
   '1 vehicle': '1 მანქანა',
   '{n} vehicles': '{n} მანქანა',
   '{n} with a screen': '{n} ეკრანით',
@@ -433,8 +429,6 @@ export const KA: Record<string, string> = {
   'No screen': 'ეკრანის გარეშე',
   'in another car': 'სხვა მანქანაშია',
   'A screen can be in one car at a time.': 'ეკრანი ერთდროულად მხოლოდ ერთ მანქანაში შეიძლება იყოს.',
-  'No drivers have signed up yet.': 'მძღოლები ჯერ არ დარეგისტრირებულან.',
-  'Drivers sign up at': 'მძღოლები რეგისტრირდებიან მისამართზე',
   'Joined {date}': 'დარეგისტრირდა {date}',
   'No vehicles added yet.': 'მანქანები ჯერ არ დამატებულა.',
   'Assign': 'მიბმა',
@@ -678,5 +672,11 @@ export const KA: Record<string, string> = {
   'Newest play report from this screen': 'ამ ეკრანის უახლესი ჩვენების ანგარიში',
   'Reported {when}': 'ანგარიში {when}',
   'Showing {name}': 'ნაჩვენებია {name}',
+  // ── Fleets (taxi parks; drivers aren't users)
+  'Fleet account that owns campaigns': 'ავტოპარკის ანგარიში, რომელსაც კამპანიები აქვს',
+  '1 fleet': '1 ავტოპარკი',
+  '{n} fleets': '{n} ავტოპარკი',
+  'No fleets have signed up yet.': 'ავტოპარკები ჯერ არ დარეგისტრირებულან.',
+  'Fleets sign up at': 'ავტოპარკები რეგისტრირდებიან მისამართზე',
   // END
 }

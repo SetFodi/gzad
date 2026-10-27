@@ -37,7 +37,7 @@ export default function AdminClientsPage() {
     setLoading(true)
     setLoadError(false)
     try {
-      // Advertisers, plus any staff or driver account that owns campaigns:
+      // Advertisers, plus any staff or fleet account that owns campaigns:
       // those are billed like anyone else and need their balance managed here.
       const [{ data: accounts, error: clientsError }, { data: campaigns, error: campaignsError }] = await Promise.all([
         supabase.from('clients').select('*').order('created_at', { ascending: false }),
@@ -204,8 +204,8 @@ export default function AdminClientsPage() {
                         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Link href={`/admin/clients/${c.id}`} className="table-link">{c.company_name}</Link>
                           {(c.is_admin || c.role === 'fleet') && (
-                            <span className="portal-chip" title={c.is_admin ? t('Staff account that owns campaigns') : t('Driver account that owns campaigns')}>
-                              {c.is_admin ? t('Staff') : t('Driver')}
+                            <span className="portal-chip" title={c.is_admin ? t('Staff account that owns campaigns') : t('Fleet account that owns campaigns')}>
+                              {c.is_admin ? t('Staff') : t('Fleet')}
                             </span>
                           )}
                         </span>

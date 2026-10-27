@@ -36,7 +36,7 @@ export default function AdminSidebar() {
         {
           title: t('Fleet'),
           items: [
-            { href: '/admin/fleet-users', label: t('Fleet users'), icon: Car },
+            { href: '/admin/fleet-users', label: t('Fleets'), icon: Car },
             { href: '/admin/fleet', label: t('Fleet map'), icon: Map },
             { href: '/admin/map', label: t('GPS trails'), icon: MapPin },
           ],

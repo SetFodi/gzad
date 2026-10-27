@@ -159,8 +159,8 @@ const en = {
     title: 'Your cars already cover the city. Now they can earn from it.',
     items: [
       { title: 'We install and maintain', body: 'Our team fits and services the screens, at our cost.' },
-      { title: 'A share of every hour sold', body: 'Your fleet earns a cut of the ad revenue its cars bring in, paid monthly.' },
-      { title: 'One dashboard', body: 'See each car, where its ads ran and what it earned.' },
+      { title: 'A share of the revenue', body: 'Your fleet earns a share of the ad revenue its cars bring in, on terms set in your partnership agreement.' },
+      { title: 'One dashboard', body: 'See each car, whether its screen is on and where its ads ran.' },
     ],
     cta: 'Become a fleet partner',
   },
@@ -364,8 +364,8 @@ const ge: Copy = {
     title: 'თქვენი მანქანები უკვე მთელ ქალაქს ფარავს. ახლა შემოსავალიც მოიტანონ.',
     items: [
       { title: 'მონტაჟი და მომსახურება ჩვენზეა', body: 'ეკრანებს ჩვენი გუნდი ამონტაჟებს და ემსახურება, ჩვენივე ხარჯით.' },
-      { title: 'წილი ყოველი გაყიდული საათიდან', body: 'ავტოპარკი იღებს წილს სარეკლამო შემოსავლიდან, რომელსაც მისი მანქანები გამოიმუშავებს. ანგარიშსწორება ყოველთვიურია.' },
-      { title: 'ერთი დაფა', body: 'ნახეთ თითოეული მანქანა, სად გავიდა მისი რეკლამა და რამდენი გამოიმუშავა.' },
+      { title: 'წილი შემოსავლიდან', body: 'ავტოპარკი იღებს წილს სარეკლამო შემოსავლიდან, რომელსაც მისი მანქანები მოიტანს, პარტნიორობის ხელშეკრულებით განსაზღვრული პირობებით.' },
+      { title: 'ერთი დაფა', body: 'ნახეთ თითოეული მანქანა, ჩართულია თუ არა მისი ეკრანი და სად გავიდა რეკლამა.' },
     ],
     cta: 'გახდით პარტნიორი',
   },
