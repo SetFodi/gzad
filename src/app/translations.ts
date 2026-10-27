@@ -495,7 +495,15 @@ export const translations = {
                 dragHint: "Select a first and last day, or drag across the chart.",
                 noPlays: "No plays in this period",
                 coverageMap: "Where your ad played",
-                coverageSummary: "{plays} plays in {places} places. Bigger dots mean more plays."
+                coverageSummary: "{plays} plays in {places} places. Bigger dots mean more plays.",
+                downloadReport: "Download report",
+                downloadingReport: "Preparing report…",
+                reportError: "Could not create the report. Try again.",
+                reportHour: "Hour",
+                reportScreen: "Screen",
+                reportAirtime: "Airtime (s)",
+                reportDistrict: "District",
+                reportCost: "Cost (GEL)"
             },
             submit: {
                 title: "Submit an ad",
@@ -1167,7 +1175,15 @@ export const translations = {
                 dragHint: "აირჩიეთ პირველი და ბოლო დღე, ან მონიშნეთ პერიოდი სვეტებზე გადათრევით.",
                 noPlays: "ამ პერიოდში ჩვენება არ ყოფილა",
                 coverageMap: "სად გავიდა თქვენი რეკლამა",
-                coverageSummary: "{plays} ჩვენება {places} ადგილას. დიდი წერტილი მეტ ჩვენებას ნიშნავს."
+                coverageSummary: "{plays} ჩვენება {places} ადგილას. დიდი წერტილი მეტ ჩვენებას ნიშნავს.",
+                downloadReport: "ანგარიშის ჩამოტვირთვა",
+                downloadingReport: "ანგარიში მზადდება…",
+                reportError: "ანგარიში ვერ შეიქმნა. სცადეთ თავიდან.",
+                reportHour: "საათი",
+                reportScreen: "ეკრანი",
+                reportAirtime: "ეთერის დრო (წმ)",
+                reportDistrict: "რაიონი",
+                reportCost: "ღირებულება (ლარი)"
             },
             submit: {
                 title: "ახალი რეკლამის ატვირთვა",

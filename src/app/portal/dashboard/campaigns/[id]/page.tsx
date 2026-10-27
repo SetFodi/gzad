@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { readAllRows } from '@/lib/supabase/read'
 import { aggregateCampaignPlays, type CampaignPlayLog, type DailyPlayStatistics } from '@/lib/play-statistics'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Play, Clock, MapPin, Car, X } from 'lucide-react'
+import { ArrowLeft, Play, Clock, MapPin, Car, X, Download } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n'
 import StatusBadge, { useStatusLabel } from '@/components/app/StatusBadge'
@@ -13,6 +13,7 @@ import { formatDateRange } from '@/components/portal/CampaignCard'
 import dynamic from 'next/dynamic'
 import type { PlayPoint } from '@/components/portal/CampaignMapView'
 import DailyCapControl from '@/components/portal/DailyCapControl'
+import { buildReportRows, reportToCsv, tbilisiDayRange, type ReportCharge, type ReportPlayLog } from '@/lib/campaign-report'
 
 const CampaignMapView = dynamic(() => import('@/components/portal/CampaignMapView'), { ssr: false })
 
@@ -58,6 +59,8 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [reload, setReload] = useState(0)
+  const [reportBusy, setReportBusy] = useState(false)
+  const [reportError, setReportError] = useState(false)
   const supabase = createClient()
   const { t, lang } = useTranslations()
   const p = t.portal.campaignDetail
@@ -242,6 +245,60 @@ export default function CampaignDetailPage() {
     dragStart.current = null
   }
 
+  // CSV of the selected days (or every day on the chart), per hour and screen.
+  const downloadReport = async () => {
+    const first = allDays[hasSelection ? selMin : 0]?.date
+    const last = allDays[hasSelection ? selMax : allDays.length - 1]?.date
+    if (!campaign || !first || !last) return
+    setReportBusy(true)
+    setReportError(false)
+    try {
+      const { from, to } = tbilisiDayRange(first, last)
+      // RLS limits both tables to the signed-in client's own rows.
+      const [plays, charges] = await Promise.all([
+        readAllRows<ReportPlayLog>((start, end) => supabase
+          .from('play_logs')
+          .select('began_at, device_id, duration_seconds')
+          .eq('campaign_id', campaign.id)
+          .gte('began_at', from)
+          .lt('began_at', to)
+          .order('began_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(start, end)),
+        readAllRows<ReportCharge>((start, end) => supabase
+          .from('billing_logs')
+          .select('period_start, device_id, district, total_cost')
+          .eq('campaign_id', campaign.id)
+          .gte('period_start', from)
+          .lt('period_start', to)
+          .order('period_start', { ascending: true })
+          .order('id', { ascending: true })
+          .range(start, end)),
+      ])
+      const csv = reportToCsv(buildReportRows(plays, charges), {
+        date: p.date,
+        hour: p.reportHour,
+        screen: p.reportScreen,
+        plays: p.plays,
+        airtime: p.reportAirtime,
+        district: p.reportDistrict,
+        cost: p.reportCost,
+      })
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `gzad-${campaign.name.trim().replace(/\s+/g, '-')}-${first === last ? first : `${first}_${last}`}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      setReportError(true)
+    } finally {
+      setReportBusy(false)
+    }
+  }
+
   if (loading) return <div className="portal-loading">{c.loading}</div>
   if (loadError) return (
     <div className="portal-page">
@@ -326,17 +383,23 @@ export default function CampaignDetailPage() {
       <div className="portal-section">
         <div className="section-head">
           <h2>{p.dailyPlayLog}</h2>
-          {hasSelection ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'var(--portal-text-soft)', fontWeight: 500 }}>{selLabel}</span>
-              <button type="button" onClick={clearSelection} className="action-btn">
-                <X size={12} aria-hidden /> {p.clearSelection}
-              </button>
-            </div>
-          ) : allDays.length > 1 && (
-            <span style={{ fontSize: 13, color: 'var(--portal-muted)' }}>{p.dragHint}</span>
-          )}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            {hasSelection ? (
+              <>
+                <span style={{ fontSize: 13, color: 'var(--portal-text-soft)', fontWeight: 500 }}>{selLabel}</span>
+                <button type="button" onClick={clearSelection} className="action-btn">
+                  <X size={12} aria-hidden /> {p.clearSelection}
+                </button>
+              </>
+            ) : allDays.length > 1 && (
+              <span style={{ fontSize: 13, color: 'var(--portal-muted)' }}>{p.dragHint}</span>
+            )}
+            <button type="button" onClick={() => void downloadReport()} className="action-btn" disabled={reportBusy}>
+              <Download size={12} aria-hidden /> {reportBusy ? p.downloadingReport : p.downloadReport}
+            </button>
+          </div>
         </div>
+        {reportError && <div className="portal-alert portal-alert-danger" role="alert">{p.reportError}</div>}
         <div
           className="play-chart"
           ref={chartRef}
