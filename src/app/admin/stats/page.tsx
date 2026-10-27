@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { BarChart3, Play, Clock, Monitor, Megaphone, FolderOpen, X, MapPin, ChevronDown } from 'lucide-react'
 import StatusBadge from '@/components/app/StatusBadge'
 import HourRange from '@/components/app/HourRange'
+import Link from 'next/link'
 import { useAdminText } from '@/lib/admin-i18n'
 
 const StatsMapView = dynamic(() => import('@/components/admin/StatsMapView'), { ssr: false })
@@ -410,6 +411,16 @@ export default function AdminStatsPage() {
     dragStart.current = null
   }
 
+  const mapFiltered = hasSelection || mapCampaign !== 'all' || mapGroup !== 'all' || mapDevice !== 'all'
+    || hourRange[0] !== 0 || hourRange[1] !== 23
+  const resetMapFilters = () => {
+    clearSelection()
+    setMapCampaign('all')
+    setMapGroup('all')
+    setMapDevice('all')
+    setHourRange([0, 23])
+  }
+
   if (loading) return <div className="portal-loading">{t('Loading…')}</div>
   if (loadError) return (
     <div className="portal-page">
@@ -691,12 +702,28 @@ export default function AdminStatsPage() {
               </div>
             </div>
 
-            <div style={{
-              height: 480, borderRadius: '0.75rem', overflow: 'hidden',
-              border: '1px solid var(--border)',
-            }}>
-              <StatsMapView points={mapPoints} showDistricts />
-            </div>
+            {mapPoints.length === 0 ? (
+              <div className="portal-empty" style={{ height: 480, boxShadow: 'none', border: '1px solid var(--border)' }}>
+                <p>{t('No plays with a GPS position match these filters.')}</p>
+                <div className="admin-header-actions">
+                  {mapFiltered && (
+                    <button type="button" className="portal-btn-primary" onClick={resetMapFilters}>
+                      {t('Reset filters')}
+                    </button>
+                  )}
+                  <Link href="/admin/devices" className="portal-btn-secondary">
+                    <Monitor size={16} aria-hidden /> {t('Check screens are online')}
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                height: 480, borderRadius: '0.75rem', overflow: 'hidden',
+                border: '1px solid var(--border)',
+              }}>
+                <StatsMapView points={mapPoints} showDistricts />
+              </div>
+            )}
           </>
         )}
 

@@ -459,6 +459,9 @@ export const KA: Record<string, string> = {
   'Loading GPS data…': 'GPS მონაცემები იტვირთება…',
   'No GPS data for {date} between {from} and {to}. A point is recorded at the start of each ad play.': 'GPS მონაცემი არ არის ({date}, {from}–{to}). წერტილი იწერება ყოველი რეკლამის ჩვენების დასაწყისში.',
   'today': 'დღეს',
+  'Show the previous day': 'წინა დღის ნახვა',
+  'Show the whole day': 'მთელი დღის ნახვა',
+  'Check screens are online': 'შეამოწმეთ, ონლაინაა თუ არა ეკრანები',
   // ── Activity
   'last 24 hours': 'ბოლო 24 საათში',
   'last 7 days': 'ბოლო 7 დღეში',
@@ -613,6 +616,8 @@ export const KA: Record<string, string> = {
   'No groups': 'ჯგუფები არ არის',
   'Play locations': 'ჩვენებების მდებარეობები',
   '{n} plays on map': 'რუკაზე {n} ჩვენება',
+  'No plays with a GPS position match these filters.': 'ამ ფილტრებით GPS მდებარეობის მქონე ჩვენება ვერ მოიძებნა.',
+  'Reset filters': 'ფილტრების გასუფთავება',
   'Start hour': 'საწყისი საათი',
   'End hour': 'საბოლოო საათი',
   // ── Map components

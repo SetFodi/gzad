@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { RefreshCw, Layers } from 'lucide-react'
+import { RefreshCw, Layers, Monitor } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { useAdminText } from '@/lib/admin-i18n'
 
 const MapView = dynamic(() => import('@/components/admin/MapView'), { ssr: false })
@@ -26,6 +27,12 @@ function tbilisiRange(date: string, startTime: string, endTime: string) {
 
 function todayInTbilisi(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tbilisi' })
+}
+
+function previousDay(date: string): string {
+  const d = new Date(`${date}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
 }
 
 export default function MapPage() {
@@ -95,6 +102,7 @@ export default function MapPage() {
   const devicePositions = Array.from(latestByDevice.values())
 
   const isToday = date === todayInTbilisi()
+  const isWholeDay = startTime === '00:00' && endTime === '23:59'
 
   return (
     <div className="portal-page">
@@ -143,6 +151,20 @@ export default function MapPage() {
         ) : devicePositions.length === 0 ? (
           <div className="portal-empty" style={{ height: '100%', boxShadow: 'none' }}>
             <p>{t('No GPS data for {date} between {from} and {to}. A point is recorded at the start of each ad play.', { date: isToday ? t('today') : date, from: startTime, to: endTime })}</p>
+            <div className="admin-header-actions">
+              {isWholeDay ? (
+                <button type="button" className="portal-btn-primary" onClick={() => setDate(previousDay(date))}>
+                  {t('Show the previous day')}
+                </button>
+              ) : (
+                <button type="button" className="portal-btn-primary" onClick={() => { setStartTime('00:00'); setEndTime('23:59') }}>
+                  {t('Show the whole day')}
+                </button>
+              )}
+              <Link href="/admin/devices" className="portal-btn-secondary">
+                <Monitor size={16} aria-hidden /> {t('Check screens are online')}
+              </Link>
+            </div>
           </div>
         ) : (
           <MapView positions={devicePositions} allPoints={points} showDistricts={showDistricts} />
