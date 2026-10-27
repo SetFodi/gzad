@@ -7,6 +7,8 @@ import { useEffect, useReducer, useRef, useState } from 'react'
 import { DEFAULT_BASE_RATES, money, parsePricingConfig } from '@/lib/billing'
 import { CONTACT, type Copy } from './copy'
 import { EASE, Reveal, rich } from './Reveal'
+import BudgetCalculator from './BudgetCalculator'
+import Segmented from './Segmented'
 import { TILES, gridArea, tileByName, tileCorner, type Tier } from './tiles'
 
 // The agreed billing model (docs/billing-metering-plan.md): airtime is metered in
@@ -154,31 +156,6 @@ const gel = (digits: number) =>
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }) as const
-
-function Segmented({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string
-  value: string
-  options: { value: string; label: string }[]
-  onChange: (v: string) => void
-}) {
-  return (
-    <div className="lp-field">
-      <span className="lp-field-label">{label}</span>
-      <div className="lp-seg" role="radiogroup" aria-label={label} data-count={options.length}>
-        {options.map((o) => (
-          <button key={o.value} type="button" role="radio" aria-checked={o.value === value} onClick={() => onChange(o.value)}>
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export default function Pricing({ t }: { t: Copy }) {
   const p = t.pricing
@@ -453,6 +430,10 @@ export default function Pricing({ t }: { t: Copy }) {
         </Reveal>
 
         <p className="lp-fineprint lp-center lp-meter-note">{s.note}</p>
+
+        <Reveal>
+          <BudgetCalculator t={t} />
+        </Reveal>
         <div className="lp-center">
           <a href={`mailto:${CONTACT.email}?subject=${encodeURIComponent('Campaign quote')}`} className="lp-btn">
             {p.cta}
