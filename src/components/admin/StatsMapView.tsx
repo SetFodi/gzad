@@ -3,6 +3,9 @@
 import { MapContainer, TileLayer, CircleMarker, Popup, Polygon, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import L, { type MarkerCluster } from 'leaflet'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Monitor } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
 import { TBILISI_DISTRICTS } from '@/lib/districts'
@@ -38,50 +41,67 @@ function clusterIcon(cluster: MarkerCluster) {
 
 export default function StatsMapView({ points, showDistricts = true }: StatsMapViewProps) {
   const { t } = useAdminText()
+  // Fleet users see this map too but can't open the admin Devices page.
+  const isAdmin = usePathname()?.startsWith('/admin') ?? false
   const center: [number, number] = points.length > 0
     ? [points[0].lat, points[0].lng]
     : [41.7151, 44.8271]
   const markers = <PlayMarkers points={points} />
 
   return (
-    <MapContainer
-      center={center}
-      zoom={13}
-      style={{ height: '100%', width: '100%', borderRadius: '0.75rem' }}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+      <MapContainer
+        center={center}
+        zoom={13}
+        style={{ height: '100%', width: '100%', borderRadius: '0.75rem' }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-      {showDistricts && TBILISI_DISTRICTS.map(district => (
-        <Polygon
-          key={district.name}
-          positions={district.polygon}
-          pathOptions={{
-            color: district.color,
-            weight: 2,
-            opacity: 0.6,
-            fillColor: district.color,
-            fillOpacity: 0.15,
-          }}
-        >
-          <Tooltip sticky>{t(district.name)}</Tooltip>
-        </Polygon>
-      ))}
+        {showDistricts && TBILISI_DISTRICTS.map(district => (
+          <Polygon
+            key={district.name}
+            positions={district.polygon}
+            pathOptions={{
+              color: district.color,
+              weight: 2,
+              opacity: 0.6,
+              fillColor: district.color,
+              fillOpacity: 0.15,
+            }}
+          >
+            <Tooltip sticky>{t(district.name)}</Tooltip>
+          </Polygon>
+        ))}
 
-      {points.length >= CLUSTER_FROM ? (
-        <MarkerClusterGroup
-          chunkedLoading
-          maxClusterRadius={45}
-          disableClusteringAtZoom={17}
-          showCoverageOnHover={false}
-          iconCreateFunction={clusterIcon}
-        >
-          {markers}
-        </MarkerClusterGroup>
-      ) : markers}
-    </MapContainer>
+        {points.length >= CLUSTER_FROM ? (
+          <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={45}
+            disableClusteringAtZoom={17}
+            showCoverageOnHover={false}
+            iconCreateFunction={clusterIcon}
+          >
+            {markers}
+          </MarkerClusterGroup>
+        ) : markers}
+      </MapContainer>
+      {points.length === 0 && (
+        // Above Leaflet's panes and controls; the map stays draggable around it.
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, pointerEvents: 'none' }}>
+          <div className="portal-empty portal-empty-sm" style={{ pointerEvents: 'auto', maxWidth: 380 }}>
+            <p>{t('No plays with a GPS position match these filters.')}</p>
+            {isAdmin && (
+              <Link href="/admin/devices" className="portal-btn-secondary">
+                <Monitor size={16} aria-hidden /> {t('Check screens are online')}
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
