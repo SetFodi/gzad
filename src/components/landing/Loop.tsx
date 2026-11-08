@@ -18,8 +18,8 @@ export function Facts({ t }: { t: Copy }) {
         {t.facts.map((f, i) => (
           <Reveal key={f.label} delay={i * 0.06} className="lp-fact">
             <p className="lp-fact-value">
-              {f.value}
-              <span>{f.unit}</span>
+              <span className="lp-fact-number">{f.value}</span>
+              <span className="lp-fact-unit">{f.unit}</span>
             </p>
             <p className="lp-fact-label">{f.label}</p>
           </Reveal>

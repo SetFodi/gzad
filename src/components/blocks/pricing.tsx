@@ -354,7 +354,7 @@ export function Pricing({
                                 )}
 
                                 <Link
-                                    href={`mailto:gzadvertisment@gmail.com?subject=Custom Project Inquiry&body=I am interested in a custom package for ${quantity} displays, ${duration} days, ${hoursPerDay} hours per day.`}
+                                    href={`mailto:info@gzadvertisement.ge?subject=Custom Project Inquiry&body=I am interested in a custom package for ${quantity} displays, ${duration} days, ${hoursPerDay} hours per day.`}
                                     className={cn(
                                         buttonVariants({ variant: "default" }),
                                         "w-full py-6 text-base font-bold shadow-lg shadow-primary/20"

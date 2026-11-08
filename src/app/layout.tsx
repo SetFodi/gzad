@@ -5,7 +5,7 @@ import { themeInitScript } from '@/components/app/ThemeSwitch';
 
 export const metadata: Metadata = {
   title: 'Gzad Georgia | Mobile Digital Advertising Network',
-  description: 'Transform Tbilisi\'s taxi fleet into a powerful advertising network. GPS-targeted, real-time LED displays reaching thousands daily.',
+  description: 'Taxi-top LED advertising in Tbilisi. Double-sided screens, airtime pricing and GPS-backed campaign reports.',
 };
 
 export default function RootLayout({

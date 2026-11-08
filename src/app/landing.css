@@ -858,23 +858,33 @@ html:has(.lp) {
 .lp-facts-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 40px;
     border-top: 1px solid var(--lp-hairline);
 }
 
 .lp-fact {
-    padding: 36px 24px 0 0;
+    min-width: 0;
+    padding-top: 36px;
 }
 
 .lp-fact-value {
-    font-size: clamp(40px, 4.4vw, 56px);
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    font-size: clamp(32px, 4vw, 52px);
     font-weight: 700;
     letter-spacing: -0.045em;
     line-height: 1;
     font-variant-numeric: tabular-nums;
 }
 
-.lp-fact-value span {
-    margin-left: 6px;
+.lp-fact-number,
+.lp-fact-unit {
+    white-space: nowrap;
+}
+
+.lp-fact-unit {
     font-size: 0.4em;
     font-weight: 600;
     letter-spacing: -0.01em;
@@ -999,7 +1009,6 @@ html:has(.lp) {
     font-size: 15px;
     font-weight: 600;
     letter-spacing: -0.012em;
-    transition: background-color 0.35s var(--lp-ease), color 0.35s var(--lp-ease), transform 0.35s var(--lp-ease);
 }
 
 .lp-tile-district span {
@@ -1009,25 +1018,13 @@ html:has(.lp) {
     white-space: nowrap;
 }
 
-.lp-tile-district:hover {
-    background: #d8d8de;
-}
-
-.lp-tile-district:active {
-    transform: scale(0.98);
-}
-
-.lp-tile-district[aria-pressed='true'] {
+.lp-tile-district[data-route] {
     background: var(--lp-accent);
     color: #ffffff;
     box-shadow: 0 10px 30px -14px rgba(11, 77, 60, 0.6);
 }
 
-.lp-tile-district[aria-pressed='true']:hover {
-    background: var(--lp-accent-ink-hover);
-}
-
-/* A tiny on-air indicator on selected districts. */
+/* Marks districts along the illustrative taxi route. */
 .lp-tile-district::after {
     content: '';
     position: absolute;
@@ -1039,10 +1036,9 @@ html:has(.lp) {
     background: #ffffff;
     opacity: 0;
     transform: scale(0.4);
-    transition: opacity 0.35s var(--lp-ease), transform 0.35s var(--lp-ease);
 }
 
-.lp-tile-district[aria-pressed='true']::after {
+.lp-tile-district[data-route]::after {
     opacity: 1;
     transform: scale(1);
 }
@@ -1071,10 +1067,29 @@ html:has(.lp) {
     letter-spacing: -0.018em;
 }
 
-.lp-where-actions {
+.lp-where-caption {
+    margin-top: 20px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--lp-muted);
+}
+
+.lp-where-legend {
     display: flex;
+    align-items: center;
     gap: 10px;
-    margin-top: 18px;
+    margin-bottom: 6px;
+    color: var(--lp-ink);
+    font-weight: 600;
+}
+
+.lp-where-legend::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--lp-accent);
 }
 
 .lp-chip {
@@ -2358,6 +2373,11 @@ html:has(.lp) {
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 1068px) {
+    .lp-facts-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 24px;
+    }
+
     .lp-section {
         padding: 112px 0;
     }
@@ -2448,12 +2468,16 @@ html:has(.lp) {
     }
 
     .lp-facts-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        row-gap: 8px;
+        column-gap: 24px;
+        row-gap: 16px;
     }
 
     .lp-fact {
         padding-top: 28px;
+    }
+
+    .lp-fact-value {
+        font-size: clamp(28px, 8vw, 32px);
     }
 
     .lp-loop-bars {

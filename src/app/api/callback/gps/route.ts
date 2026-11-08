@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
               : new Date().toISOString(),
         }
       })
-      .filter(Boolean)
+      .filter((row) => row !== null)
 
     if (rows.length > 0) {
       const { error: insertError } = await supabase.from('gps_logs').insert(rows)

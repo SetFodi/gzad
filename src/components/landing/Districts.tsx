@@ -1,18 +1,14 @@
 'use client'
 
-import { useState } from 'react'
 import type { Copy } from './copy'
 import { Reveal, rich } from './Reveal'
 import { TILES, gridArea } from './tiles'
 
-const ALL = TILES.map((t) => t.name)
+// An example of districts a taxi could pass through, not selectable inventory.
+const EXAMPLE_ROUTE = ['Vake', 'Saburtalo', 'Didube']
 
 export default function Districts({ t }: { t: Copy }) {
-  const [selected, setSelected] = useState<string[]>(['Vake', 'Saburtalo', 'Mtatsminda'])
   const name = (d: string) => t.where.districts[d] ?? d
-  const toggle = (d: string) =>
-    setSelected((cur) => (cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d]))
-  const everything = selected.length === ALL.length
 
   return (
     <section id="where" className="lp-section lp-where">
@@ -22,44 +18,31 @@ export default function Districts({ t }: { t: Copy }) {
           <h2 className="lp-title">{t.where.title}</h2>
           <p className="lp-lede">{rich(t.where.lede)}</p>
 
-          <div className="lp-where-summary" aria-live="polite">
-            <p className="lp-where-label">{t.where.selected}</p>
-            <p className="lp-where-list">
-              {everything
-                ? t.where.all
-                : selected.length
-                  ? ALL.filter((d) => selected.includes(d)).map(name).join(' · ')
-                  : t.where.none}
-            </p>
-            <div className="lp-where-actions">
-              <button type="button" className="lp-chip" aria-pressed={everything} onClick={() => setSelected(ALL)}>
-                {t.where.all}
-              </button>
-              <button type="button" className="lp-chip" onClick={() => setSelected([])} disabled={!selected.length}>
-                {t.where.clear}
-              </button>
-            </div>
+          <div className="lp-where-summary">
+            <p className="lp-where-label">{t.where.budgetLabel}</p>
+            <p className="lp-where-list">{t.where.budget}</p>
           </div>
         </Reveal>
 
-        <Reveal delay={0.1} className="lp-map-card">
-          <div className="lp-tilemap" role="group" aria-label={t.where.title}>
-            {TILES.map((tile) => {
-              const on = selected.includes(tile.name)
-              return (
-                <button
+        <Reveal delay={0.1}>
+          <figure className="lp-map-card">
+            <ul className="lp-tilemap" aria-label={t.where.eyebrow}>
+              {TILES.map((tile) => (
+                <li
                   key={tile.name}
-                  type="button"
                   className="lp-tile-district"
                   style={gridArea(tile)}
-                  aria-pressed={on}
-                  onClick={() => toggle(tile.name)}
+                  data-route={EXAMPLE_ROUTE.includes(tile.name) || undefined}
                 >
                   <span>{name(tile.name)}</span>
-                </button>
-              )
-            })}
-          </div>
+                </li>
+              ))}
+            </ul>
+            <figcaption className="lp-where-caption">
+              <span className="lp-where-legend">{t.where.route}</span>
+              <p>{t.where.caption}</p>
+            </figcaption>
+          </figure>
         </Reveal>
       </div>
     </section>

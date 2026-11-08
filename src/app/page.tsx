@@ -20,7 +20,7 @@ const fonts = {
 export const metadata: Metadata = {
   title: 'Gzad · Taxi-top LED advertising in Tbilisi',
   description:
-    'Double-sided LED screens on taxis across Tbilisi. Target districts, pay only for hours on air, and see every play on a map.',
+    'Double-sided LED screens on taxis across Tbilisi. Your ad travels with the taxis. Pay for airtime and track your campaign on the map.',
 }
 
 export default function Home() {

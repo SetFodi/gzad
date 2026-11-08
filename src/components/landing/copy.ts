@@ -17,7 +17,7 @@ export interface Ad {
 const en = {
   nav: {
     how: 'How it works',
-    where: 'Targeting',
+    where: 'Coverage',
     pricing: 'Pricing',
     fleets: 'For fleets',
     faq: 'FAQ',
@@ -30,7 +30,7 @@ const en = {
     eyebrow: 'Taxi-top LED advertising · Tbilisi',
     titleA: 'Your ad,',
     titleB: 'on the move.',
-    lede: 'Double-sided LED screens on taxis across Tbilisi. **Pick the districts, pay only for hours on air,** and see every play on a map.',
+    lede: 'Double-sided LED screens on taxis across Tbilisi. **Your ad travels with the taxis.** Pay for airtime and track your campaign on the map.',
     primary: 'Start a campaign',
     secondary: 'See how it works',
     status: 'Now onboarding launch partners',
@@ -58,13 +58,13 @@ const en = {
     caption: 'Shown in the screen’s 3:1 format, LED grid and all, the way your ad plays on the street.',
   },
   where: {
-    eyebrow: 'Targeting',
-    title: 'Choose where it plays.',
-    lede: 'Focus on the districts where your customers live, work and spend, **or cover the whole city.** Tap a district to try it.',
-    selected: 'Selected',
-    none: 'Tap a district on the map',
-    all: 'Whole city',
-    clear: 'Clear',
+    eyebrow: 'On the move',
+    title: 'Your ad follows the taxis.',
+    lede: 'Your ad runs during taxis’ regular trips around Tbilisi. **Where it appears depends on where they drive.** Track the actual locations and airtime costs in your dashboard.',
+    budgetLabel: 'You control the budget',
+    budget: 'Set a daily spending limit.',
+    route: 'Example route',
+    caption: 'An illustration of a taxi’s route. Actual coverage varies with its trips.',
     districts: {
       Mtatsminda: 'Mtatsminda',
       Vake: 'Vake',
@@ -102,7 +102,7 @@ const en = {
     title: 'On the road in three steps.',
     items: [
       { title: 'Send your creative', body: 'An image or a short video in a wide 3:1 format. Don’t have one? We can help design it.' },
-      { title: 'Choose districts and budget', body: 'Tell us where you want to be seen and for how many hours a day. We set it up and confirm the price.' },
+      { title: 'Set your budget', body: 'Top up your balance and set an optional daily spending limit. Our team reviews your ad and assigns it to screens.' },
       { title: 'Go live and follow along', body: 'Your ad joins the loop. Track plays, places and spend from your dashboard.' },
     ],
   },
@@ -200,7 +200,7 @@ const en = {
   },
   closing: {
     title: 'Put your brand on the road.',
-    lede: 'Tell us what you’re promoting and where. We’ll come back with a plan and a price.',
+    lede: 'Tell us what you’re promoting and your budget. We’ll help you plan the campaign.',
     email: 'Email us',
     call: 'Call',
     hours: 'Mon – Sat, 10:00 – 19:00',
@@ -222,7 +222,7 @@ export type Copy = typeof en
 const ge: Copy = {
   nav: {
     how: 'როგორ მუშაობს',
-    where: 'ტარგეტირება',
+    where: 'დაფარვა',
     pricing: 'ფასები',
     fleets: 'ავტოპარკებს',
     faq: 'კითხვები',
@@ -235,7 +235,7 @@ const ge: Copy = {
     eyebrow: 'LED რეკლამა ტაქსებზე · თბილისი',
     titleA: 'თქვენი რეკლამა,',
     titleB: 'მოძრაობაში.',
-    lede: 'ორმხრივი LED ეკრანები თბილისის ტაქსებზე. **აირჩიეთ უბნები, გადაიხადეთ მხოლოდ ეთერის საათებში** და ნახეთ ყოველი ჩვენება რუკაზე.',
+    lede: 'ორმხრივი LED ეკრანები თბილისის ტაქსებზე. **თქვენი რეკლამა ტაქსებთან ერთად მოძრაობს.** გადაიხადეთ ეთერისთვის და თვალი ადევნეთ კამპანიას რუკაზე.',
     primary: 'კამპანიის დაწყება',
     secondary: 'როგორ მუშაობს',
     status: 'ვიღებთ პირველ პარტნიორებს',
@@ -263,13 +263,13 @@ const ge: Copy = {
     caption: 'ნაჩვენებია ეკრანის 3:1 ფორმატში, LED ბადით, ისე, როგორც თქვენი რეკლამა ქუჩაში გადის.',
   },
   where: {
-    eyebrow: 'ტარგეტირება',
-    title: 'აირჩიეთ, სად გავიდეს.',
-    lede: 'ფოკუსირდით უბნებზე, სადაც თქვენი მომხმარებლები ცხოვრობენ, მუშაობენ და ხარჯავენ, **ან დაფარეთ მთელი ქალაქი.** სცადეთ: შეეხეთ უბანს რუკაზე.',
-    selected: 'არჩეულია',
-    none: 'შეეხეთ უბანს რუკაზე',
-    all: 'მთელი ქალაქი',
-    clear: 'გასუფთავება',
+    eyebrow: 'მოძრაობა ქალაქში',
+    title: 'რეკლამაც გზაშია.',
+    lede: 'თქვენი რეკლამა ტაქსებზე მათი ყოველდღიური მგზავრობების დროს გადის. **ჩვენების ადგილი ტაქსის მარშრუტზეა დამოკიდებული.** რეალურ ლოკაციებსა და ეთერის ხარჯს თქვენს დაფაზე ნახავთ.',
+    budgetLabel: 'ბიუჯეტს თქვენ აკონტროლებთ',
+    budget: 'დააწესეთ ხარჯვის დღიური ლიმიტი.',
+    route: 'მარშრუტის მაგალითი',
+    caption: 'ტაქსის მარშრუტის ილუსტრაცია. რეალური დაფარვა მის მგზავრობებზეა დამოკიდებული.',
     districts: {
       Mtatsminda: 'მთაწმინდა',
       Vake: 'ვაკე',
@@ -307,7 +307,7 @@ const ge: Copy = {
     title: 'გზაზე სამ ნაბიჯში.',
     items: [
       { title: 'გამოგვიგზავნეთ ვიზუალი', body: 'სურათი ან მოკლე ვიდეო ფართო, 3:1 ფორმატში. არ გაქვთ? დიზაინში დაგეხმარებით.' },
-      { title: 'აირჩიეთ უბნები და ბიუჯეტი', body: 'გვითხარით, სად გსურთ გამოჩენა და დღეში რამდენი საათით. ჩვენ ყველაფერს ავაწყობთ და ფასს დაგიდასტურებთ.' },
+      { title: 'განსაზღვრეთ ბიუჯეტი', body: 'შეავსეთ ბალანსი და სურვილისამებრ დააწესეთ ხარჯვის დღიური ლიმიტი. ჩვენი გუნდი შეამოწმებს რეკლამას და ეკრანებზე განათავსებს.' },
       { title: 'გადით ეთერში და ადევნეთ თვალი', body: 'თქვენი რეკლამა ციკლს უერთდება. ჩვენებებს, ლოკაციებსა და ხარჯს დაფიდან აკონტროლებთ.' },
     ],
   },
@@ -405,7 +405,7 @@ const ge: Copy = {
   },
   closing: {
     title: 'თქვენი ბრენდი — გზაზე.',
-    lede: 'მოგვწერეთ, რას არეკლამებთ და სად. შემოგთავაზებთ გეგმას და ფასს.',
+    lede: 'მოგვწერეთ, რას არეკლამებთ და რა ბიუჯეტით. კამპანიის დაგეგმვაში დაგეხმარებით.',
     email: 'მოგვწერეთ',
     call: 'დაგვირეკეთ',
     hours: 'ორშ – შაბ, 10:00 – 19:00',
@@ -425,7 +425,7 @@ const ge: Copy = {
 export const copy: Record<Lang, Copy> = { en, ge }
 
 export const CONTACT = {
-  email: 'gzadvertisment@gmail.com',
+  email: 'info@gzadvertisement.ge',
   phone: '+995 591 410 914',
   phoneHref: 'tel:+995591410914',
 }

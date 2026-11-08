@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n'
 import AuthShell, { AuthAlert, AuthSubmit, PasswordInput } from '@/components/auth/AuthShell'
 
-const SUPPORT_EMAIL = 'gzadvertisment@gmail.com'
+const SUPPORT_EMAIL = 'info@gzadvertisement.ge'
 
 export default function LoginForm({ linkFailed, emailVerified }: { linkFailed: boolean; emailVerified: boolean }) {
   const [email, setEmail] = useState('')
