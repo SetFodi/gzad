@@ -6,14 +6,9 @@ import type { Copy } from './copy'
 import { EASE, Reveal, rich } from './Reveal'
 import { useLandingReducedMotion } from './useLandingReducedMotion'
 
-// Illustrative log rows: one play per 50-second loop, as a car crosses town.
+// Illustrative delivery records as a car crosses town.
 const ROUTE = ['Vake', 'Vake', 'Saburtalo', 'Saburtalo', 'Didube', 'Chughureti', 'Mtatsminda', 'Mtatsminda']
-const START = 14 * 3600 + 2 * 60 + 10
-const LOOP_S = 50
 const VISIBLE = 5
-
-const clock = (s: number) =>
-  [Math.floor(s / 3600) % 24, Math.floor(s / 60) % 60, s % 60].map((n) => String(n).padStart(2, '0')).join(':')
 
 export default function Proof({ t }: { t: Copy }) {
   const reduce = useLandingReducedMotion()
@@ -29,7 +24,6 @@ export default function Proof({ t }: { t: Copy }) {
 
   const rows = Array.from({ length: VISIBLE }, (_, i) => count - 1 - i).map((n) => ({
     n,
-    time: clock(START + n * LOOP_S),
     district: t.where.districts[ROUTE[n % ROUTE.length]],
   }))
 
@@ -84,7 +78,7 @@ export default function Proof({ t }: { t: Copy }) {
 
             <div className="lp-log-head">
               <span>{t.proof.logTitle}</span>
-              <span>TX-04</span>
+              <span>{t.proof.example}</span>
             </div>
             <ul className="lp-log-rows">
               <AnimatePresence initial={false}>
@@ -97,10 +91,10 @@ export default function Proof({ t }: { t: Copy }) {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.5, ease: EASE }}
                   >
-                    <span className="lp-log-time">{r.time}</span>
+                    <span className="lp-log-time">{t.proof.recent}</span>
                     <span className="lp-log-place">{r.district}</span>
                     <span className="lp-log-ok">
-                      10 {t.loop.seconds}
+                      {t.proof.recorded}
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
                         <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>

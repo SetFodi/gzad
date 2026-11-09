@@ -15,417 +15,505 @@ export interface Ad {
 }
 
 const en = {
-  nav: {
-    how: 'How it works',
-    where: 'Coverage',
-    pricing: 'Pricing',
-    fleets: 'For fleets',
-    faq: 'FAQ',
-    login: 'Log in',
-    cta: 'Start a campaign',
-    menu: 'Open menu',
-    close: 'Close menu',
+  "nav": {
+    "how": "How it works",
+    "where": "Coverage",
+    "pricing": "Pricing",
+    "fleets": "For fleets",
+    "faq": "FAQ",
+    "login": "Log in",
+    "cta": "Start a campaign",
+    "menu": "Open menu",
+    "close": "Close menu"
   },
-  hero: {
-    eyebrow: 'Taxi-top LED advertising · Tbilisi',
-    titleA: 'Your ad,',
-    titleB: 'on the move.',
-    lede: 'Double-sided LED screens on taxis across Tbilisi. **Your ad travels with the taxis.** Pay for airtime and track your campaign on the map.',
-    primary: 'Start a campaign',
-    secondary: 'See how it works',
-    status: 'Now onboarding launch partners',
+  "hero": {
+    "eyebrow": "Taxi-top LED advertising · Tbilisi",
+    "titleA": "Your ad,",
+    "titleB": "on the move.",
+    "lede": "Double-sided LED screens on taxis across Tbilisi. **Your ad travels with the taxis.** Pay for airtime and track your campaign on the map.",
+    "primary": "Start a campaign",
+    "secondary": "See how it works",
+    "status": "Now onboarding launch partners"
   },
-  ads: [
-    { tag: 'Open till 2am', brand: 'Puri House', line: 'Hot from the oven · Vake', theme: 'sun' },
-    { tag: 'First month', brand: 'VAKE FIT', line: 'Join this week', big: '₾0', theme: 'cobalt' },
-    { tag: 'Gzad', brand: 'Your ad here.', line: 'gzad.ge', theme: 'self' },
-    { tag: 'Sat – Sun', brand: 'Weekend Sale', line: 'Saburtalo', big: '−30%', theme: 'magenta' },
-    { tag: '2 for 1 before 10am', brand: 'nova coffee', line: 'Rustaveli · Chavchavadze', theme: 'forest' },
+  "ads": [
+    {
+      "tag": "Freshly baked",
+      "brand": "Puri House",
+      "line": "Hot from the oven · Vake",
+      "theme": "sun"
+    },
+    {
+      "tag": "Join the club",
+      "brand": "VAKE FIT",
+      "line": "Join this week",
+      "theme": "cobalt"
+    },
+    {
+      "tag": "Gzad",
+      "brand": "Your ad here.",
+      "line": "gzadvertisement.ge",
+      "theme": "self"
+    },
+    {
+      "tag": "Sat – Sun",
+      "brand": "Weekend Sale",
+      "line": "Saburtalo",
+      "theme": "magenta"
+    },
+    {
+      "tag": "Start your morning",
+      "brand": "nova coffee",
+      "line": "Rustaveli · Chavchavadze",
+      "theme": "forest"
+    }
   ] as Ad[],
-  facts: [
-    { value: '2', unit: 'sides', label: 'Seen from both sides of the street' },
-    { value: '4,500+', unit: 'nits', label: 'Readable in midday sun' },
-    { value: '5', unit: 'slots', label: 'Brands sharing one loop' },
-    { value: '₾2', unit: '/ hour', label: 'Base rate per screen' },
+  "facts": [
+    {
+      "value": "In motion",
+      "unit": "",
+      "label": "Your brand travels through Tbilisi"
+    },
+    {
+      "value": "Day & night",
+      "unit": "",
+      "label": "Bright screens made for the street"
+    },
+    {
+      "value": "Recorded",
+      "unit": "",
+      "label": "Follow your campaign in your account"
+    },
+    {
+      "value": "Flexible",
+      "unit": "",
+      "label": "Set a budget that suits your campaign"
+    }
   ],
-  loop: {
-    eyebrow: 'One screen, five slots',
-    title: 'Your ad comes around again. And again.',
-    lede: 'Every screen plays a loop of five ads. **Yours takes one slot** and returns every time the loop does. With five 10-second ads, the whole loop takes 50 seconds.',
-    you: 'Your ad',
-    slot: 'Slot',
-    seconds: 's',
-    caption: 'Shown in the screen’s 3:1 format, LED grid and all, the way your ad plays on the street.',
+  "loop": {
+    "eyebrow": "Advertising on the move",
+    "title": "Your ad comes around again. And again.",
+    "lede": "Your creative appears on a roof-mounted LED screen as taxis travel through Tbilisi. **Ads repeat throughout the journey**, bringing your brand back into view.",
+    "you": "Your ad",
+    "slot": "Slot",
+    "seconds": "s",
+    "caption": "A double-sided LED screen on the taxi’s roof. The car keeps moving, and the ads keep rotating.",
+    "sceneLabel": "A white demo sedan with a roof-mounted LED screen driving past Tbilisi’s hills, TV tower and Old Town balconies.",
+    "pause": "Pause animation",
+    "play": "Play animation"
   },
-  where: {
-    eyebrow: 'On the move',
-    title: 'Your ad follows the taxis.',
-    lede: 'Your ad runs during taxis’ regular trips around Tbilisi. **Where it appears depends on where they drive.** Track the actual locations and airtime costs in your dashboard.',
-    budgetLabel: 'You control the budget',
-    budget: 'Set a daily spending limit.',
-    route: 'Example route',
-    caption: 'An illustration of a taxi’s route. Actual coverage varies with its trips.',
-    districts: {
-      Mtatsminda: 'Mtatsminda',
-      Vake: 'Vake',
-      Saburtalo: 'Saburtalo',
-      Chughureti: 'Chughureti',
-      Didube: 'Didube',
-      Nadzaladevi: 'Nadzaladevi',
-      Gldani: 'Gldani',
-      Isani: 'Isani',
-      Samgori: 'Samgori',
-      Krtsanisi: 'Krtsanisi',
-    } as Record<string, string>,
+  "where": {
+    "eyebrow": "On the move",
+    "title": "Your ad follows the taxis.",
+    "lede": "Your ad runs during taxis’ regular trips around Tbilisi. **Where it appears depends on where they drive.** Track the actual locations and airtime costs in your dashboard.",
+    "budgetLabel": "You control the budget",
+    "budget": "Set a daily spending limit.",
+    "route": "Example route",
+    "caption": "An illustration of a taxi’s route. Actual coverage varies with its trips.",
+    "districts": {
+      "Mtatsminda": "Mtatsminda",
+      "Vake": "Vake",
+      "Saburtalo": "Saburtalo",
+      "Chughureti": "Chughureti",
+      "Didube": "Didube",
+      "Nadzaladevi": "Nadzaladevi",
+      "Gldani": "Gldani",
+      "Isani": "Isani",
+      "Samgori": "Samgori",
+      "Krtsanisi": "Krtsanisi"
+    }
   },
-  proof: {
-    eyebrow: 'Proof of play',
-    title: 'Every play, on the record.',
-    lede: 'Screens report each play with its time and GPS position. **Watch your campaign live on the map** and check the log behind every hour you pay for.',
-    live: 'Live',
-    logTitle: 'Play log',
+  "proof": {
+    "eyebrow": "Proof of play",
+    "title": "Every play, on the record.",
+    "lede": "Screens report each play with its time and GPS position. **Follow your campaign on the map** and check its recorded delivery in your account.",
+    "live": "Live",
+    "logTitle": "Play log",
+    "recent": "Recent",
+    "recorded": "Recorded",
+    "example": "Example"
   },
-  features: {
-    eyebrow: 'Built for the street',
-    title: 'Everything a campaign needs. Nothing it doesn’t.',
-    items: [
-      { title: 'Double-sided', body: 'Two screens, back to back. Both sides of the street see your ad.' },
-      { title: 'Ultra-bright screen', body: 'Readable even in direct sun, impossible to miss at night (4,500+ nits).' },
-      { title: 'Change it any time', body: 'Upload a new creative and the screens switch over once it’s approved. Nothing to reprint.' },
-      { title: 'Checked before it airs', body: 'Our team reviews every creative before it reaches the street.' },
-      { title: 'Prepaid, metered', body: 'Top up a balance. Airtime is metered in 10-minute blocks and deducted every 15 minutes. Set a daily cap, and we’ll warn you before the balance runs out.' },
-      { title: 'Live map', body: 'See where your ad is right now, and everywhere it has been.' },
+  "features": {
+    "eyebrow": "Built for the street",
+    "title": "Everything a campaign needs. Nothing it doesn’t.",
+    "items": [
+      {
+        "title": "Double-sided",
+        "body": "Two screens, back to back. Both sides of the street see your ad."
+      },
+      {
+        "title": "Ultra-bright screen",
+        "body": "Made to stay readable in bright daylight and after dark."
+      },
+      {
+        "title": "Change it any time",
+        "body": "Upload a new creative and the screens switch over once it’s approved. Nothing to reprint."
+      },
+      {
+        "title": "Checked before it airs",
+        "body": "Our team reviews every creative before it reaches the street."
+      },
+      {
+        "title": "Prepaid, metered",
+        "body": "Top up your balance and set an optional daily limit. Your account shows recorded airtime and spending, and alerts you when funds run low."
+      },
+      {
+        "title": "Live map",
+        "body": "See where your ad is right now, and everywhere it has been."
+      }
+    ]
+  },
+  "steps": {
+    "eyebrow": "How it works",
+    "title": "Get your campaign on the road.",
+    "items": [
+      {
+        "title": "Send your creative",
+        "body": "A wide image or a short video. Create an account for the creative requirements, or ask us for help with the design."
+      },
+      {
+        "title": "Set your budget",
+        "body": "Top up your balance and set an optional daily spending limit. Our team reviews your ad and assigns it to screens."
+      },
+      {
+        "title": "Go live and follow along",
+        "body": "Your ad joins the loop. Track plays, places and spend from your dashboard."
+      }
+    ]
+  },
+  "pricing": {
+    "eyebrow": "Your campaign budget",
+    "title": "A budget that moves with you.",
+    "lede": "Fund your balance and pay for recorded airtime. Cost depends on your creative and where and when the taxis travel. **Explore the details and try both calculators in your account**, or talk to us about your campaign.",
+    "login": "Log in",
+    "register": "Create an account",
+    "contact": "Talk to our team"
+  },
+  "fleets": {
+    "eyebrow": "For taxi fleets",
+    "title": "Your cars already cover the city. Now they can earn from it.",
+    "items": [
+      {
+        "title": "We install and maintain",
+        "body": "Our team fits and services the screens, at our cost."
+      },
+      {
+        "title": "A share of the revenue",
+        "body": "Your fleet earns a share of the ad revenue its cars bring in, on terms set in your partnership agreement."
+      },
+      {
+        "title": "One dashboard",
+        "body": "See each car, whether its screen is on and where its ads ran."
+      }
     ],
+    "cta": "Become a fleet partner"
   },
-  steps: {
-    eyebrow: 'How it works',
-    title: 'On the road in three steps.',
-    items: [
-      { title: 'Send your creative', body: 'An image or a short video in a wide 3:1 format. Don’t have one? We can help design it.' },
-      { title: 'Set your budget', body: 'Top up your balance and set an optional daily spending limit. Our team reviews your ad and assigns it to screens.' },
-      { title: 'Go live and follow along', body: 'Your ad joins the loop. Track plays, places and spend from your dashboard.' },
-    ],
-  },
-  pricing: {
-    eyebrow: 'Pricing',
-    title: 'Top up once. Pay as you play.',
-    lede: 'Add funds to your balance. Your airtime is metered in 10-minute blocks, each priced by **your ad length, the district the car is in and the time of day,** and charged only for what actually played. Your balance updates every 15 minutes, and you can set a daily cap.',
-    sim: {
-      balance: 'Balance',
-      deducted: 'Deducted',
-      lowAlert: 'Low-balance alert',
-      nextUpdate: 'Next balance update in',
-      min: 'min',
-      metered: 'metered since the last update',
-      topUp: 'Top up',
-      play: 'Play',
-      pause: 'Pause',
-      adLength: 'Ad length',
-      cap: 'Daily cap',
-      noCap: 'No cap',
-      today: 'Spent today',
-      capReached: 'Daily cap reached. Ads pause until midnight.',
-      now: 'Right now',
-      perHour: 'per hour',
-      perBlock: 'per 10-minute block',
-      taxiOff: 'Taxi off: nothing is charged',
-      usage: 'Metered in 10-minute blocks',
-      off: 'Off',
-      capped: 'Cap',
-      empty: 'Balance used up. Ads paused until you top up.',
-      note: 'An illustration of one screen. Which tier each district sits in is an example; your exact rates are confirmed when you book.',
-    },
-    tiers: { '1': 'Prime', '2': 'Busy', '3': 'Popular', '4': 'Standard' } as Record<string, string>,
-    bands: { night: 'Night', day: 'Daytime', evening: 'Evening', rush: 'Rush hour' } as Record<string, string>,
-    calc: {
-      title: 'What does your budget buy?',
-      lede: 'A rough estimate before you sign up. You don’t pick districts: you pay for wherever the taxis actually drive, so the answer is a range.',
-      budget: 'Budget',
-      budgetAria: 'Budget in lari',
-      when: 'When',
-      any: 'Any time',
-      screens: 'Screens',
-      plays: 'plays of your ad',
-      hours: '{min}–{max} hours on air',
-      perScreen: 'about {min}–{max} h on each of {n} screens',
-      perPlay: '₾{min}–{max} per play',
-      range: 'The low end is taxis in prime districts like Vake, the high end standard ones like Samgori.',
-      assumption: 'Assumes the other four slots in the loop are 10-second ads, so a {seconds}-second ad plays about {plays} times an hour. Your exact rates are confirmed when you book.',
-    },
-    cta: 'Get a quote',
-  },
-  fleets: {
-    eyebrow: 'For taxi fleets',
-    title: 'Your cars already cover the city. Now they can earn from it.',
-    items: [
-      { title: 'We install and maintain', body: 'Our team fits and services the screens, at our cost.' },
-      { title: 'A share of the revenue', body: 'Your fleet earns a share of the ad revenue its cars bring in, on terms set in your partnership agreement.' },
-      { title: 'One dashboard', body: 'See each car, whether its screen is on and where its ads ran.' },
-    ],
-    cta: 'Become a fleet partner',
-  },
-  faq: {
-    eyebrow: 'FAQ',
-    title: 'Questions, answered.',
-    items: [
+  "faq": {
+    "eyebrow": "FAQ",
+    "title": "Questions, answered.",
+    "more": "Explore campaign details and calculators in your account.",
+    "items": [
       {
-        q: 'How is a campaign priced?',
-        a: 'By the screen-hour: one ad slot, on one screen, for one hour. The base rate depends on your ad length (₾2.00 for 10 seconds, ₾3.40 for 20, ₾4.60 for 30), then adjusts for where the car is and when: busier districts cost up to 45% more, rush hour costs more and late night less. Airtime is metered in 10-minute blocks, and a block your ad only partly played is charged only for that part.',
+        "q": "How is a campaign priced?",
+        "a": "Pricing follows your creative, recorded airtime, and where and when the taxis travel. Log in or create an account to explore the rates and calculators, or contact us to discuss your campaign."
       },
       {
-        q: 'Do I need a long contract?',
-        a: 'No. You top up a balance, and every 15 minutes it’s drawn down for the airtime you used. You can set a daily cap, we’ll warn you when the balance runs low, and if it runs out your ads pause automatically.',
+        "q": "Do I need a long contract?",
+        "a": "You fund a prepaid balance and can set an optional daily spending limit. Your ads pause when the balance is used up. Contact us for the terms that apply to your campaign."
       },
       {
-        q: 'Can I change my ad mid-campaign?',
-        a: 'Yes. Upload a new creative, and once our team approves it the screens switch over.',
+        "q": "Can I change my ad mid-campaign?",
+        "a": "Yes. Upload a new creative, and once our team approves it the screens switch over."
       },
       {
-        q: 'How do I know my ad actually played?',
-        a: 'Every screen reports each play with the time and GPS position. You see it on the map and in your campaign log.',
+        "q": "How do I know my ad actually played?",
+        "a": "Every screen reports each play with the time and GPS position. You see it on the map and in your campaign log."
       },
       {
-        q: 'What should my creative look like?',
-        a: 'The screen is wide, with a 3:1 ratio. Big type, strong contrast and one clear message work best. We’re happy to help with the design.',
+        "q": "What should my creative look like?",
+        "a": "Use a wide image or short video with large text, strong contrast and a clear message. The full creative requirements are available in your account. We can also help with design."
       },
       {
-        q: 'How many other ads share the screen?',
-        a: 'Up to four. Each screen runs a loop of five slots, and your campaign takes one of them.',
+        "q": "How do ads appear on the screen?",
+        "a": "Screens rotate between approved campaigns, so your ad appears repeatedly along the journey. Log in or create an account to learn how airtime works and estimate your budget."
       },
       {
-        q: 'I run a taxi fleet. How do we join?',
-        a: 'Sign up as a fleet partner and we’ll get in touch to agree terms and schedule the installation.',
-      },
-    ],
+        "q": "I run a taxi fleet. How do we join?",
+        "a": "Sign up as a fleet partner and we’ll get in touch to agree terms and schedule the installation."
+      }
+    ]
   },
-  closing: {
-    title: 'Put your brand on the road.',
-    lede: 'Tell us what you’re promoting and your budget. We’ll help you plan the campaign.',
-    email: 'Email us',
-    call: 'Call',
-    hours: 'Mon – Sat, 10:00 – 19:00',
+  "closing": {
+    "title": "Put your brand on the road.",
+    "lede": "Tell us what you’re promoting and your budget. We’ll help you plan the campaign.",
+    "email": "Email us",
+    "call": "Call",
+    "hours": "Mon – Sat, 10:00 – 19:00"
   },
-  footer: {
-    tagline: 'Taxi-top LED advertising in Tbilisi.',
-    product: 'Product',
-    partners: 'Partners',
-    legal: 'Legal',
-    fleetSignup: 'Fleet sign-up',
-    privacy: 'Privacy',
-    terms: 'Terms',
-    rights: '© 2026 Gzadvertisement LLC. All rights reserved.',
-  },
+  "footer": {
+    "tagline": "Taxi-top LED advertising in Tbilisi.",
+    "product": "Product",
+    "partners": "Partners",
+    "legal": "Legal",
+    "fleetSignup": "Fleet sign-up",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "rights": "© 2026 Gzadvertisement LLC. All rights reserved."
+  }
 }
 
-export type Copy = typeof en
+export type Copy = Omit<typeof en, 'where'> & { where: Omit<typeof en.where, 'districts'> & { districts: Record<string, string> } }
 
 const ge: Copy = {
-  nav: {
-    how: 'როგორ მუშაობს',
-    where: 'დაფარვა',
-    pricing: 'ფასები',
-    fleets: 'ავტოპარკებს',
-    faq: 'კითხვები',
-    login: 'შესვლა',
-    cta: 'კამპანიის დაწყება',
-    menu: 'მენიუს გახსნა',
-    close: 'მენიუს დახურვა',
+  "nav": {
+    "how": "როგორ მუშაობს",
+    "where": "დაფარვა",
+    "pricing": "ფასები",
+    "fleets": "ავტოპარკებს",
+    "faq": "კითხვები",
+    "login": "შესვლა",
+    "cta": "კამპანიის დაწყება",
+    "menu": "მენიუს გახსნა",
+    "close": "მენიუს დახურვა"
   },
-  hero: {
-    eyebrow: 'LED რეკლამა ტაქსებზე · თბილისი',
-    titleA: 'თქვენი რეკლამა,',
-    titleB: 'მოძრაობაში.',
-    lede: 'ორმხრივი LED ეკრანები თბილისის ტაქსებზე. **თქვენი რეკლამა ტაქსებთან ერთად მოძრაობს.** გადაიხადეთ ეთერისთვის და თვალი ადევნეთ კამპანიას რუკაზე.',
-    primary: 'კამპანიის დაწყება',
-    secondary: 'როგორ მუშაობს',
-    status: 'ვიღებთ პირველ პარტნიორებს',
+  "hero": {
+    "eyebrow": "LED რეკლამა ტაქსებზე · თბილისი",
+    "titleA": "თქვენი რეკლამა,",
+    "titleB": "მოძრაობაში.",
+    "lede": "ორმხრივი LED ეკრანები თბილისის ტაქსებზე. **თქვენი რეკლამა ტაქსებთან ერთად მოძრაობს.** გადაიხადეთ ეთერისთვის და თვალი ადევნეთ კამპანიას რუკაზე.",
+    "primary": "კამპანიის დაწყება",
+    "secondary": "როგორ მუშაობს",
+    "status": "ვიღებთ პირველ პარტნიორებს"
   },
-  ads: [
-    { tag: 'ღიაა 02:00-მდე', brand: 'Puri House', line: 'ცხელი, ახლახან გამომცხვარი · ვაკე', theme: 'sun' },
-    { tag: 'პირველი თვე', brand: 'VAKE FIT', line: 'შემოგვიერთდით ამ კვირაში', big: '₾0', theme: 'cobalt' },
-    { tag: 'Gzad', brand: 'თქვენი რეკლამა აქ.', line: 'gzad.ge', theme: 'self' },
-    { tag: 'შაბ – კვი', brand: 'ფასდაკლება', line: 'საბურთალო', big: '−30%', theme: 'magenta' },
-    { tag: '2 ერთის ფასად 10:00-მდე', brand: 'nova coffee', line: 'რუსთაველი · ჭავჭავაძე', theme: 'forest' },
+  "ads": [
+    {
+      "tag": "ახლად გამომცხვარი",
+      "brand": "Puri House",
+      "line": "ცხელი, ახლახან გამომცხვარი · ვაკე",
+      "theme": "sun"
+    },
+    {
+      "tag": "შემოგვიერთდით",
+      "brand": "VAKE FIT",
+      "line": "შემოგვიერთდით ამ კვირაში",
+      "theme": "cobalt"
+    },
+    {
+      "tag": "Gzad",
+      "brand": "თქვენი რეკლამა აქ.",
+      "line": "gzadvertisement.ge",
+      "theme": "self"
+    },
+    {
+      "tag": "შაბ – კვი",
+      "brand": "ფასდაკლება",
+      "line": "საბურთალო",
+      "theme": "magenta"
+    },
+    {
+      "tag": "დაიწყეთ დილა",
+      "brand": "nova coffee",
+      "line": "რუსთაველი · ჭავჭავაძე",
+      "theme": "forest"
+    }
   ],
-  facts: [
-    { value: '2', unit: 'მხარე', label: 'ჩანს ქუჩის ორივე მხრიდან' },
-    { value: '4,500+', unit: 'ნიტი', label: 'იკითხება შუადღის მზეზეც' },
-    { value: '5', unit: 'სლოტი', label: 'ხუთი ბრენდი ერთ ციკლში' },
-    { value: '₾2', unit: '/ საათი', label: 'საბაზო ტარიფი ერთ ეკრანზე' },
+  "facts": [
+    {
+      "value": "მოძრაობაში",
+      "unit": "",
+      "label": "თქვენი ბრენდი თბილისის ქუჩებში"
+    },
+    {
+      "value": "დღე და ღამე",
+      "unit": "",
+      "label": "ქუჩისთვის შექმნილი კაშკაშა ეკრანები"
+    },
+    {
+      "value": "აღრიცხული",
+      "unit": "",
+      "label": "ადევნეთ თვალი კამპანიას ანგარიშიდან"
+    },
+    {
+      "value": "მოქნილი",
+      "unit": "",
+      "label": "მოარგეთ ბიუჯეტი თქვენს კამპანიას"
+    }
   ],
-  loop: {
-    eyebrow: 'ერთი ეკრანი, ხუთი სლოტი',
-    title: 'თქვენი რეკლამა ბრუნდება. ისევ და ისევ.',
-    lede: 'ყოველი ეკრანი ხუთი რეკლამის ციკლს უშვებს. **თქვენი რეკლამა ერთ სლოტს იკავებს** და ყოველ ციკლში ბრუნდება. ხუთი 10-წამიანი რეკლამით მთელი ციკლი 50 წამს გრძელდება.',
-    you: 'თქვენი რეკლამა',
-    slot: 'სლოტი',
-    seconds: 'წმ',
-    caption: 'ნაჩვენებია ეკრანის 3:1 ფორმატში, LED ბადით, ისე, როგორც თქვენი რეკლამა ქუჩაში გადის.',
+  "loop": {
+    "eyebrow": "რეკლამა მოძრაობაში",
+    "title": "თქვენი რეკლამა ბრუნდება. ისევ და ისევ.",
+    "lede": "თქვენი ვიზუალი ტაქსის სახურავზე დამონტაჟებულ LED ეკრანზე გადის, თბილისის ქუჩებში მგზავრობისას. **რეკლამები გზადაგზა მეორდება** და თქვენს ბრენდს კვლავ აჩენს.",
+    "you": "თქვენი რეკლამა",
+    "slot": "სლოტი",
+    "seconds": "წმ",
+    "caption": "ორმხრივი LED ეკრანი ტაქსის სახურავზე. ტაქსი მოძრაობს, რეკლამები კი ერთმანეთს ენაცვლება.",
+    "sceneLabel": "თეთრი სადემონსტრაციო სედანი სახურავზე LED ეკრანით, თბილისის მთების, ტელეანძისა და ძველი ქალაქის აივნების ფონზე.",
+    "pause": "ანიმაციის შეჩერება",
+    "play": "ანიმაციის გაშვება"
   },
-  where: {
-    eyebrow: 'მოძრაობა ქალაქში',
-    title: 'რეკლამაც გზაშია.',
-    lede: 'თქვენი რეკლამა ტაქსებზე მათი ყოველდღიური მგზავრობების დროს გადის. **ჩვენების ადგილი ტაქსის მარშრუტზეა დამოკიდებული.** რეალურ ლოკაციებსა და ეთერის ხარჯს თქვენს დაფაზე ნახავთ.',
-    budgetLabel: 'ბიუჯეტს თქვენ აკონტროლებთ',
-    budget: 'დააწესეთ ხარჯვის დღიური ლიმიტი.',
-    route: 'მარშრუტის მაგალითი',
-    caption: 'ტაქსის მარშრუტის ილუსტრაცია. რეალური დაფარვა მის მგზავრობებზეა დამოკიდებული.',
-    districts: {
-      Mtatsminda: 'მთაწმინდა',
-      Vake: 'ვაკე',
-      Saburtalo: 'საბურთალო',
-      Chughureti: 'ჩუღურეთი',
-      Didube: 'დიდუბე',
-      Nadzaladevi: 'ნაძალადევი',
-      Gldani: 'გლდანი',
-      Isani: 'ისანი',
-      Samgori: 'სამგორი',
-      Krtsanisi: 'კრწანისი',
-    },
+  "where": {
+    "eyebrow": "მოძრაობა ქალაქში",
+    "title": "რეკლამაც გზაშია.",
+    "lede": "თქვენი რეკლამა ტაქსებზე მათი ყოველდღიური მგზავრობების დროს გადის. **ჩვენების ადგილი ტაქსის მარშრუტზეა დამოკიდებული.** რეალურ ლოკაციებსა და ეთერის ხარჯს თქვენს დაფაზე ნახავთ.",
+    "budgetLabel": "ბიუჯეტს თქვენ აკონტროლებთ",
+    "budget": "დააწესეთ ხარჯვის დღიური ლიმიტი.",
+    "route": "მარშრუტის მაგალითი",
+    "caption": "ტაქსის მარშრუტის ილუსტრაცია. რეალური დაფარვა მის მგზავრობებზეა დამოკიდებული.",
+    "districts": {
+      "Mtatsminda": "მთაწმინდა",
+      "Vake": "ვაკე",
+      "Saburtalo": "საბურთალო",
+      "Chughureti": "ჩუღურეთი",
+      "Didube": "დიდუბე",
+      "Nadzaladevi": "ნაძალადევი",
+      "Gldani": "გლდანი",
+      "Isani": "ისანი",
+      "Samgori": "სამგორი",
+      "Krtsanisi": "კრწანისი"
+    }
   },
-  proof: {
-    eyebrow: 'ჩვენების დადასტურება',
-    title: 'ყოველი ჩვენება ჩანაწერშია.',
-    lede: 'ეკრანი ყოველ ჩვენებას დროსა და GPS მდებარეობასთან ერთად აფიქსირებს. **ადევნეთ თვალი კამპანიას რუკაზე პირდაპირ რეჟიმში** და ნახეთ ჩანაწერი ყოველი გადახდილი საათის უკან.',
-    live: 'პირდაპირ',
-    logTitle: 'ჩვენებების ჟურნალი',
+  "proof": {
+    "eyebrow": "ჩვენების დადასტურება",
+    "title": "ყოველი ჩვენება ჩანაწერშია.",
+    "lede": "ეკრანები ყოველ ჩვენებას დროსა და GPS მდებარეობასთან ერთად აფიქსირებს. **ადევნეთ თვალი კამპანიას რუკაზე** და ნახეთ აღრიცხული ჩვენებები თქვენს ანგარიშში.",
+    "live": "პირდაპირ",
+    "logTitle": "ჩვენებების ჟურნალი",
+    "recent": "ბოლო",
+    "recorded": "აღრიცხული",
+    "example": "მაგალითი"
   },
-  features: {
-    eyebrow: 'შექმნილია ქუჩისთვის',
-    title: 'ყველაფერი, რაც კამპანიას სჭირდება. ზედმეტის გარეშე.',
-    items: [
-      { title: 'ორმხრივი', body: 'ორი ეკრანი ზურგით ერთმანეთზე. თქვენს რეკლამას ქუჩის ორივე მხარე ხედავს.' },
-      { title: 'ულტრაკაშკაშა ეკრანი', body: 'იკითხება მზის პირდაპირ სხივებზეც, ღამით კი შეუმჩნეველი ვერ დარჩება (4,500+ ნიტი).' },
-      { title: 'შეცვალეთ ნებისმიერ დროს', body: 'ატვირთეთ ახალი ვიზუალი და დამტკიცების შემდეგ ეკრანები მასზე გადაერთვება. ხელახლა ბეჭდვა არ სჭირდება.' },
-      { title: 'მოწმდება ეთერამდე', body: 'ჩვენი გუნდი ყველა ვიზუალს ამოწმებს, სანამ ის ქუჩაში გავა.' },
-      { title: 'წინასწარი, გაზომილი', body: 'შეავსეთ ბალანსი. ეთერი იზომება 10-წუთიანი ბლოკებით და ჩამოიჭრება ყოველ 15 წუთში. დააწესეთ დღიური ლიმიტი და გაგაფრთხილებთ, სანამ ბალანსი ამოიწურება.' },
-      { title: 'ცოცხალი რუკა', body: 'ნახეთ, სად არის თქვენი რეკლამა ახლა და სად იყო აქამდე.' },
+  "features": {
+    "eyebrow": "შექმნილია ქუჩისთვის",
+    "title": "ყველაფერი, რაც კამპანიას სჭირდება. ზედმეტის გარეშე.",
+    "items": [
+      {
+        "title": "ორმხრივი",
+        "body": "ორი ეკრანი ზურგით ერთმანეთზე. თქვენს რეკლამას ქუჩის ორივე მხარე ხედავს."
+      },
+      {
+        "title": "ულტრაკაშკაშა ეკრანი",
+        "body": "შექმნილია მკაფიო ხილვადობისთვის როგორც მზიან დღეს, ისე ღამით."
+      },
+      {
+        "title": "შეცვალეთ ნებისმიერ დროს",
+        "body": "ატვირთეთ ახალი ვიზუალი და დამტკიცების შემდეგ ეკრანები მასზე გადაერთვება. ხელახლა ბეჭდვა არ სჭირდება."
+      },
+      {
+        "title": "მოწმდება ეთერამდე",
+        "body": "ჩვენი გუნდი ყველა ვიზუალს ამოწმებს, სანამ ის ქუჩაში გავა."
+      },
+      {
+        "title": "წინასწარი, გაზომილი",
+        "body": "შეავსეთ ბალანსი და სურვილისამებრ დააწესეთ დღიური ლიმიტი. ანგარიშში ნახავთ აღრიცხულ ეთერსა და ხარჯს და მიიღებთ გაფრთხილებას ბალანსის შემცირებისას."
+      },
+      {
+        "title": "ცოცხალი რუკა",
+        "body": "ნახეთ, სად არის თქვენი რეკლამა ახლა და სად იყო აქამდე."
+      }
+    ]
+  },
+  "steps": {
+    "eyebrow": "როგორ მუშაობს",
+    "title": "გაიყვანეთ თქვენი კამპანია გზაზე.",
+    "items": [
+      {
+        "title": "გამოგვიგზავნეთ ვიზუალი",
+        "body": "ფართო სურათი ან მოკლე ვიდეო. ვიზუალის მოთხოვნებისთვის შექმენით ანგარიში ან მოგვმართეთ დიზაინში დახმარებისთვის."
+      },
+      {
+        "title": "განსაზღვრეთ ბიუჯეტი",
+        "body": "შეავსეთ ბალანსი და სურვილისამებრ დააწესეთ ხარჯვის დღიური ლიმიტი. ჩვენი გუნდი შეამოწმებს რეკლამას და ეკრანებზე განათავსებს."
+      },
+      {
+        "title": "გადით ეთერში და ადევნეთ თვალი",
+        "body": "თქვენი რეკლამა ციკლს უერთდება. ჩვენებებს, ლოკაციებსა და ხარჯს დაფიდან აკონტროლებთ."
+      }
+    ]
+  },
+  "pricing": {
+    "eyebrow": "კამპანიის ბიუჯეტი",
+    "title": "ბიუჯეტი, რომელიც თქვენ გერგებათ.",
+    "lede": "შეავსეთ ბალანსი და გადაიხადეთ აღრიცხული ეთერის მიხედვით. ფასი დამოკიდებულია ვიზუალზე და იმაზე, სად და როდის მოძრაობენ ტაქსები. **დეტალებისა და კალკულატორებისთვის შედით თქვენს ანგარიშში** ან მოგვწერეთ კამპანიის დასაგეგმად.",
+    "login": "შესვლა",
+    "register": "რეგისტრაცია",
+    "contact": "დაგვიკავშირდით"
+  },
+  "fleets": {
+    "eyebrow": "ავტოპარკებისთვის",
+    "title": "თქვენი მანქანები უკვე მთელ ქალაქს ფარავს. ახლა შემოსავალიც მოიტანონ.",
+    "items": [
+      {
+        "title": "მონტაჟი და მომსახურება ჩვენზეა",
+        "body": "ეკრანებს ჩვენი გუნდი ამონტაჟებს და ემსახურება, ჩვენივე ხარჯით."
+      },
+      {
+        "title": "წილი შემოსავლიდან",
+        "body": "ავტოპარკი იღებს წილს სარეკლამო შემოსავლიდან, რომელსაც მისი მანქანები მოიტანს, პარტნიორობის ხელშეკრულებით განსაზღვრული პირობებით."
+      },
+      {
+        "title": "ერთი დაფა",
+        "body": "ნახეთ თითოეული მანქანა, ჩართულია თუ არა მისი ეკრანი და სად გავიდა რეკლამა."
+      }
     ],
+    "cta": "გახდით პარტნიორი"
   },
-  steps: {
-    eyebrow: 'როგორ მუშაობს',
-    title: 'გზაზე სამ ნაბიჯში.',
-    items: [
-      { title: 'გამოგვიგზავნეთ ვიზუალი', body: 'სურათი ან მოკლე ვიდეო ფართო, 3:1 ფორმატში. არ გაქვთ? დიზაინში დაგეხმარებით.' },
-      { title: 'განსაზღვრეთ ბიუჯეტი', body: 'შეავსეთ ბალანსი და სურვილისამებრ დააწესეთ ხარჯვის დღიური ლიმიტი. ჩვენი გუნდი შეამოწმებს რეკლამას და ეკრანებზე განათავსებს.' },
-      { title: 'გადით ეთერში და ადევნეთ თვალი', body: 'თქვენი რეკლამა ციკლს უერთდება. ჩვენებებს, ლოკაციებსა და ხარჯს დაფიდან აკონტროლებთ.' },
-    ],
-  },
-  pricing: {
-    eyebrow: 'ფასები',
-    title: 'შეავსეთ ბალანსი. იხდით მხოლოდ ეთერში.',
-    lede: 'შეიტანეთ თანხა ბალანსზე. ეთერი იზომება 10-წუთიანი ბლოკებით: თითოეული ბლოკის ფასი დამოკიდებულია **რეკლამის ხანგრძლივობაზე, უბანზე, სადაც მანქანაა, და დღის დროზე,** და იხდით მხოლოდ იმას, რაც რეალურად გავიდა. ბალანსი ახლდება ყოველ 15 წუთში და შეგიძლიათ დააწესოთ დღიური ლიმიტიც.',
-    sim: {
-      balance: 'ბალანსი',
-      deducted: 'ჩამოიჭრა',
-      lowAlert: 'გაფრთხილება დაბალ ბალანსზე',
-      nextUpdate: 'ბალანსის შემდეგი განახლება',
-      min: 'წთ-ში',
-      metered: 'დაგროვდა ბოლო განახლების შემდეგ',
-      topUp: 'შევსება',
-      play: 'გაშვება',
-      pause: 'პაუზა',
-      adLength: 'რეკლამის ხანგრძლივობა',
-      cap: 'დღიური ლიმიტი',
-      noCap: 'ლიმიტის გარეშე',
-      today: 'დღეს დაიხარჯა',
-      capReached: 'დღიური ლიმიტი ამოიწურა. რეკლამა შუაღამემდე ჩერდება.',
-      now: 'ახლა',
-      perHour: 'საათში',
-      perBlock: '10-წუთიან ბლოკზე',
-      taxiOff: 'ტაქსი გამორთულია: არაფერი ირიცხება',
-      usage: 'იზომება 10-წუთიანი ბლოკებით',
-      off: 'გამორთ.',
-      capped: 'ლიმიტი',
-      empty: 'ბალანსი ამოიწურა. რეკლამა შეჩერებულია შევსებამდე.',
-      note: 'ილუსტრაცია ერთი ეკრანისთვის. უბნების კატეგორიები სანიმუშოა; ზუსტ ტარიფებს დაჯავშნისას დაგიდასტურებთ.',
-    },
-    tiers: { '1': 'პრემიუმი', '2': 'დატვირთული', '3': 'პოპულარული', '4': 'სტანდარტული' },
-    bands: { night: 'ღამე', day: 'დღე', evening: 'საღამო', rush: 'პიკის საათი' },
-    calc: {
-      title: 'რას იყიდით თქვენი ბიუჯეტით?',
-      lede: 'საორიენტაციო გათვლა რეგისტრაციამდე. უბანს თქვენ არ ირჩევთ: იხდით იმის მიხედვით, სადაც ტაქსი რეალურად მოძრაობს, ამიტომ პასუხი დიაპაზონია.',
-      budget: 'ბიუჯეტი',
-      budgetAria: 'ბიუჯეტი ლარში',
-      when: 'როდის',
-      any: 'ნებისმიერ დროს',
-      screens: 'ეკრანები',
-      plays: 'თქვენი რეკლამის ჩვენება',
-      hours: 'ეთერში {min}–{max} საათი',
-      perScreen: 'დაახლ. {min}–{max} სთ თითოეულ {n} ეკრანზე',
-      perPlay: 'ერთი ჩვენება ₾{min}–{max}',
-      range: 'ქვედა ზღვარი — როცა ტაქსები პრემიუმ უბნებშია (მაგ. ვაკე), ზედა — სტანდარტულ უბნებში (მაგ. სამგორი).',
-      assumption: 'ვთვლით, რომ ციკლის დანარჩენი ოთხი სლოტი 10-წამიანი რეკლამაა, ასე რომ {seconds}-წამიანი რეკლამა საათში დაახლოებით {plays}-ჯერ გადის. ზუსტ ტარიფებს დაჯავშნისას დაგიდასტურებთ.',
-    },
-    cta: 'ფასის მოთხოვნა',
-  },
-  fleets: {
-    eyebrow: 'ავტოპარკებისთვის',
-    title: 'თქვენი მანქანები უკვე მთელ ქალაქს ფარავს. ახლა შემოსავალიც მოიტანონ.',
-    items: [
-      { title: 'მონტაჟი და მომსახურება ჩვენზეა', body: 'ეკრანებს ჩვენი გუნდი ამონტაჟებს და ემსახურება, ჩვენივე ხარჯით.' },
-      { title: 'წილი შემოსავლიდან', body: 'ავტოპარკი იღებს წილს სარეკლამო შემოსავლიდან, რომელსაც მისი მანქანები მოიტანს, პარტნიორობის ხელშეკრულებით განსაზღვრული პირობებით.' },
-      { title: 'ერთი დაფა', body: 'ნახეთ თითოეული მანქანა, ჩართულია თუ არა მისი ეკრანი და სად გავიდა რეკლამა.' },
-    ],
-    cta: 'გახდით პარტნიორი',
-  },
-  faq: {
-    eyebrow: 'კითხვები',
-    title: 'კითხვები და პასუხები.',
-    items: [
+  "faq": {
+    "eyebrow": "კითხვები",
+    "title": "კითხვები და პასუხები.",
+    "more": "კამპანიის დეტალები და კალკულატორები თქვენს ანგარიშშია.",
+    "items": [
       {
-        q: 'როგორ ითვლება კამპანიის ფასი?',
-        a: 'ეკრან-საათით: ერთი სლოტი, ერთ ეკრანზე, ერთი საათით. საბაზო ტარიფი რეკლამის ხანგრძლივობაზეა დამოკიდებული (₾2.00 10 წამისთვის, ₾3.40 20 წამისთვის, ₾4.60 30 წამისთვის) და იცვლება იმის მიხედვით, სად და როდის მოძრაობს მანქანა: დატვირთულ უბნებში ფასი 45%-მდე მეტია, პიკის საათებში — მეტი, გვიან ღამით — ნაკლები. ეთერი იზომება 10-წუთიანი ბლოკებით და ნაწილობრივ გასულ ბლოკში მხოლოდ გასული ნაწილი ირიცხება.',
+        "q": "როგორ ითვლება კამპანიის ფასი?",
+        "a": "ფასი დამოკიდებულია ვიზუალზე, აღრიცხულ ეთერზე და იმაზე, სად და როდის მოძრაობენ ტაქსები. ტარიფებისა და კალკულატორებისთვის შედით ანგარიშში ან დარეგისტრირდით. კამპანიის განსახილველად შეგიძლიათ დაგვიკავშირდეთ."
       },
       {
-        q: 'საჭიროა გრძელვადიანი კონტრაქტი?',
-        a: 'არა. ავსებთ ბალანსს და ის ყოველ 15 წუთში მცირდება გამოყენებული ეთერის მიხედვით. შეგიძლიათ დააწესოთ დღიური ლიმიტი, ბალანსის შემცირებისას გაგაფრთხილებთ, ხოლო ამოწურვისას რეკლამა ავტომატურად ჩერდება.',
+        "q": "საჭიროა გრძელვადიანი კონტრაქტი?",
+        "a": "ავსებთ წინასწარ ბალანსს და სურვილისამებრ აწესებთ ხარჯვის დღიურ ლიმიტს. ბალანსის ამოწურვისას რეკლამა ჩერდება. თქვენი კამპანიის პირობებისთვის დაგვიკავშირდით."
       },
       {
-        q: 'შემიძლია რეკლამის შეცვლა კამპანიის მსვლელობისას?',
-        a: 'დიახ. ატვირთეთ ახალი ვიზუალი და ჩვენი გუნდის დამტკიცების შემდეგ ეკრანები მასზე გადაერთვება.',
+        "q": "შემიძლია რეკლამის შეცვლა კამპანიის მსვლელობისას?",
+        "a": "დიახ. ატვირთეთ ახალი ვიზუალი და ჩვენი გუნდის დამტკიცების შემდეგ ეკრანები მასზე გადაერთვება."
       },
       {
-        q: 'საიდან გავიგო, რომ რეკლამა ნამდვილად გავიდა?',
-        a: 'ყოველი ეკრანი ყოველ ჩვენებას დროსა და GPS მდებარეობასთან ერთად აგზავნის. ყველაფერს ნახავთ რუკაზე და კამპანიის ჟურნალში.',
+        "q": "საიდან გავიგო, რომ რეკლამა ნამდვილად გავიდა?",
+        "a": "ყოველი ეკრანი ყოველ ჩვენებას დროსა და GPS მდებარეობასთან ერთად აგზავნის. ყველაფერს ნახავთ რუკაზე და კამპანიის ჟურნალში."
       },
       {
-        q: 'როგორი უნდა იყოს ვიზუალი?',
-        a: 'ეკრანი ფართოა, 3:1 თანაფარდობით. საუკეთესოდ მუშაობს მსხვილი ტექსტი, ძლიერი კონტრასტი და ერთი მკაფიო მესიჯი. დიზაინში სიამოვნებით დაგეხმარებით.',
+        "q": "როგორი უნდა იყოს ვიზუალი?",
+        "a": "გამოიყენეთ ფართო სურათი ან მოკლე ვიდეო მსხვილი ტექსტით, ძლიერი კონტრასტითა და მკაფიო მესიჯით. ვიზუალის სრული მოთხოვნები ანგარიშშია ხელმისაწვდომი. დიზაინშიც დაგეხმარებით."
       },
       {
-        q: 'კიდევ რამდენი რეკლამა იზიარებს ეკრანს?',
-        a: 'მაქსიმუმ ოთხი. ყოველი ეკრანი ხუთსლოტიან ციკლს უშვებს და თქვენი კამპანია ერთ სლოტს იკავებს.',
+        "q": "როგორ ჩნდება რეკლამა ეკრანზე?",
+        "a": "ეკრანებზე დამტკიცებული კამპანიები მონაცვლეობით გადის და თქვენი რეკლამა მგზავრობისას მეორდება. ეთერის მუშაობისა და ბიუჯეტის შესაფასებლად შედით ანგარიშში ან დარეგისტრირდით."
       },
       {
-        q: 'ტაქსების პარკი მაქვს. როგორ შევუერთდეთ?',
-        a: 'დარეგისტრირდით ავტოპარკის პარტნიორად და დაგიკავშირდებით პირობების შესათანხმებლად და მონტაჟის დასაგეგმად.',
-      },
-    ],
+        "q": "ტაქსების პარკი მაქვს. როგორ შევუერთდეთ?",
+        "a": "დარეგისტრირდით ავტოპარკის პარტნიორად და დაგიკავშირდებით პირობების შესათანხმებლად და მონტაჟის დასაგეგმად."
+      }
+    ]
   },
-  closing: {
-    title: 'თქვენი ბრენდი — გზაზე.',
-    lede: 'მოგვწერეთ, რას არეკლამებთ და რა ბიუჯეტით. კამპანიის დაგეგმვაში დაგეხმარებით.',
-    email: 'მოგვწერეთ',
-    call: 'დაგვირეკეთ',
-    hours: 'ორშ – შაბ, 10:00 – 19:00',
+  "closing": {
+    "title": "თქვენი ბრენდი — გზაზე.",
+    "lede": "მოგვწერეთ, რას არეკლამებთ და რა ბიუჯეტით. კამპანიის დაგეგმვაში დაგეხმარებით.",
+    "email": "მოგვწერეთ",
+    "call": "დაგვირეკეთ",
+    "hours": "ორშ – შაბ, 10:00 – 19:00"
   },
-  footer: {
-    tagline: 'LED რეკლამა ტაქსებზე, თბილისში.',
-    product: 'პროდუქტი',
-    partners: 'პარტნიორები',
-    legal: 'იურიდიული',
-    fleetSignup: 'ავტოპარკის რეგისტრაცია',
-    privacy: 'კონფიდენციალურობა',
-    terms: 'წესები და პირობები',
-    rights: '© 2026 შპს „გზადვერთაისმენთ“. ყველა უფლება დაცულია.',
-  },
+  "footer": {
+    "tagline": "LED რეკლამა ტაქსებზე, თბილისში.",
+    "product": "პროდუქტი",
+    "partners": "პარტნიორები",
+    "legal": "იურიდიული",
+    "fleetSignup": "ავტოპარკის რეგისტრაცია",
+    "privacy": "კონფიდენციალურობა",
+    "terms": "წესები და პირობები",
+    "rights": "© 2026 შპს „გზადვერთაისმენთ“. ყველა უფლება დაცულია."
+  }
 }
 
 export const copy: Record<Lang, Copy> = { en, ge }
 
 export const CONTACT = {
-  email: 'info@gzadvertisement.ge',
-  phone: '+995 591 410 914',
-  phoneHref: 'tel:+995591410914',
+  "email": "info@gzadvertisement.ge",
+  "phone": "+995 591 410 914",
+  "phoneHref": "tel:+995591410914"
 }

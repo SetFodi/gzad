@@ -41,3 +41,29 @@ describe('budget estimate', () => {
     expect(roughCount(456)).toBe(460)
   })
 })
+
+describe('configured client estimates', () => {
+  const config = {
+    baseRates: { '10': 4, '20': 6, '30': 8 },
+    districtTiers: { Vake: 1, Saburtalo: 2 },
+    districtMultipliers: { '1': 1.8, '2': 1.2, '3': 1.1, '4': 1 },
+    timeMultipliers: { '10': 2, '11': 2 },
+  }
+  it.each([400, 1500, 1377, 1377.25])('uses the full custom ₾%s budget and configured rates', budget => {
+    const result = estimateBudget({ budget, adSeconds: 20, band: 'day', screens: 3 }, config)
+    const time = 9 / 7 // Two configured hours at ×2, five fallback hours at ×1.
+    expect(result.hours.min).toBeCloseTo(budget / (6 * 1.8 * time), 8)
+    expect(result.hours.max).toBeCloseTo(budget / (6 * time), 8)
+    expect(result.hoursPerScreen.max).toBeCloseTo(budget / (6 * time * 3), 8)
+  })
+  it('does not invent time multipliers when no hour override is saved', () => {
+    expect(bandMultiplier('night', { ...config, timeMultipliers: {} })).toBe(1)
+  })
+  it('does not include an unused premium tier in the range', () => {
+    const result = estimateBudget({ budget: 400, adSeconds: 10, band: 'day', screens: 1 }, { ...config, districtTiers: {}, timeMultipliers: {} })
+    expect(result.hours).toEqual({ min: 100, max: 100 })
+  })
+  it.each([NaN, Infinity])('keeps invalid input %s out of the results', budget => {
+    expect(estimateBudget({ budget, adSeconds: 10, band: 'any', screens: 1 }, config).plays).toEqual({ min: 0, max: 0 })
+  })
+})

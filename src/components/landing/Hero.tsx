@@ -37,7 +37,7 @@ export default function Hero({ t }: { t: Copy }) {
           {rich(t.hero.lede)}
         </motion.p>
         <motion.div className="lp-hero-ctas" {...enter(0.32)}>
-          <a href="#contact" className="lp-btn">
+          <a href="/portal/fleet-signup" className="lp-btn">
             {t.hero.primary}
           </a>
           <a href="#how" className="lp-link">

@@ -26,7 +26,7 @@ const visuals = [
     <span className="lp-viz-balance-track">
       <span className="lp-viz-balance-fill" />
     </span>
-    <span className="lp-viz-balance-label">₾186.40</span>
+    <span className="lp-viz-balance-label">₾</span>
   </div>,
   <div key="map" className="lp-viz lp-viz-map">
     <span className="lp-viz-map-dot" />
@@ -69,7 +69,7 @@ export function Steps({ t }: { t: Copy }) {
           {t.steps.items.map((s, i) => (
             <Reveal as="li" key={i} delay={i * 0.1} className="lp-step">
               <span className="lp-step-num" aria-hidden>
-                {i + 1}
+                •
               </span>
               <h3 className="lp-step-title">{s.title}</h3>
               <p className="lp-step-body">{s.body}</p>

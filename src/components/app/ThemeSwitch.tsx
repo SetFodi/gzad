@@ -2,8 +2,9 @@
 
 import { useSyncExternalStore } from 'react'
 import { Moon, Sun } from 'lucide-react'
+import './theme-switch.css'
 
-// Day / night theme for the client portal, admin and fleet areas. The choice
+// Shared day / night theme for the landing page and application areas. The choice
 // lives in localStorage and on <html data-app-theme>, which the root layout
 // sets before first paint so the page never flashes the wrong theme.
 
@@ -34,9 +35,14 @@ function setTheme(theme: Theme) {
 /** Inline script for the root layout: applies the saved or system theme before paint. */
 export const themeInitScript = `(function(){try{var t=localStorage.getItem('${THEME_KEY}');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-app-theme',t)}catch(e){}})();`
 
+export function useAppTheme() {
+  const theme = useSyncExternalStore(subscribe, current, () => 'light' as Theme)
+  return [theme, setTheme] as const
+}
+
 /** A tiny taxi-top screen: DAY in amber, or NIGHT lit up in green. */
 export default function ThemeSwitch({ georgian = false }: { georgian?: boolean }) {
-  const theme = useSyncExternalStore(subscribe, current, () => 'light' as Theme)
+  const [theme] = useAppTheme()
   const dark = theme === 'dark'
   const label = georgian ? (dark ? 'ღამის რეჟიმი' : 'დღის რეჟიმი') : (dark ? 'Night mode' : 'Day mode')
   const hint = georgian ? 'ფერების გადართვა' : 'Switch the screen theme'
@@ -46,6 +52,7 @@ export default function ThemeSwitch({ georgian = false }: { georgian?: boolean }
       type="button"
       role="switch"
       aria-checked={dark}
+      aria-label={label}
       className="led-switch"
       data-dark={dark || undefined}
       onClick={() => setTheme(dark ? 'light' : 'dark')}
@@ -57,7 +64,6 @@ export default function ThemeSwitch({ georgian = false }: { georgian?: boolean }
         <span className="led-switch-knob">{dark ? <Moon size={11} /> : <Sun size={11} />}</span>
         <span className="led-switch-pixels" />
       </span>
-      <span className="led-switch-label">{label}</span>
     </button>
   )
 }

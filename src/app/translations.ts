@@ -434,6 +434,7 @@ export const translations = {
         portal: {
             sidebar: {
                 overview: "Overview",
+                guide: "Guide & calculators",
                 campaigns: "Campaigns",
                 submitAd: "Submit Ad",
                 billing: "Billing",
@@ -1114,6 +1115,7 @@ export const translations = {
         portal: {
             sidebar: {
                 overview: "მიმოხილვა",
+                guide: "კალკულატორები",
                 campaigns: "კამპანიები",
                 submitAd: "რეკლამის ატვირთვა",
                 billing: "გადახდები",

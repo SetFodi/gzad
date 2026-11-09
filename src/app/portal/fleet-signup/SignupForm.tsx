@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Car, Megaphone } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
+import { startClientIntroduction, finishClientIntroduction } from '@/lib/client-onboarding'
 import AuthShell, { AuthAlert, AuthSubmit, PasswordInput } from '@/components/auth/AuthShell'
 
 export type SignupRole = 'client' | 'fleet'
@@ -54,6 +55,8 @@ export default function SignupForm({ initialRole, verificationReady }: { initial
         return
       }
 
+      if (role === 'client') startClientIntroduction()
+      else finishClientIntroduction()
       router.push('/portal/verify')
     } catch {
       setError({ text: f.errors.generic })

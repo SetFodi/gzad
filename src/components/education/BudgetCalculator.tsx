@@ -1,10 +1,11 @@
 'use client'
 
-import NumberFlow from '@number-flow/react'
 import { useState } from 'react'
 import { estimateBudget, roughCount, type Band } from '@/lib/budget-estimate'
-import type { Copy } from './copy'
-import Segmented from './Segmented'
+import type { CalculatorCopy } from './copy'
+import type { PricingConfig } from '@/lib/billing'
+import { parseDemoTopUp } from '@/lib/airtime-demo'
+import Segmented from '../landing/Segmented'
 
 const BUDGETS = [100, 250, 500, 1000]
 const FORMATS = ['10', '20', '30']
@@ -15,9 +16,9 @@ const MAX_BUDGET = 100_000
 const fill = (text: string, vars: Record<string, string | number>) =>
   Object.entries(vars).reduce((out, [key, value]) => out.split(`{${key}}`).join(String(value)), text)
 
-const hoursText = (h: number) => (h < 10 ? h.toFixed(1) : String(Math.round(h)))
+const hoursText = (h: number) => !Number.isFinite(h) ? '∞' : (h < 10 ? h.toFixed(1) : String(Math.round(h)))
 
-export default function BudgetCalculator({ t }: { t: Copy }) {
+export default function BudgetCalculator({ t, config }: { t: CalculatorCopy; config: PricingConfig }) {
   const p = t.pricing
   const c = p.calc
   const [budgetText, setBudgetText] = useState('100')
@@ -25,8 +26,9 @@ export default function BudgetCalculator({ t }: { t: Copy }) {
   const [band, setBand] = useState<Band>('any')
   const [screens, setScreens] = useState('1')
 
-  const budget = Math.min(MAX_BUDGET, Math.max(0, Number(budgetText) || 0))
-  const e = estimateBudget({ budget, adSeconds: Number(format), band, screens: Number(screens) })
+  const parsedBudget = parseDemoTopUp(budgetText)
+  const budget = parsedBudget ?? 0
+  const e = estimateBudget({ budget, adSeconds: Number(format), band, screens: Number(screens) }, config)
   const n = Number(screens)
 
   return (
@@ -45,15 +47,18 @@ export default function BudgetCalculator({ t }: { t: Copy }) {
               <input
                 id="lp-calc-budget"
                 type="number"
-                inputMode="numeric"
-                min={0}
+                inputMode="decimal"
+                min={0.01}
                 max={MAX_BUDGET}
-                step={10}
+                step={0.01}
                 value={budgetText}
                 aria-label={c.budgetAria}
+                aria-invalid={parsedBudget === null}
+                aria-describedby={parsedBudget === null ? 'budget-error' : undefined}
                 onChange={(ev) => setBudgetText(ev.target.value)}
               />
             </div>
+            {parsedBudget === null && <p id="budget-error" className="demo-error" role="alert">{p.sim.invalidAmount}</p>}
             <div className="lp-meter-topups">
               {BUDGETS.map((b) => (
                 <button key={b} type="button" className="lp-chip" aria-pressed={budget === b} onClick={() => setBudgetText(String(b))}>
@@ -82,11 +87,11 @@ export default function BudgetCalculator({ t }: { t: Copy }) {
           />
         </div>
 
-        <div className="lp-calc-result" aria-live="polite">
+        <div className="lp-calc-result" aria-live="polite" data-invalid={parsedBudget === null || undefined}>
           <p className="lp-calc-plays">
-            <NumberFlow value={roughCount(e.plays.min)} locales="en-US" />
+            {roughCount(e.plays.min).toLocaleString('en-US')}
             <span>–</span>
-            <NumberFlow value={roughCount(e.plays.max)} locales="en-US" />
+            {roughCount(e.plays.max).toLocaleString('en-US')}
           </p>
           <p className="lp-calc-plays-label">{c.plays}</p>
           <ul className="lp-calc-facts">

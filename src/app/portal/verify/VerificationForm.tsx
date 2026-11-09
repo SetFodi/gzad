@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AuthShell, { AuthAlert, AuthSubmit } from '@/components/auth/AuthShell'
 import { useTranslations } from '@/lib/i18n'
+import { clientIntroductionDestination } from '@/lib/client-onboarding'
 
 export default function VerificationForm() {
   const [challenge, setChallenge] = useState<{ email: string; purpose: 'signup' | 'signin' } | null>(null)
@@ -54,7 +55,7 @@ export default function VerificationForm() {
       const res = await fetch('/api/auth/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) })
       const data = await res.json()
       if (!res.ok) { setError(explain(data.error)); return }
-      router.replace(data.next)
+      router.replace(clientIntroductionDestination(data.next))
       router.refresh()
     } catch { setError(v.unavailable) }
     finally { setLoading(false) }

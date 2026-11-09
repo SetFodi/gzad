@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, Megaphone, Plus, Receipt, Shield } from 'lucide-react'
+import { LayoutDashboard, Megaphone, Plus, Receipt, Shield, Calculator } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from '@/lib/i18n'
 import AppSidebar, { type NavItem } from '@/components/app/AppSidebar'
@@ -36,6 +36,7 @@ export default function Sidebar() {
             { href: '/portal/dashboard', label: s.overview, icon: LayoutDashboard, exact: true },
             { href: '/portal/dashboard/campaigns', label: s.campaigns, icon: Megaphone },
             { href: '/portal/dashboard/billing', label: s.billing, icon: Receipt },
+            ...(!isAdmin ? [{ href: '/portal/dashboard/guide', label: s.guide, icon: Calculator }] : []),
           ],
         },
       ]}

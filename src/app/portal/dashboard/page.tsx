@@ -27,7 +27,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  const { t } = useTranslations()
+  const { t, lang } = useTranslations()
   const p = t.portal.dashboard
   const b = t.portal.billing
   const c = t.portal.common
@@ -224,6 +224,9 @@ export default function DashboardPage() {
         {campaigns.length === 0 ? (
           <div className="portal-empty">
             <p>{p.noCampaigns}</p>
+            <Link href="/portal/dashboard/guide?welcome=1" className="section-link">
+              {lang === 'ge' ? 'გაიგეთ, როგორ მუშაობს კამპანია და სცადეთ კალკულატორები' : 'Learn how campaigns work and try the calculators'}<ArrowRight size={16} aria-hidden />
+            </Link>
             <Link href="/portal/dashboard/submit" className="portal-btn-primary">
               <Plus size={16} aria-hidden />
               {p.submitAd}

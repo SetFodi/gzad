@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import type { Copy, Lang } from './copy'
 import { EASE } from './Reveal'
+import ThemeToggle from './ThemeToggle'
 
 export function Logo({ className = '' }: { className?: string }) {
   return (
@@ -95,11 +96,12 @@ export default function Nav({ t, lang, setLang }: { t: Copy; lang: Lang; setLang
             ))}
           </ul>
           <div className="lp-nav-actions">
+            <ThemeToggle lang={lang} />
             <LangSwitch lang={lang} setLang={setLang} />
             <a href="/portal/login" className="lp-nav-login">
               {t.nav.login}
             </a>
-            <a href="#contact" className="lp-btn lp-btn-sm">
+            <a href="/portal/fleet-signup" className="lp-btn lp-btn-sm">
               {t.nav.cta}
             </a>
             <button
@@ -152,13 +154,16 @@ export default function Nav({ t, lang, setLang }: { t: Copy; lang: Lang; setLang
               ))}
             </ul>
             <div className="lp-sheet-actions">
-              <a href="#contact" className="lp-btn" onClick={() => setOpen(false)}>
+              <a href="/portal/fleet-signup" className="lp-btn" onClick={() => setOpen(false)}>
                 {t.nav.cta}
               </a>
               <a href="/portal/login" className="lp-btn lp-btn-ghost">
                 {t.nav.login}
               </a>
-              <LangSwitch lang={lang} setLang={setLang} />
+              <div className="lp-sheet-preferences">
+                <LangSwitch lang={lang} setLang={setLang} />
+                <ThemeToggle lang={lang} />
+              </div>
             </div>
           </motion.div>
         )}

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n'
+import { startClientIntroduction, clientIntroductionDestination } from '@/lib/client-onboarding'
 import AuthShell, { AuthAlert, AuthSubmit, PasswordInput } from '@/components/auth/AuthShell'
 
 const SUPPORT_EMAIL = 'info@gzadvertisement.ge'
@@ -32,7 +33,8 @@ export default function LoginForm({ linkFailed, emailVerified }: { linkFailed: b
         setError(result.error === 'AUTH_SETUP_REQUIRED' ? v.setupRequired : result.error === 'EMAIL_DELIVERY_FAILED' ? v.deliveryFailed : res.status === 429 ? v.tooMany : result.error === 'INVALID_CREDENTIALS' ? p.invalidCredentials : v.unavailable)
         return
       }
-      router.push(result.next)
+      if (emailVerified) startClientIntroduction()
+      router.push(clientIntroductionDestination(result.next))
       router.refresh()
     } catch { setError(t.auth.verification.unavailable) }
     finally { setLoading(false) }

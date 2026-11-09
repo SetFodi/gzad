@@ -1,9 +1,7 @@
-import { DEFAULT_BASE_RATES } from './billing'
+import { baseRateFor, DEFAULT_BASE_RATES, type PricingConfig } from './billing'
 
-// Landing-page budget calculator: what a top-up buys, before signing up. The
-// client doesn't pick districts (the price follows wherever the taxi drives),
-// so the estimate is a range from the dearest district tier to the cheapest.
-// Rates are the billing defaults, which match the live pricing_config.
+// Client guide estimates follow the configured rates. The client cannot pick
+// districts, so the result spans the district tiers in use, including fallback.
 
 export type Band = 'any' | 'night' | 'day' | 'evening' | 'rush'
 
@@ -16,7 +14,16 @@ export const BANDS: Record<Exclude<Band, 'any'>, { hours: number; multiplier: nu
 }
 
 /** Any time: the bands weighted by how many hours of the day each covers. */
-export function bandMultiplier(band: Band): number {
+export function bandMultiplier(band: Band, config?: PricingConfig): number {
+  if (config) {
+    const hours = Array.from({ length: 24 }, (_, hour) => hour).filter(hour =>
+      band === 'any' || (band === 'night' && hour >= 1 && hour < 7)
+      || (band === 'rush' && ((hour >= 7 && hour < 10) || (hour >= 17 && hour < 20)))
+      || (band === 'day' && hour >= 10 && hour < 17)
+      || (band === 'evening' && (hour >= 20 || hour === 0)),
+    )
+    return hours.reduce((sum, hour) => sum + (config.timeMultipliers[String(hour)] ?? 1), 0) / hours.length
+  }
   if (band !== 'any') return BANDS[band].multiplier
   const all = Object.values(BANDS)
   return all.reduce((sum, b) => sum + b.hours * b.multiplier, 0) / all.reduce((sum, b) => sum + b.hours, 0)
@@ -47,16 +54,19 @@ export interface BudgetEstimate {
   playsPerHour: number
 }
 
-export function estimateBudget(input: { budget: number; adSeconds: number; band: Band; screens: number }): BudgetEstimate {
-  const base = DEFAULT_BASE_RATES[String(input.adSeconds)] ?? DEFAULT_BASE_RATES['10']
-  const time = bandMultiplier(input.band)
-  const dearest = base * PRIME_MULTIPLIER * time
-  const cheapest = base * STANDARD_MULTIPLIER * time
-  const budget = Math.max(0, input.budget)
-  const screens = Math.max(1, Math.floor(input.screens))
+export function estimateBudget(input: { budget: number; adSeconds: number; band: Band; screens: number }, config?: PricingConfig): BudgetEstimate {
+  const base = config ? baseRateFor(config, input.adSeconds) : DEFAULT_BASE_RATES[String(input.adSeconds)] ?? DEFAULT_BASE_RATES['10']
+  const time = bandMultiplier(input.band, config)
+  const districtRates = config
+    ? [...new Set([4, ...Object.values(config.districtTiers)])].map(tier => config.districtMultipliers[String(tier)] ?? 1)
+    : [STANDARD_MULTIPLIER, PRIME_MULTIPLIER]
+  const dearest = base * Math.max(...districtRates) * time
+  const cheapest = base * Math.min(...districtRates) * time
+  const budget = Number.isFinite(input.budget) ? Math.max(0, input.budget) : 0
+  const screens = Number.isFinite(input.screens) ? Math.max(1, Math.floor(input.screens)) : 1
   const perHour = playsPerHour(input.adSeconds)
 
-  const hours = { min: budget / dearest, max: budget / cheapest }
+  const hours = { min: budget === 0 ? 0 : budget / dearest, max: budget === 0 ? 0 : budget / cheapest }
   return {
     hours,
     plays: { min: Math.floor(hours.min * perHour), max: Math.floor(hours.max * perHour) },

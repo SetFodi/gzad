@@ -70,40 +70,47 @@ export function Faq({ t }: { t: Copy }) {
           <p className="lp-eyebrow">{t.faq.eyebrow}</p>
           <h2 className="lp-title">{t.faq.title}</h2>
         </Reveal>
-        <ul className="lp-faq-list">
-          {t.faq.items.map((item, i) => {
-            const isOpen = open === i
-            return (
-              <li key={item.q} className="lp-faq-item" data-open={isOpen || undefined}>
-                <h3>
-                  <button
-                    type="button"
-                    aria-expanded={isOpen}
-                    aria-controls={`lp-faq-${i}`}
-                    onClick={() => setOpen(isOpen ? null : i)}
-                  >
-                    {item.q}
-                    <span className="lp-faq-icon" aria-hidden />
-                  </button>
-                </h3>
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      id={`lp-faq-${i}`}
-                      className="lp-faq-answer"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.4, ease: EASE }}
+        <div>
+          <ul className="lp-faq-list">
+            {t.faq.items.map((item, i) => {
+              const isOpen = open === i
+              return (
+                <li key={item.q} className="lp-faq-item" data-open={isOpen || undefined}>
+                  <h3>
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={`lp-faq-${i}`}
+                      onClick={() => setOpen(isOpen ? null : i)}
                     >
-                      <p>{item.a}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </li>
-            )
-          })}
-        </ul>
+                      {item.q}
+                      <span className="lp-faq-icon" aria-hidden />
+                    </button>
+                  </h3>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        id={`lp-faq-${i}`}
+                        className="lp-faq-answer"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.4, ease: EASE }}
+                      >
+                        <p>{item.a}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </li>
+              )
+            })}
+          </ul>
+          <div className="lp-faq-account">
+            <p>{t.faq.more}</p>
+            <a href="/portal/login">{t.pricing.login} ↗</a>
+            <a href="/portal/fleet-signup">{t.pricing.register} ↗</a>
+          </div>
+        </div>
       </div>
     </section>
   )
