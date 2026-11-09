@@ -1,4 +1,4 @@
-// Detailed pricing copy is only imported by the authenticated client guide.
+// Shared pricing calculator and client guide copy.
 const en = {
   "pricing": {
     "eyebrow": "Pricing",

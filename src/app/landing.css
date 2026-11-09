@@ -2284,3 +2284,20 @@ html:has(.lp) {
 .lp-faq-account p { flex-basis: 100%; }
 .lp-faq-account a { color: var(--lp-accent-ink); }
 .lp-faq-account a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+.landing-calculators {
+    --portal-text: var(--lp-ink);
+    --portal-muted: var(--lp-muted);
+    --portal-primary: var(--lp-accent-ink);
+    --portal-surface: var(--lp-surface);
+    --portal-field-border: var(--lp-hairline);
+    --portal-ring: var(--lp-accent-soft);
+    --portal-on-primary: var(--lp-on-accent);
+    --portal-danger: #c4001a;
+    --portal-shadow: 0 0 0 1px var(--lp-hairline);
+}
+.landing-calculators > .lp-eyebrow { margin-bottom: 16px; }
+.landing-calculators .guide-section-head { max-width: 860px; margin: 0 auto 40px; text-align: center; }
+.landing-calculators .guide-section-head h2 { font-size: clamp(32px, 4vw, 56px); font-weight: 700; line-height: 1.1; }
+.landing-calculators .guide-section-head p { font-size: clamp(16px, 1.6vw, 20px); }
+.landing-calculators + .lp-pricing-invite { margin-top: 40px; }

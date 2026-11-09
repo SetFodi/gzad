@@ -738,7 +738,7 @@
 
 }
 
-.client-calculators {
+.client-calculators:not(.landing-calculators) {
     --lp-ink: var(--portal-text);
     --lp-ink-2: var(--portal-text-soft);
     --lp-muted: var(--portal-muted);
