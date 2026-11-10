@@ -33,7 +33,7 @@ function clusterIcon(cluster: MarkerCluster) {
   const count = cluster.getChildCount()
   const size = count < 10 ? 30 : count < 100 ? 36 : count < 1000 ? 42 : 48
   return L.divIcon({
-    html: `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:rgba(124,14,68,0.9);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.25);color:#fff;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">${count.toLocaleString('en-US')}</span>`,
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:rgba(22,101,52,0.88);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.25);color:#fff;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">${count.toLocaleString('en-US')}</span>`,
     className: '',
     iconSize: L.point(size, size),
   })
@@ -115,14 +115,14 @@ function PlayMarkers({ points }: { points: PlayPoint[] }) {
           center={[p.lat, p.lng]}
           radius={5}
           pathOptions={{
-            color: '#aa5e7a',
-            fillColor: '#aa5e7a',
+            color: '#166534',
+            fillColor: '#166534',
             fillOpacity: 0.7,
             weight: 1,
           }}
         >
           <Popup>
-            <div style={{ color: '#2a0b1b', fontSize: 13, lineHeight: 1.5 }}>
+            <div style={{ color: '#050505', fontSize: 13, lineHeight: 1.5 }}>
               <strong>{p.program_name}</strong><br />
               {t('Device')}: <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{p.device_id}</span><br />
               {t('Time')}: {new Date(p.began_at).toLocaleString(locale, { timeZone: 'Asia/Tbilisi' })}<br />

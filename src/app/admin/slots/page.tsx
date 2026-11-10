@@ -197,7 +197,7 @@ export default function SlotsPage() {
             </div>
           </div>
           <div className="stat-card ring-card">
-            <ProgressRing value={data.summary.totalOnline} max={data.summary.totalDevices} tone="var(--portal-live)" />
+            <ProgressRing value={data.summary.totalOnline} max={data.summary.totalDevices} tone="#34c759" />
             <div className="stat-card-info">
               <span className="stat-card-value">{data.realtimeError ? '—' : data.summary.totalOnline}<span className="stat-card-of"> {t('of {n}', { n: data.summary.totalDevices })}</span></span>
               <span className="stat-card-label">{t('Screens online')}</span>

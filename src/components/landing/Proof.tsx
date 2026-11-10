@@ -42,8 +42,8 @@ export default function Proof({ t }: { t: Copy }) {
               <svg viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice">
                 <defs>
                   <linearGradient id="lp-route" x1="0" x2="1">
-                    <stop offset="0" stopColor="#d49a9a" stopOpacity="0.15" />
-                    <stop offset="1" stopColor="#d49a9a" stopOpacity="0.9" />
+                    <stop offset="0" stopColor="#34d399" stopOpacity="0.15" />
+                    <stop offset="1" stopColor="#34d399" stopOpacity="0.9" />
                   </linearGradient>
                 </defs>
                 <g className="lp-log-streets">

@@ -40,7 +40,7 @@ export function useAppTheme() {
   return [theme, setTheme] as const
 }
 
-/** A tiny taxi-top screen: DAY in amber, or NIGHT lit up in rose. */
+/** A tiny taxi-top screen: DAY in amber, or NIGHT lit up in green. */
 export default function ThemeSwitch({ georgian = false }: { georgian?: boolean }) {
   const [theme] = useAppTheme()
   const dark = theme === 'dark'

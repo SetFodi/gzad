@@ -55,7 +55,7 @@
 
 .lp-seg button[aria-checked='true'] {
     background: var(--lp-seg-active);
-    box-shadow: 0 1px 3px rgba(74, 16, 44, 0.14), 0 0 0 0.5px rgba(124, 14, 68, 0.06);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
     font-weight: 600;
 }
 
@@ -248,15 +248,15 @@
     height: 16px;
     border-radius: 50%;
     background: var(--lp-accent);
-    border: 3px solid #fff8f4;
-    box-shadow: 0 3px 10px rgba(42, 11, 27, 0.32);
+    border: 3px solid #ffffff;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
     transform: translate(-50%, -50%);
     transition: left 1.1s var(--lp-ease), top 1.1s var(--lp-ease);
     pointer-events: none;
 }
 
 .lp-meter-car[data-off] {
-    background: #b3959f;
+    background: #a1a1a6;
 }
 
 .lp-meter-car[data-off]::after {
@@ -451,7 +451,7 @@
     gap: 10px;
     margin-top: 22px;
     padding-top: 22px;
-    border-top: 1px solid rgba(242, 218, 206, 0.12);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     font-size: 44px;
     font-weight: 700;
     letter-spacing: -0.04em;
@@ -489,7 +489,7 @@
     gap: 14px;
     align-items: center;
     height: 44px;
-    border-top: 1px solid rgba(242, 218, 206, 0.09);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
     font-size: 14px;
 }
 
@@ -747,21 +747,20 @@
     --lp-hairline: var(--portal-border);
     --lp-fill-soft: var(--portal-fill);
     --lp-on-ink: var(--portal-on-ink);
-    --lp-on-ink-muted: color-mix(in srgb, var(--portal-on-ink) 72%, transparent);
+    --lp-on-ink-muted: #a1a1a6;
     --lp-accent: var(--portal-primary);
     --lp-accent-ink: var(--portal-primary);
     --lp-accent-rgb: var(--portal-primary-rgb);
-    --lp-accent-bright: #d49a9a;
-    --lp-bright-rgb: 212, 154, 154;
-    --lp-night: #200a16;
-    --lp-night-ink: #f2dace;
-    --lp-night-muted: #bd94a0;
+    --lp-accent-bright: #63d6a0;
+    --lp-night: #101512;
+    --lp-night-ink: #f5f5f7;
+    --lp-night-muted: #a6b2aa;
     --lp-seg-active: var(--portal-surface-strong);
     --lp-ease: var(--portal-ease);
-    --lp-tier-1: color-mix(in srgb, var(--portal-chart) 62%, var(--portal-surface));
-    --lp-tier-2: color-mix(in srgb, var(--portal-chart) 40%, var(--portal-surface));
-    --lp-tier-3: color-mix(in srgb, var(--portal-chart) 24%, var(--portal-surface));
-    --lp-tier-4: color-mix(in srgb, var(--portal-chart) 11%, var(--portal-surface));
+    --lp-tier-1: var(--portal-fill-strong);
+    --lp-tier-2: var(--portal-fill);
+    --lp-tier-3: var(--portal-surface-muted);
+    --lp-tier-4: var(--portal-bg-soft);
     max-width: 1400px;
 }
 .client-calculators p, .client-calculators h2, .client-calculators h3 { margin: 0; }
