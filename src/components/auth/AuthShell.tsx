@@ -4,12 +4,13 @@ import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
 import Link from 'next/link'
 import { AlertCircle, Check, Eye, EyeOff } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
+import ThemeSwitch from '@/components/app/ThemeSwitch'
 import AuthScreen, { type AuthAd } from './AuthScreen'
 import '@/app/portal/auth.css'
 
 export type AuthAudience = 'advertiser' | 'fleet'
 
-/** Split layout for sign-in and sign-up: the form on white, a night panel with a roof screen beside it. */
+/** Split layout for sign-in and sign-up: the form on blush paper, a night panel with a roof screen beside it. */
 export default function AuthShell({ audience, children }: { audience: AuthAudience; children: ReactNode }) {
   const { t, lang, setLang } = useTranslations()
   const a = t.auth
@@ -23,13 +24,16 @@ export default function AuthShell({ audience, children }: { audience: AuthAudien
             <span className="auth-logo-mark" aria-hidden />
             gzad
           </Link>
-          <div className="auth-lang" role="group" aria-label={a.language}>
-            <button type="button" lang="en" aria-pressed={lang === 'en'} onClick={() => setLang('en')}>
-              EN
-            </button>
-            <button type="button" lang="ka" aria-pressed={lang === 'ge'} onClick={() => setLang('ge')}>
-              ქა
-            </button>
+          <div className="auth-top-actions">
+            <ThemeSwitch georgian={lang === 'ge'} />
+            <div className="auth-lang" role="group" aria-label={a.language}>
+              <button type="button" lang="en" aria-pressed={lang === 'en'} onClick={() => setLang('en')}>
+                EN
+              </button>
+              <button type="button" lang="ka" aria-pressed={lang === 'ge'} onClick={() => setLang('ge')}>
+                ქა
+              </button>
+            </div>
           </div>
         </header>
 

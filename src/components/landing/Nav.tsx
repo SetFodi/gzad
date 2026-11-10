@@ -54,7 +54,7 @@ export default function Nav({ t, lang, setLang }: { t: Copy; lang: Lang; setLang
       },
       { rootMargin: '0px 0px -94% 0px', threshold: 0 },
     )
-    document.querySelectorAll('.lp-night').forEach((el) => io.observe(el))
+    document.querySelectorAll('.lp-night, .lp-closing').forEach((el) => io.observe(el))
     return () => io.disconnect()
   }, [])
 

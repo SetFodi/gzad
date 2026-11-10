@@ -31,14 +31,14 @@ function FocusDevice({ devices, focusedId }: { devices: DevicePoint[]; focusedId
 }
 
 const onlineIcon = new L.DivIcon({
-  html: `<div style="width:14px;height:14px;border-radius:50%;background:#CCF381;border:2px solid #050505;box-shadow:0 0 10px rgba(204,243,129,0.7)"></div>`,
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:#3aa76d;border:2px solid #fff8f4;box-shadow:0 0 10px rgba(58,167,109,0.6)"></div>`,
   iconSize: [14, 14],
   iconAnchor: [7, 7],
   className: '',
 })
 
 const offlineIcon = new L.DivIcon({
-  html: `<div style="width:12px;height:12px;border-radius:50%;background:#525252;border:2px solid #050505"></div>`,
+  html: `<div style="width:12px;height:12px;border-radius:50%;background:#93707f;border:2px solid #fff8f4"></div>`,
   iconSize: [12, 12],
   iconAnchor: [6, 6],
   className: '',
@@ -60,9 +60,9 @@ export default function FleetMapView({ devices, focusedId }: FleetMapViewProps) 
       {devices.map(d => (
         <Marker key={d.id} position={[d.lat, d.lng]} icon={d.online ? onlineIcon : offlineIcon}>
           <Popup>
-            <div style={{ color: '#050505', fontSize: 13, minWidth: 160 }}>
+            <div style={{ color: '#2a0b1b', fontSize: 13, minWidth: 160 }}>
               <strong>{d.name || d.id}</strong><br />
-              <span style={{ color: d.online ? '#16a34a' : '#6b7280', fontWeight: 500 }}>
+              <span style={{ color: d.online ? '#25744a' : '#7c5567', fontWeight: 500 }}>
                 {d.online ? `● ${t('Online')}` : `○ ${t('Offline')}`}
               </span><br />
               {d.lastSeen && (

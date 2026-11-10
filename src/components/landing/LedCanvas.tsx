@@ -23,7 +23,7 @@ const VIDEO: Partial<Record<Ad['theme'], string>> = {
 const STYLE: Record<Ad['theme'], { bg: string; chip: string; chipInk: string; big: string }> = {
   sun: { bg: '#2a1a0c', chip: '#ffd60a', chipInk: '#141414', big: '#ffd60a' },
   cobalt: { bg: '#0d1424', chip: '#3d63ff', chipInk: '#ffffff', big: '#ffe14d' },
-  self: { bg: '#050505', chip: '#34d399', chipInk: '#050505', big: '#34d399' },
+  self: { bg: '#7c0e44', chip: '#f2dace', chipInk: '#7c0e44', big: '#f2dace' },
   magenta: { bg: '#1a1014', chip: '#ff2d6f', chipInk: '#ffffff', big: '#ffffff' },
   forest: { bg: '#1a140f', chip: '#c6f36b', chipInk: '#0e4a35', big: '#c6f36b' },
 }

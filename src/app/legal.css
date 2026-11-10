@@ -327,15 +327,15 @@ body:has(.legal-page) {
     }
 }
 
-:root[data-app-theme='dark'] body:has(.legal-page) { background: #1C0D16; }
+:root[data-app-theme='dark'] body:has(.legal-page) { background: #170A12; }
 :root[data-app-theme='dark'] .legal-page {
-    --legal-bg: #1C0D16;
-    --legal-surface: #341B29;
-    --legal-soft: #482236;
+    --legal-bg: #170A12;
+    --legal-surface: #29131F;
+    --legal-soft: #3A1B2B;
     --legal-ink: #F2DACE;
     --legal-copy: #E5BDB7;
     --legal-muted: #D49A9A;
-    --legal-line: #62364C;
+    --legal-line: #4D2A3D;
     --legal-accent: #D49A9A;
     --legal-accent-hover: #F2DACE;
     --legal-on-accent: #2A0B1B;

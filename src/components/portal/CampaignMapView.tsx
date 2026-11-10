@@ -35,17 +35,17 @@ export default function CampaignMapView({ points }: CampaignMapViewProps) {
             center={[p.lat, p.lng]}
             radius={radius}
             pathOptions={{
-              fillColor: '#CCF381',
+              fillColor: '#aa5e7a',
               fillOpacity: 0.25 + intensity * 0.55,
-              color: '#CCF381',
+              color: '#aa5e7a',
               weight: 1,
               opacity: 0.5 + intensity * 0.5,
             }}
           >
             <Popup>
-              <div style={{ color: '#050505', fontSize: 13 }}>
+              <div style={{ color: '#2a0b1b', fontSize: 13 }}>
                 <strong>{p.count} play{p.count !== 1 ? 's' : ''}</strong><br />
-                <span style={{ fontSize: 11, color: '#6b7280' }}>
+                <span style={{ fontSize: 11, color: '#7c5567' }}>
                   {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
                 </span>
               </div>

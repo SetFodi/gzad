@@ -21,9 +21,9 @@ interface MapViewProps {
   showDistricts?: boolean
 }
 
-// Custom marker icon (green dot — matches brand green #166534)
+// Custom marker icon (wine dot — matches brand wine #7c0e44)
 const deviceIcon = new L.DivIcon({
-  html: `<div style="width:14px;height:14px;border-radius:50%;background:#166534;border:2px solid #fff;box-shadow:0 0 8px rgba(22,101,52,0.6)"></div>`,
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:#7c0e44;border:2px solid #fff8f4;box-shadow:0 0 8px rgba(124,14,68,0.5)"></div>`,
   iconSize: [14, 14],
   iconAnchor: [7, 7],
   className: '',
@@ -77,7 +77,7 @@ export default function MapView({ positions, allPoints, showDistricts = false }:
         <Polyline
           key={deviceId}
           positions={trail}
-          color="#166534"
+          color="#aa5e7a"
           weight={3}
           opacity={0.8}
         />
@@ -87,7 +87,7 @@ export default function MapView({ positions, allPoints, showDistricts = false }:
       {positions.map((p) => (
         <Marker key={p.device_serial} position={[p.lat, p.lng]} icon={deviceIcon}>
           <Popup>
-            <div style={{ color: '#050505', fontSize: 13 }}>
+            <div style={{ color: '#2a0b1b', fontSize: 13 }}>
               <strong>{p.device_serial}</strong><br />
               {t('Speed')}: {p.speed === null ? t('Not recorded') : t('{n} km/h', { n: p.speed })}<br />
               {t('Last update')}: {new Date(p.recorded_at).toLocaleString(locale, { timeZone: 'Asia/Tbilisi' })}
