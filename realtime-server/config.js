@@ -15,9 +15,14 @@ module.exports = {
   // Set the device's realtime server URL to: ws://HOST:PORT?token=THIS_SECRET
   wsSecret: process.env.WS_SECRET || '',
 
-  // Allowed device IDs (comma-separated). If empty, all devices are allowed (when wsSecret is set).
-  // Example: 'y1c-825-61009,y1c-825-61010'
+  // Screens are admitted when they are on the app's admin Devices page. IDs
+  // listed here (comma-separated) are admitted as well, even when the app
+  // can't be reached. Example: 'y1c-825-61009,y1c-825-61010'
   allowedDevices: process.env.ALLOWED_DEVICES || '',
+
+  // Host and port controllers should dial, shown on the admin Add screen form.
+  // Defaults to the address the app uses to reach this server.
+  deviceAddressHost: process.env.DEVICE_ADDRESS_HOST || '',
 
   // Run the hourly billing calculation from this process. Vercel's free plan
   // only allows one cron per day; this box is always up, so it drives billing

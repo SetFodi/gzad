@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Monitor, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock, RotateCcw, HardDrive, MapPin, Search, Signal, Thermometer, Zap, Droplets } from 'lucide-react'
+import { Monitor, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock, RotateCcw, HardDrive, MapPin, Search, Signal, Thermometer, Zap, Droplets, Plus, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import StatusBadge from '@/components/app/StatusBadge'
+import AddScreenDialog from '@/components/admin/AddScreenDialog'
 import { useAdminText } from '@/lib/admin-i18n'
 
 interface Device {
@@ -15,6 +16,13 @@ interface Device {
   lastSeen: string | null
   info: Record<string, unknown>
   registered: boolean
+}
+
+interface PendingScreen {
+  cardId: string
+  firstSeen: string
+  lastSeen: string
+  attempts: number
 }
 
 interface DeviceHealth {
@@ -41,6 +49,29 @@ export default function DevicesPage() {
   const [schedBrightness, setSchedBrightness] = useState({ time: '08:00', value: 100 })
   const [deviceHealth, setDeviceHealth] = useState<Record<string, DeviceHealth>>({})
   const [healthLoading, setHealthLoading] = useState(false)
+  // Device managers add and remove screens. address is what LEDOK needs;
+  // pending are controllers that tried to connect and wait to be added.
+  const [manager, setManager] = useState<{ canManage: boolean; address: string | null; pending: PendingScreen[] }>({ canManage: false, address: null, pending: [] })
+  const [addDialog, setAddDialog] = useState<{ setupFor: string | null; cardId?: string } | null>(null)
+
+  const loadManager = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/devices')
+      if (!res.ok) return
+      const data = await res.json()
+      setManager({
+        canManage: data.canManage === true,
+        address: data.address ?? null,
+        pending: Array.isArray(data.pending) ? data.pending : [],
+      })
+    } catch { /* keep what we had */ }
+  }, [])
+
+  useEffect(() => {
+    void loadManager()
+    const interval = setInterval(loadManager, 10000)
+    return () => clearInterval(interval)
+  }, [loadManager])
 
   const loadDevices = useCallback(async () => {
     try {
@@ -265,6 +296,26 @@ export default function DevicesPage() {
     }
   }
 
+  const removeScreen = async (cardId: string) => {
+    if (!confirm(t('Remove {id}? It disconnects and can’t reconnect until added again. Its play history stays.', { id: cardId }))) return
+    setActionLoading(`${cardId}-remove`)
+    setActionResult(null)
+    try {
+      const res = await fetch(`/api/admin/devices?cardId=${encodeURIComponent(cardId)}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setActionResult({ ok: true, msg: t('Removed {id}', { id: cardId }) })
+        await loadDevices()
+      } else {
+        setActionResult({ ok: false, msg: `${t('Remove screen')}: ${t(typeof data.error === 'string' ? data.error : 'Failed')}` })
+      }
+    } catch {
+      setActionResult({ ok: false, msg: `${t('Remove screen')}: ${t('Failed to connect')}` })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const cleanStorage = async (cardId: string) => {
     if (!confirm(t('Clean device storage? This clears all cached programs, and active ads must be pushed again.'))) return
     setActionLoading(`${cardId}-clean-storage`)
@@ -331,8 +382,41 @@ export default function DevicesPage() {
           <button type="button" onClick={loadDevices} className="portal-btn-secondary">
             <RefreshCw size={16} aria-hidden /> {t('Refresh')}
           </button>
+          {manager.canManage && (
+            <button type="button" onClick={() => setAddDialog({ setupFor: null })} className="portal-btn-primary">
+              <Plus size={16} aria-hidden /> {t('Add screen')}
+            </button>
+          )}
         </div>
       </div>
+
+      {addDialog && (
+        <AddScreenDialog
+          setupFor={addDialog.setupFor}
+          initialCardId={addDialog.cardId}
+          address={manager.address}
+          onClose={() => setAddDialog(null)}
+          onAdded={() => { void loadDevices(); void loadManager() }}
+        />
+      )}
+
+      {manager.canManage && manager.pending.length > 0 && (
+        <section className="portal-alert portal-alert-warning pending-screens" aria-labelledby="pending-title">
+          <strong id="pending-title">{t('New screens asking to join')}</strong>
+          <p className="cell-sub">{t('These controllers have the right address but nobody has added them yet.')}</p>
+          <ul>
+            {manager.pending.map((p) => (
+              <li key={p.cardId}>
+                <code>{p.cardId}</code>
+                <span className="cell-sub">{t('Last tried {when}', { when: when(p.lastSeen) ?? '—' })}</span>
+                <button type="button" className="action-btn" onClick={() => setAddDialog({ setupFor: null, cardId: p.cardId })}>
+                  <Plus size={14} aria-hidden /> {t('Add')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {error && (
         <div className="portal-alert portal-alert-warning">
@@ -354,7 +438,7 @@ export default function DevicesPage() {
         <div className="portal-empty">
           <p>{t('No devices registered yet.')}</p>
           <p style={{ fontSize: 14 }}>
-            {t('Add one to the devices table, or connect a controller to the Realtime Server.')}
+            {manager.canManage ? t('Use Add screen to register a controller.') : t('A device manager adds screens here.')}
           </p>
         </div>
       ) : (
@@ -407,9 +491,25 @@ export default function DevicesPage() {
                 )}
 
                 {!d.online ? (
-                  <p className="device-offline">
-                    {error ? t('Live status is unavailable. Controls return when the Realtime Server is reachable.') : t('The screen is off or not connected to the Realtime Server. Controls appear when it comes back online.')}
-                  </p>
+                  <>
+                    <p className="device-offline">
+                      {error
+                        ? t('Live status is unavailable. Controls return when the Realtime Server is reachable.')
+                        : !d.lastSeen
+                          ? t('Waiting for its first connection. Set its Realtime address in LEDOK and make sure it has mobile data.')
+                          : t('The screen is off or not connected to the Realtime Server. Controls appear when it comes back online.')}
+                    </p>
+                    {manager.canManage && (
+                      <div className="device-actions">
+                        <button type="button" className="action-btn" onClick={() => setAddDialog({ setupFor: d.cardId })}>
+                          <Wrench size={14} aria-hidden /> {t('LEDOK setup')}
+                        </button>
+                        <button type="button" className="action-btn reject" onClick={() => removeScreen(d.cardId)} disabled={busy}>
+                          <Trash2 size={14} aria-hidden /> {t('Remove screen')}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <>
                     <div className="device-actions">
@@ -574,6 +674,11 @@ export default function DevicesPage() {
                             >
                               <RotateCcw size={14} aria-hidden /> {t('Reboot')}
                             </button>
+                            {manager.canManage && (
+                              <button type="button" className="action-btn reject" onClick={() => removeScreen(d.cardId)} disabled={busy}>
+                                <Trash2 size={14} aria-hidden /> {t('Remove screen')}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

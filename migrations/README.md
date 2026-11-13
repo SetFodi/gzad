@@ -41,6 +41,7 @@ templates are ready for the matching application release.
 | `20261020133824_client_daily_caps.sql` | Auth migration already applied and verified |
 | `20261020170130_billing_alert_smtp_delivery.sql` | Email-delivery migration applied; enables durable SMTP attempts before configuring `BILLING_EMAIL_PROVIDER=smtp` |
 | `20261026120000_system_events.sql` | Auth migration applied. Additive: apply before the release with the admin Activity page; until then billing and device callbacks skip logging without failing. Screen events need the matching realtime server |
+| `20261114120000_device_managers.sql` | Additive (applied 14 Nov 2026). Who may add screens on the admin Devices page; grant with `insert into device_managers (client_id) select id from clients where email = '…'`. The realtime server admits only registered screens once its matching `server.js` is deployed |
 
 ## After applying 009
 

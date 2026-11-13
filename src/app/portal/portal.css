@@ -1865,6 +1865,71 @@ a.attention-row:hover {
     color: var(--portal-on-ink);
 }
 
+/* Controllers that tried to connect and wait to be added */
+.pending-screens {
+    display: grid;
+    gap: 6px;
+}
+
+.pending-screens p {
+    margin: 0;
+}
+
+.pending-screens ul {
+    display: grid;
+    gap: 6px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pending-screens li {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+}
+
+.pending-screens li .action-btn {
+    margin-left: auto;
+}
+
+/* Add screen: the LEDOK steps shown after a screen is added */
+.setup-steps {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding-left: 20px;
+    list-style: decimal;
+    color: var(--portal-text);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.setup-done {
+    margin: 0;
+    color: var(--portal-text);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.setup-address {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px 8px 8px 12px;
+    border-radius: var(--portal-radius-sm);
+    background: var(--portal-bg);
+}
+
+.setup-address code {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+}
+
 .device-sliders {
     display: grid;
     gap: 6px;

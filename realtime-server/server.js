@@ -94,6 +94,38 @@ app.get('/devices', (req, res) => {
   res.json(list)
 })
 
+// What a new controller's "Realtime (Plat 4) Address" must be, for the admin
+// panel's Add screen form: this server's host and port plus the token. The
+// host is the one the app reached us at unless DEVICE_ADDRESS_HOST says otherwise.
+app.get('/provisioning', (req, res) => {
+  const host = config.deviceAddressHost || req.headers.host
+  res.json({ address: config.wsSecret ? `${host}?token=${config.wsSecret}` : host })
+})
+
+// The app added or removed a screen: drop the cached registry answer, and on
+// removal disconnect the screen so it is asked again (and refused).
+app.post('/registry/:cardId/forget', (req, res) => {
+  const { cardId } = req.params
+  registryCache.delete(cardId)
+  let disconnected = false
+  if (req.body?.disconnect && !allowedDeviceSet.has(cardId) && devices[cardId]?.ws) {
+    try { devices[cardId].ws.close(4003, 'Device removed') } catch (e) {}
+    disconnected = true
+  }
+  res.json({ success: true, disconnected })
+})
+
+// Screens that tried to connect but haven't been added yet, newest first.
+app.get('/pending-devices', (req, res) => {
+  const cutoff = Date.now() - PENDING_KEEP_MS
+  for (const [cardId, p] of pendingDevices) {
+    if (new Date(p.lastSeen).getTime() < cutoff) pendingDevices.delete(cardId)
+  }
+  const list = [...pendingDevices].map(([cardId, p]) => ({ cardId, ...p }))
+  list.sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
+  res.json(list)
+})
+
 // Get single device status
 app.get('/devices/:cardId', (req, res) => {
   const d = devices[req.params.cardId]
@@ -551,10 +583,70 @@ const wss = new WebSocketServer({
   },
 })
 
-// Parse allowed devices into a Set for fast lookup
+// ─── Device registry ─────────────────────────────────────────────────────────
+// Which controllers may connect. Screens are added on the app's admin Devices
+// page, and the app answers /api/devices/authorize from its devices table, so
+// a new screen never needs a change on this box. ALLOWED_DEVICES still admits
+// the screens it lists, whatever the app says or whether it answers at all.
 const allowedDeviceSet = new Set(
   config.allowedDevices ? config.allowedDevices.split(',').map(s => s.trim()).filter(Boolean) : []
 )
+// cardId → { allowed, at }. A "yes" is trusted for a while so a reconnect
+// burst doesn't hit the app; a "no" expires quickly so a screen added a moment
+// later gets in on its next attempt.
+const registryCache = new Map()
+const REGISTRY_ALLOW_TTL_MS = 10 * 60 * 1000
+const REGISTRY_DENY_TTL_MS = 30 * 1000
+
+// Controllers the app said no to, so the admin panel can offer to add them:
+// a new screen pointed at this server shows up there as asking to join.
+// cardId → { firstSeen, lastSeen, ip, attempts }, kept a day after the last try.
+const pendingDevices = new Map()
+const PENDING_KEEP_MS = 24 * 60 * 60 * 1000
+
+function notePending(cardId, ip) {
+  const now = new Date().toISOString()
+  const entry = pendingDevices.get(cardId)
+  if (entry) {
+    entry.lastSeen = now
+    entry.ip = ip
+    entry.attempts++
+  } else {
+    if (pendingDevices.size >= 200) return // a flood of made-up ids, not new screens
+    pendingDevices.set(cardId, { firstSeen: now, lastSeen: now, ip, attempts: 1 })
+  }
+}
+
+/** { allowed, unregistered }: unregistered means the app answered "not added". */
+async function checkDevice(cardId) {
+  if (allowedDeviceSet.has(cardId)) return { allowed: true, unregistered: false }
+
+  const cached = registryCache.get(cardId)
+  if (cached && Date.now() - cached.at < (cached.allowed ? REGISTRY_ALLOW_TTL_MS : REGISTRY_DENY_TTL_MS)) {
+    return { allowed: cached.allowed, unregistered: !cached.allowed }
+  }
+
+  try {
+    const res = await fetch(`${config.gzadAppUrl}/api/devices/authorize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.callbackSecret}` },
+      body: JSON.stringify({ cardId }),
+      signal: AbortSignal.timeout(8000),
+    })
+    // An app from before the registry: keep the old rule, where an empty
+    // ALLOWED_DEVICES admits every controller that has the token.
+    if (res.status === 404) return { allowed: allowedDeviceSet.size === 0, unregistered: false }
+    if (!res.ok) throw new Error(`authorize returned ${res.status}`)
+    const allowed = (await res.json()).allowed === true
+    registryCache.set(cardId, { allowed, at: Date.now() })
+    return { allowed, unregistered: !allowed }
+  } catch (err) {
+    // The app is unreachable: a screen admitted before keeps working, an
+    // unknown one waits for its next reconnect.
+    console.error(`[${new Date().toISOString()}] Registry check failed for ${cardId} (${err.message}) — ${cached?.allowed ? 'admitting, known screen' : 'refusing for now'}`)
+    return { allowed: cached?.allowed === true, unregistered: false }
+  }
+}
 
 wss.on('connection', (ws) => {
   let cardId = null
@@ -565,6 +657,48 @@ wss.on('connection', (ws) => {
     ws.isAlive = true
     ws.answersPings = true
   })
+
+  // Makes this socket the live connection for an admitted controller.
+  function register(id) {
+    cardId = id
+
+    // A screen that was already connected is just swapping sockets; only a
+    // screen coming back from offline is news for the activity log.
+    const previous = devices[cardId]
+    const wasOnline = Boolean(previous && previous.ws && previous.ws !== ws && previous.ws.readyState === 1)
+    const offlineSeconds = previous && !previous.ws && previous.lastSeen
+      ? Math.round((Date.now() - new Date(previous.lastSeen).getTime()) / 1000)
+      : null
+
+    // Close old connection if exists
+    if (devices[cardId] && devices[cardId].ws && devices[cardId].ws !== ws) {
+      try { devices[cardId].ws.close() } catch (e) {}
+    }
+
+    devices[cardId] = {
+      ws,
+      connectedAt: new Date().toISOString(),
+      lastSeen: new Date().toISOString(),
+      info: {},
+    }
+    // A watched screen that comes back is asked again straight away.
+    if (watches[cardId]) {
+      watches[cardId].backoffUntil = 0
+      watches[cardId].failures = 0
+    }
+    console.log(`[${new Date().toISOString()}] Device connected: ${cardId}`)
+    if (!wasOnline) {
+      postDeviceEvent(cardId, 'connected', {
+        ip: ws._socket?.remoteAddress || null,
+        ...(offlineSeconds !== null ? { offline_seconds: offlineSeconds } : {}),
+      })
+    }
+
+    // Auto-configure callbacks on every connection, then make sure the screen
+    // plays today's playlist: anything paused or ended while it was offline
+    // must stop, and new campaigns must start.
+    autoSetupDevice(cardId).then(() => syncPlaylistAfterConnect(cardId))
+  }
 
   ws.on('message', (raw) => {
     ws.isAlive = true
@@ -585,51 +719,32 @@ wss.on('connection', (ws) => {
 
     // Controller initial registration — sends { cardId: "xxx" }
     if (data.cardId) {
-      // Check device allowlist (if configured)
-      if (allowedDeviceSet.size > 0 && !allowedDeviceSet.has(data.cardId)) {
-        console.log(`[${new Date().toISOString()}] Device rejected (not in allowlist): ${data.cardId} from ${ws._socket?.remoteAddress || 'unknown'}`)
-        ws.close(4003, 'Device not allowed')
+      // Already admitted on this socket: re-register without asking again.
+      if (data.cardId === cardId) {
+        register(cardId)
         return
       }
-
-      cardId = data.cardId
-
-      // A screen that was already connected is just swapping sockets; only a
-      // screen coming back from offline is news for the activity log.
-      const previous = devices[cardId]
-      const wasOnline = Boolean(previous && previous.ws && previous.ws !== ws && previous.ws.readyState === 1)
-      const offlineSeconds = previous && !previous.ws && previous.lastSeen
-        ? Math.round((Date.now() - new Date(previous.lastSeen).getTime()) / 1000)
-        : null
-
-      // Close old connection if exists
-      if (devices[cardId] && devices[cardId].ws !== ws) {
-        try { devices[cardId].ws.close() } catch (e) {}
-      }
-
-      devices[cardId] = {
-        ws,
-        connectedAt: new Date().toISOString(),
-        lastSeen: new Date().toISOString(),
-        info: {},
-      }
-      // A watched screen that comes back is asked again straight away.
-      if (watches[cardId]) {
-        watches[cardId].backoffUntil = 0
-        watches[cardId].failures = 0
-      }
-      console.log(`[${new Date().toISOString()}] Device connected: ${cardId}`)
-      if (!wasOnline) {
-        postDeviceEvent(cardId, 'connected', {
-          ip: ws._socket?.remoteAddress || null,
-          ...(offlineSeconds !== null ? { offline_seconds: offlineSeconds } : {}),
-        })
-      }
-
-      // Auto-configure callbacks on every connection, then make sure the screen
-      // plays today's playlist: anything paused or ended while it was offline
-      // must stop, and new campaigns must start.
-      autoSetupDevice(cardId).then(() => syncPlaylistAfterConnect(cardId))
+      // One registry check per socket at a time.
+      if (ws.registering) return
+      ws.registering = true
+      const claimedId = data.cardId
+      checkDevice(claimedId).then(({ allowed, unregistered }) => {
+        ws.registering = false
+        if (ws.readyState !== 1) return
+        if (!allowed) {
+          const ip = ws._socket?.remoteAddress || 'unknown'
+          if (unregistered) {
+            const isNew = !pendingDevices.has(claimedId)
+            notePending(claimedId, ip)
+            // A refused controller retries every few seconds; say so once.
+            if (isNew) console.log(`[${new Date().toISOString()}] New screen asking to join: ${claimedId} from ${ip} (add it on the admin Devices page)`)
+          }
+          ws.close(4003, 'Device not allowed')
+          return
+        }
+        pendingDevices.delete(claimedId)
+        register(claimedId)
+      })
       return
     }
 
