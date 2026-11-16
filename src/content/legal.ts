@@ -17,7 +17,7 @@ export const legalLabels: Record<LegalLang, LegalLabels> = {
     "showContents": "Show sections",
     "hideContents": "Hide sections",
     "contact": "Questions about this page?",
-    "email": "Email our team",
+    "email": "Write to us",
     "legal": "Legal documents",
     "privacy": "Privacy policy",
     "terms": "Terms of service",
@@ -60,7 +60,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "heading": "Who is responsible",
           "paragraphs": [
             "Gzad is operated by **Gzadvertisement LLC**, a company registered in Georgia, identification number **400469239**. Our registered address is **7 Evgeni Kharadze Street, Tbilisi, Georgia**.",
-            "Gzadvertisement LLC is responsible for the processing described here. For privacy questions, requests or concerns, contact [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge)."
+            "Gzadvertisement LLC is responsible for the processing described here. For privacy questions, requests or concerns, contact [info@gzadvertisement.ge](/contact?topic=other)."
           ]
         },
         {
@@ -86,7 +86,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
             "We use this information to create and administer accounts; review and deliver advertising; manage vehicles and screens; calculate and explain charges; prepare campaign reports; answer requests; and send account, verification and billing communications.",
             "We also use relevant records to diagnose faults, prevent unauthorised access or manipulated playback reports, resolve disputes, and meet legal and accounting obligations.",
             "The legal basis depends on the purpose: taking steps towards or performing a contract, complying with legal duties, or pursuing a legitimate interest such as security and accurate billing where your rights do not override it. Where processing requires consent, we seek it separately. Accepting service terms does not replace a consent that the law requires.",
-            "Charge calculations and balance-based campaign pauses can be automated using recorded delivery and the applicable rates and limits. Our team reviews advertising creative. You can ask our team to review a disputed charge, pause or access issue by emailing [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge)."
+            "Charge calculations and balance-based campaign pauses can be automated using recorded delivery and the applicable rates and limits. Our team reviews advertising creative. You can ask our team to review a disputed charge, pause or access issue by emailing [info@gzadvertisement.ge](/contact?topic=other)."
           ]
         },
         {
@@ -96,7 +96,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
             "Screens send location and playback reports while connected and operating. These reports can reveal a vehicle’s route and movements. A screen may be linked to a fleet account and registration plate, so its location history can relate to identifiable drivers even if a driver has no Gzad account.",
             "We use vehicle location to operate the network, show where campaigns played, apply location-dependent pricing, and investigate delivery or device issues. Playback records describe screen activity; they are not a count of identifiable people who saw an ad.",
             "Fleet partners must tell drivers about the installed screen, the information it reports, and the uses described in this policy. They must have an appropriate basis for sharing driver-related information and meet their own obligations as employers or fleet operators. A partner’s agreement alone does not establish consent on behalf of every driver.",
-            "Drivers can contact [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) directly about records relating to them. A vehicle plate or screen identifier and the relevant dates can help us locate those records."
+            "Drivers can contact [info@gzadvertisement.ge](/contact?topic=other) directly about records relating to them. A vehicle plate or screen identifier and the relevant dates can help us locate those records."
           ]
         },
         {
@@ -113,7 +113,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "paragraphs": [
             "We use **Supabase** for account authentication, database and advertising-media storage, and **Vercel** for application hosting. Connected screen controllers and our realtime infrastructure transmit device, playback and location reports. Email providers used for account or billing messages process the recipient address and message content.",
             "Interactive maps request map tiles and related assets from third-party services, including OpenStreetMap. Those services receive connection information, such as your IP address, when your browser loads their resources.",
-            "Some providers process information outside Georgia. International processing must have a lawful basis and appropriate protections under applicable law. Contact [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) for information about the providers, destinations and safeguards relevant to your data. We do not sell personal data."
+            "Some providers process information outside Georgia. International processing must have a lawful basis and appropriate protections under applicable law. Contact [info@gzadvertisement.ge](/contact?topic=other) for information about the providers, destinations and safeguards relevant to your data. We do not sell personal data."
           ]
         },
         {
@@ -150,7 +150,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "requests",
           "heading": "Your rights and requests",
           "paragraphs": [
-            "You may ask to access or correct your data, obtain a copy, or request deletion, restriction or portability where applicable. You may also object to processing or withdraw a consent where the law permits. Contact [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge); rights are subject to legal conditions.",
+            "You may ask to access or correct your data, obtain a copy, or request deletion, restriction or portability where applicable. You may also object to processing or withdraw a consent where the law permits. Contact [info@gzadvertisement.ge](/contact?topic=other); rights are subject to legal conditions.",
             "Tell us which account, campaign, vehicle or period your request concerns. We may ask for proportionate identity or authority checks before releasing or changing records. We respond within the applicable legal deadlines and explain any refusal, restriction or permitted extension.",
             "Closing an account does not automatically erase records that must be retained. Withdrawing consent does not undo processing already carried out lawfully; we will explain if it affects an optional feature."
           ]
@@ -159,7 +159,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "security",
           "heading": "Security and account responsibility",
           "paragraphs": [
-            "We use authentication, role-based access and other technical and organisational measures to protect information. No internet service can guarantee complete security. Keep your credentials private and report suspected account compromise or data exposure promptly to [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge).",
+            "We use authentication, role-based access and other technical and organisational measures to protect information. No internet service can guarantee complete security. Keep your credentials private and report suspected account compromise or data exposure promptly to [info@gzadvertisement.ge](/contact?topic=other).",
             "Please do not send passwords or authentication codes by email. We may retain limited incident records to investigate an issue and protect affected accounts."
           ]
         },
@@ -174,7 +174,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "complaints",
           "heading": "Questions and complaints",
           "paragraphs": [
-            "You can raise a privacy concern with [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge). You may also complain to the **State Audit Office of Georgia**, the competent data-protection supervisory authority, or seek a remedy before a competent court. Contacting us first does not remove those rights.",
+            "You can raise a privacy concern with [info@gzadvertisement.ge](/contact?topic=other). You may also complain to the **State Audit Office of Georgia**, the competent data-protection supervisory authority, or seek a remedy before a competent court. Contacting us first does not remove those rights.",
             "The applicable framework is [Georgia’s Law on Personal Data Protection](https://www.matsne.gov.ge/en/document/view/5827307)."
           ]
         },
@@ -200,7 +200,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "heading": "Operator and contact",
           "paragraphs": [
             "Gzad is operated by **Gzadvertisement LLC**, registered in Georgia, identification number **400469239**, with its registered address at **7 Evgeni Kharadze Street, Tbilisi, Georgia**.",
-            "For campaign, billing, account or contractual questions, write to [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge). Our contact telephone is **+995 591 410 914**."
+            "For campaign, billing, account or contractual questions, write to [info@gzadvertisement.ge](/contact?topic=other). Our contact telephone is **+995 591 410 914**."
           ]
         },
         {
@@ -215,7 +215,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "accounts",
           "heading": "Accounts and security",
           "paragraphs": [
-            "Provide accurate account, company and contact information and keep it current. Use your own authorised account, protect your password and verification codes, and tell us promptly at [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) if you suspect unauthorised use.",
+            "Provide accurate account, company and contact information and keep it current. Use your own authorised account, protect your password and verification codes, and tell us promptly at [info@gzadvertisement.ge](/contact?topic=other) if you suspect unauthorised use.",
             "You are responsible for instructions and uploads made by you or people you authorise, subject to applicable law. Do not impersonate another person, bypass access controls, share access without authority, scrape private records, upload malicious code or interfere with screens, reporting or billing."
           ]
         },
@@ -259,7 +259,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "refunds",
           "heading": "Billing questions and refunds",
           "paragraphs": [
-            "If you question a charge, contact [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) with the relevant account, campaign, dates and the issue you want us to investigate. We review the delivery and payment records and correct established billing errors.",
+            "If you question a charge, contact [info@gzadvertisement.ge](/contact?topic=other) with the relevant account, campaign, dates and the issue you want us to investigate. We review the delivery and payment records and correct established billing errors.",
             "You can get back the unspent part of a top-up within 14 days of making it, and a full refund if we don’t approve your ad or can’t start your campaign. Bonus and promo credit is not refunded. The details, including how to ask and how long it takes, are in our [Refund policy](/refund-policy).",
             "Nothing in these terms removes a mandatory consumer, cancellation or refund right. If consumer-protection rules apply to your transaction, those rules take priority over inconsistent commercial terms."
           ]
@@ -293,7 +293,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "suspension",
           "heading": "Suspension and ending service",
           "paragraphs": [
-            "You may ask to close an account or end a campaign by contacting [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge), subject to existing commitments and accrued charges. We may restrict or suspend access for unlawful use, security threats, manipulated records, unpaid amounts or material breach of these terms.",
+            "You may ask to close an account or end a campaign by contacting [info@gzadvertisement.ge](/contact?topic=other), subject to existing commitments and accrued charges. We may restrict or suspend access for unlawful use, security threats, manipulated records, unpaid amounts or material breach of these terms.",
             "Where practical and appropriate, we will explain the issue and give an opportunity to address it. Immediate action may be necessary for safety, security or legal reasons. Closing an account does not remove accrued obligations or require deletion of legally necessary records. Fleet equipment handover follows the partnership agreement."
           ]
         },
@@ -309,7 +309,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "law",
           "heading": "Governing law and disputes",
           "paragraphs": [
-            "These terms are governed by the laws of Georgia. Contact [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) first if you would like us to investigate an account, campaign or contractual concern. This does not prevent you from using any legal complaint or dispute-resolution route.",
+            "These terms are governed by the laws of Georgia. Contact [info@gzadvertisement.ge](/contact?topic=other) first if you would like us to investigate an account, campaign or contractual concern. This does not prevent you from using any legal complaint or dispute-resolution route.",
             "Unresolved disputes may be brought before a competent court in accordance with applicable law. Any mandatory jurisdiction or consumer protections continue to apply."
           ]
         },
@@ -336,7 +336,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "heading": "Who handles refunds",
           "paragraphs": [
             "Refunds are handled by **Gzadvertisement LLC**, registered in Georgia, identification number **400469239**, with its registered address at **7 Evgeni Kharadze Street, Tbilisi, Georgia**.",
-            "For refunds and billing questions, write to [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) or call **+995 591 410 914**."
+            "For refunds and billing questions, write to [info@gzadvertisement.ge](/contact?topic=billing) or call **+995 591 410 914**."
           ]
         },
         {
@@ -395,7 +395,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "request",
           "heading": "How to request a refund",
           "paragraphs": [
-            "Email [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) from the email address on your Gzad account, or include your company name. Tell us which top-up you want refunded, or the amount.",
+            "Email [info@gzadvertisement.ge](/contact?topic=billing) from the email address on your Gzad account, or include your company name. Tell us which top-up you want refunded, or the amount.",
             "We reply to confirm the refundable amount. If something needs checking first, such as recent playback that is still being reconciled, we tell you what it is and how long it will take."
           ]
         },
@@ -438,7 +438,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "heading": "ვინ არის პასუხისმგებელი",
           "paragraphs": [
             "Gzad-ის ოპერატორია საქართველოში რეგისტრირებული **შპს „გზადვერთაისმენთ“**, საიდენტიფიკაციო კოდი **400469239**. იურიდიული მისამართია **საქართველო, თბილისი, ევგენი ხარაძის ქუჩა №7**.",
-            "ამ პოლიტიკაში აღწერილ დამუშავებაზე პასუხისმგებელია შპს „გზადვერთაისმენთ“. მონაცემების შესახებ კითხვების, მოთხოვნებისა და საჩივრებისთვის მოგვწერეთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge)."
+            "ამ პოლიტიკაში აღწერილ დამუშავებაზე პასუხისმგებელია შპს „გზადვერთაისმენთ“. მონაცემების შესახებ კითხვების, მოთხოვნებისა და საჩივრებისთვის მოგვწერეთ: [info@gzadvertisement.ge](/contact?topic=other)."
           ]
         },
         {
@@ -464,7 +464,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
             "მონაცემებს ვიყენებთ ანგარიშების შესაქმნელად და სამართავად, რეკლამის შესამოწმებლად და გასაშვებად, ავტომობილებისა და ეკრანების სამართავად, თანხის დასარიცხად და ასახსნელად, კამპანიის ანგარიშების მოსამზადებლად, მოთხოვნებზე საპასუხოდ და ავტორიზაციისა თუ ბილინგის შეტყობინებების გასაგზავნად.",
             "შესაბამისი ჩანაწერები ასევე გვჭირდება ხარვეზების მოსაძიებლად, უნებართვო წვდომისა და ჩვენებების გაყალბების თავიდან ასაცილებლად, დავების განსახილველად და სამართლებრივი თუ საბუღალტრო ვალდებულებების შესასრულებლად.",
             "სამართლებრივი საფუძველი დამოკიდებულია მიზანზე: ხელშეკრულების დადებამდე საჭირო მოქმედება ან მისი შესრულება, კანონით დაკისრებული ვალდებულება ან ისეთი კანონიერი ინტერესი, როგორიცაა უსაფრთხოება და სწორი დარიცხვა, თუ მას თქვენი უფლებები არ აღემატება. სადაც საჭიროა თანხმობა, მას ცალკე ვითხოვთ. მომსახურების პირობების მიღება კანონით მოთხოვნილ თანხმობას არ ანაცვლებს.",
-            "თანხის დარიცხვა და ბალანსის საფუძველზე კამპანიის შეჩერება შეიძლება ავტომატურად შესრულდეს აღრიცხული ჩვენებების, შესაბამისი ტარიფებისა და ლიმიტების მიხედვით. ვიზუალს ჩვენი გუნდი ამოწმებს. სადავო დარიცხვის, შეჩერების ან წვდომის საკითხის თანამშრომლის მიერ განხილვა შეგიძლიათ მოითხოვოთ მისამართზე [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge)."
+            "თანხის დარიცხვა და ბალანსის საფუძველზე კამპანიის შეჩერება შეიძლება ავტომატურად შესრულდეს აღრიცხული ჩვენებების, შესაბამისი ტარიფებისა და ლიმიტების მიხედვით. ვიზუალს ჩვენი გუნდი ამოწმებს. სადავო დარიცხვის, შეჩერების ან წვდომის საკითხის თანამშრომლის მიერ განხილვა შეგიძლიათ მოითხოვოთ მისამართზე [info@gzadvertisement.ge](/contact?topic=other)."
           ]
         },
         {
@@ -474,7 +474,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
             "ეკრანები მუშაობისა და კავშირის არსებობისას აგზავნის მდებარეობისა და ჩვენებების ჩანაწერებს. ამ ჩანაწერებით შეიძლება გამოჩნდეს ავტომობილის მარშრუტი და გადაადგილება. ეკრანი შეიძლება უკავშირდებოდეს ავტოპარკის ანგარიშსა და სახელმწიფო ნომერს, ამიტომ მდებარეობის ისტორია შეიძლება ეხებოდეს იდენტიფიცირებად მძღოლსაც, რომელსაც Gzad-ის ანგარიში არ აქვს.",
             "მდებარეობას ვიყენებთ ქსელის სამუშაოდ, კამპანიის ჩვენების ადგილების ასახვისთვის, მდებარეობაზე დამოკიდებული ფასის გამოსათვლელად და ჩვენებისა თუ მოწყობილობის ხარვეზების გამოსაკვლევად. ჩვენების ჩანაწერი აღწერს ეკრანის მუშაობას და არ წარმოადგენს რეკლამის მნახველი იდენტიფიცირებადი ადამიანების რაოდენობას.",
             "ავტოპარკის პარტნიორმა მძღოლებს უნდა აცნობოს ეკრანის მონტაჟის, მის მიერ გამოგზავნილი ინფორმაციისა და ამ პოლიტიკაში აღწერილი გამოყენების შესახებ. მას უნდა ჰქონდეს მძღოლთან დაკავშირებული მონაცემების გაზიარების შესაბამისი საფუძველი და შეასრულოს დამსაქმებლისა თუ ავტოპარკის ოპერატორის ვალდებულებები. პარტნიორის ხელშეკრულება თითოეული მძღოლის სახელით თანხმობას არ ადგენს.",
-            "მძღოლებს შეუძლიათ საკუთარ მონაცემებზე პირდაპირ მოგვწერონ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge). ჩანაწერების მოძიებაში დაგვეხმარება ავტომობილის ნომერი ან ეკრანის იდენტიფიკატორი და შესაბამისი თარიღები."
+            "მძღოლებს შეუძლიათ საკუთარ მონაცემებზე პირდაპირ მოგვწერონ: [info@gzadvertisement.ge](/contact?topic=other). ჩანაწერების მოძიებაში დაგვეხმარება ავტომობილის ნომერი ან ეკრანის იდენტიფიკატორი და შესაბამისი თარიღები."
           ]
         },
         {
@@ -491,7 +491,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "paragraphs": [
             "**Supabase**-ს ვიყენებთ ანგარიშების ავტორიზაციისთვის, მონაცემთა ბაზისა და სარეკლამო ფაილების შესანახად, ხოლო **Vercel**-ს ვებაპლიკაციის ჰოსტინგისთვის. ეკრანის კონტროლერები და ჩვენი საკომუნიკაციო ინფრასტრუქტურა გადასცემს მოწყობილობის, ჩვენებისა და მდებარეობის ჩანაწერებს. ანგარიშისა და ბილინგის შეტყობინებებისთვის გამოყენებული ელფოსტის მომწოდებლები ამუშავებს მიმღების მისამართსა და შეტყობინების შინაარსს.",
             "ინტერაქტიული რუკები რუკის ფრაგმენტებსა და სხვა რესურსებს ითხოვს მესამე მხარის სერვისებიდან, მათ შორის OpenStreetMap-იდან. რესურსის ჩატვირთვისას ეს სერვისები იღებს კავშირის ინფორმაციას, მაგალითად თქვენს IP მისამართს.",
-            "ზოგი მომწოდებელი ინფორმაციას საქართველოს ფარგლებს გარეთ ამუშავებს. საერთაშორისო დამუშავებას უნდა ჰქონდეს სამართლებრივი საფუძველი და კანონით გათვალისწინებული დაცვის მექანიზმები. თქვენს მონაცემებთან დაკავშირებული მომწოდებლების, ქვეყნების და დაცვის ზომების შესახებ ინფორმაციისთვის მოგვწერეთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge). პერსონალურ მონაცემებს არ ვყიდით."
+            "ზოგი მომწოდებელი ინფორმაციას საქართველოს ფარგლებს გარეთ ამუშავებს. საერთაშორისო დამუშავებას უნდა ჰქონდეს სამართლებრივი საფუძველი და კანონით გათვალისწინებული დაცვის მექანიზმები. თქვენს მონაცემებთან დაკავშირებული მომწოდებლების, ქვეყნების და დაცვის ზომების შესახებ ინფორმაციისთვის მოგვწერეთ: [info@gzadvertisement.ge](/contact?topic=other). პერსონალურ მონაცემებს არ ვყიდით."
           ]
         },
         {
@@ -528,7 +528,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "requests",
           "heading": "თქვენი უფლებები და მოთხოვნები",
           "paragraphs": [
-            "შეგიძლიათ მოითხოვოთ მონაცემებზე წვდომა, გასწორება, ასლის მიღება და, შესაბამის შემთხვევაში, წაშლა, დაბლოკვა ან გადატანა. კანონით გათვალისწინებულ შემთხვევაში შეგიძლიათ შეეწინააღმდეგოთ დამუშავებას ან გამოიხმოთ თანხმობა. მოგვწერეთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge). უფლებებზე ვრცელდება კანონით განსაზღვრული პირობები.",
+            "შეგიძლიათ მოითხოვოთ მონაცემებზე წვდომა, გასწორება, ასლის მიღება და, შესაბამის შემთხვევაში, წაშლა, დაბლოკვა ან გადატანა. კანონით გათვალისწინებულ შემთხვევაში შეგიძლიათ შეეწინააღმდეგოთ დამუშავებას ან გამოიხმოთ თანხმობა. მოგვწერეთ: [info@gzadvertisement.ge](/contact?topic=other). უფლებებზე ვრცელდება კანონით განსაზღვრული პირობები.",
             "მიგვითითეთ, რომელ ანგარიშს, კამპანიას, ავტომობილს ან პერიოდს ეხება მოთხოვნა. ინფორმაციის გაცემამდე ან შეცვლამდე შეიძლება მოვითხოვოთ პირადობის ან უფლებამოსილების თანაზომიერი გადამოწმება. გიპასუხებთ კანონით დადგენილ ვადებში და აგიხსნით უარის, შეზღუდვის ან დასაშვები ვადის გაგრძელების საფუძველს.",
             "ანგარიშის დახურვა ავტომატურად არ შლის ჩანაწერებს, რომელთა შენახვაც აუცილებელია. თანხმობის გამოხმობა არ აუქმებს მანამდე კანონიერად განხორციელებულ დამუშავებას; თუ ეს არჩევით ფუნქციაზე იმოქმედებს, აგიხსნით."
           ]
@@ -537,7 +537,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "security",
           "heading": "უსაფრთხოება და ანგარიშის დაცვა",
           "paragraphs": [
-            "ინფორმაციის დასაცავად ვიყენებთ ავტორიზაციას, როლების მიხედვით წვდომის გამიჯვნასა და სხვა ტექნიკურ და ორგანიზაციულ ზომებს. სრულ უსაფრთხოებას ვერცერთი ინტერნეტსერვისი ვერ იძლევა. დაიცავით თქვენი პაროლი და ანგარიშის გატეხვის ან მონაცემების გამჟღავნების ეჭვისას სწრაფად მოგვწერეთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge).",
+            "ინფორმაციის დასაცავად ვიყენებთ ავტორიზაციას, როლების მიხედვით წვდომის გამიჯვნასა და სხვა ტექნიკურ და ორგანიზაციულ ზომებს. სრულ უსაფრთხოებას ვერცერთი ინტერნეტსერვისი ვერ იძლევა. დაიცავით თქვენი პაროლი და ანგარიშის გატეხვის ან მონაცემების გამჟღავნების ეჭვისას სწრაფად მოგვწერეთ: [info@gzadvertisement.ge](/contact?topic=other).",
             "პაროლები ან ავტორიზაციის კოდები ელფოსტით არ გამოგვიგზავნოთ. ინციდენტის გამოსაკვლევად და ანგარიშების დასაცავად შეიძლება შევინახოთ შეზღუდული მოცულობის შესაბამისი ჩანაწერები."
           ]
         },
@@ -552,7 +552,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "complaints",
           "heading": "კითხვები და საჩივრები",
           "paragraphs": [
-            "კონფიდენციალურობის საკითხზე შეგიძლიათ მოგვწეროთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge). ასევე შეგიძლიათ მიმართოთ **საქართველოს სახელმწიფო აუდიტის სამსახურს**, მონაცემთა დაცვის ზედამხედველ უფლებამოსილ ორგანოს, ან შესაბამის სასამართლოს. ჩვენთან წინასწარი დაკავშირება ამ უფლებებს არ ზღუდავს.",
+            "კონფიდენციალურობის საკითხზე შეგიძლიათ მოგვწეროთ: [info@gzadvertisement.ge](/contact?topic=other). ასევე შეგიძლიათ მიმართოთ **საქართველოს სახელმწიფო აუდიტის სამსახურს**, მონაცემთა დაცვის ზედამხედველ უფლებამოსილ ორგანოს, ან შესაბამის სასამართლოს. ჩვენთან წინასწარი დაკავშირება ამ უფლებებს არ ზღუდავს.",
             "შესაბამისი სამართლებრივი ჩარჩოა [საქართველოს კანონი „პერსონალურ მონაცემთა დაცვის შესახებ“](https://www.matsne.gov.ge/ka/document/view/5827307)."
           ]
         },
@@ -578,7 +578,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "heading": "ოპერატორი და საკონტაქტო ინფორმაცია",
           "paragraphs": [
             "Gzad-ის ოპერატორია საქართველოში რეგისტრირებული **შპს „გზადვერთაისმენთ“**, საიდენტიფიკაციო კოდი **400469239**, იურიდიული მისამართით **საქართველო, თბილისი, ევგენი ხარაძის ქუჩა №7**.",
-            "კამპანიის, ბილინგის, ანგარიშისა და ხელშეკრულების საკითხებზე მოგვწერეთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge). საკონტაქტო ტელეფონია **+995 591 410 914**."
+            "კამპანიის, ბილინგის, ანგარიშისა და ხელშეკრულების საკითხებზე მოგვწერეთ: [info@gzadvertisement.ge](/contact?topic=other). საკონტაქტო ტელეფონია **+995 591 410 914**."
           ]
         },
         {
@@ -593,7 +593,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "accounts",
           "heading": "ანგარიში და უსაფრთხოება",
           "paragraphs": [
-            "მოგვაწოდეთ ზუსტი ინფორმაცია ანგარიშის, კომპანიისა და საკონტაქტო პირის შესახებ და განაახლეთ საჭიროებისას. გამოიყენეთ უფლებამოსილი ანგარიში, დაიცავით პაროლი და გადამოწმების კოდები და უნებართვო გამოყენების ეჭვისას სწრაფად მოგვწერეთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge).",
+            "მოგვაწოდეთ ზუსტი ინფორმაცია ანგარიშის, კომპანიისა და საკონტაქტო პირის შესახებ და განაახლეთ საჭიროებისას. გამოიყენეთ უფლებამოსილი ანგარიში, დაიცავით პაროლი და გადამოწმების კოდები და უნებართვო გამოყენების ეჭვისას სწრაფად მოგვწერეთ: [info@gzadvertisement.ge](/contact?topic=other).",
             "კანონით დადგენილ ფარგლებში პასუხისმგებელი ხართ თქვენს ან თქვენ მიერ უფლებამოსილი პირების მითითებებსა და ატვირთულ მასალებზე. დაუშვებელია სხვისი სახელით მოქმედება, წვდომის კონტროლის გვერდის ავლა, უნებართვო წვდომის გაზიარება, კერძო ჩანაწერების შეგროვება, მავნე კოდის ატვირთვა ან ეკრანების, ანგარიშგებისა და დარიცხვების მუშაობაში ჩარევა."
           ]
         },
@@ -637,7 +637,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "refunds",
           "heading": "დარიცხვის საკითხები და თანხის დაბრუნება",
           "paragraphs": [
-            "დარიცხვაზე შეკითხვისას მოგვწერეთ [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge)-ზე და მიუთითეთ ანგარიში, კამპანია, თარიღები და შესასწავლი საკითხი. განვიხილავთ ჩვენებისა და გადახდის ჩანაწერებს და დადასტურებულ შეცდომას გავასწორებთ.",
+            "დარიცხვაზე შეკითხვისას მოგვწერეთ [info@gzadvertisement.ge](/contact?topic=other)-ზე და მიუთითეთ ანგარიში, კამპანია, თარიღები და შესასწავლი საკითხი. განვიხილავთ ჩვენებისა და გადახდის ჩანაწერებს და დადასტურებულ შეცდომას გავასწორებთ.",
             "შევსებული თანხის დაუხარჯავი ნაწილის დაბრუნება შეგიძლიათ შევსებიდან 14 დღის განმავლობაში, ხოლო თუ თქვენს რეკლამას არ დავამტკიცებთ ან კამპანიას ვერ დავიწყებთ, თანხას სრულად დაგიბრუნებთ. ბონუსი და პრომოკოდით დამატებული თანხა არ ბრუნდება. დეტალები, მათ შორის როგორ მოითხოვოთ და რა ვადაში ხდება დაბრუნება, აღწერილია ჩვენს [დაბრუნების პოლიტიკაში](/refund-policy).",
             "ეს პირობები არ ზღუდავს მომხმარებლის კანონით დადგენილ სავალდებულო უფლებას, მათ შორის გაუქმებისა თუ თანხის დაბრუნების უფლებას. თუ თქვენს გარიგებაზე მომხმარებლის დაცვის წესები ვრცელდება, ისინი უპირატესია შეუსაბამო კომერციულ პირობებთან შედარებით."
           ]
@@ -671,7 +671,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "suspension",
           "heading": "შეჩერება და მომსახურების დასრულება",
           "paragraphs": [
-            "ანგარიშის დახურვა ან კამპანიის დასრულება შეგიძლიათ მოითხოვოთ [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge)-ზე, არსებული ვალდებულებებისა და წარმოქმნილი ხარჯის გათვალისწინებით. შეიძლება შევზღუდოთ ან შევაჩეროთ წვდომა უკანონო გამოყენების, უსაფრთხოების საფრთხის, ჩანაწერების მანიპულაციის, გადაუხდელობის ან პირობების არსებითი დარღვევისას.",
+            "ანგარიშის დახურვა ან კამპანიის დასრულება შეგიძლიათ მოითხოვოთ [info@gzadvertisement.ge](/contact?topic=other)-ზე, არსებული ვალდებულებებისა და წარმოქმნილი ხარჯის გათვალისწინებით. შეიძლება შევზღუდოთ ან შევაჩეროთ წვდომა უკანონო გამოყენების, უსაფრთხოების საფრთხის, ჩანაწერების მანიპულაციის, გადაუხდელობის ან პირობების არსებითი დარღვევისას.",
             "როცა ეს პრაქტიკულად შესაძლებელი და მიზანშეწონილია, აგიხსნით საკითხს და მოგცემთ გამოსწორების შესაძლებლობას. უსაფრთხოების ან სამართლებრივი მიზეზით შეიძლება საჭირო იყოს დაუყოვნებლივი მოქმედება. ანგარიშის დახურვა არ აუქმებს დარჩენილ ვალდებულებებს და კანონიერად აუცილებელი ჩანაწერების შენახვას. ავტოპარკის მოწყობილობის ჩაბარება განისაზღვრება პარტნიორობის ხელშეკრულებით."
           ]
         },
@@ -687,7 +687,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "law",
           "heading": "გამოსაყენებელი სამართალი და დავები",
           "paragraphs": [
-            "ეს პირობები რეგულირდება საქართველოს კანონმდებლობით. ანგარიშის, კამპანიის ან ხელშეკრულების საკითხის შესასწავლად შეგიძლიათ მოგვწეროთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge). ეს არ ზღუდავს საჩივრის ან დავის გადაწყვეტის სხვა კანონიერ გზას.",
+            "ეს პირობები რეგულირდება საქართველოს კანონმდებლობით. ანგარიშის, კამპანიის ან ხელშეკრულების საკითხის შესასწავლად შეგიძლიათ მოგვწეროთ: [info@gzadvertisement.ge](/contact?topic=other). ეს არ ზღუდავს საჩივრის ან დავის გადაწყვეტის სხვა კანონიერ გზას.",
             "მოუგვარებელი დავა შეიძლება განიხილოს უფლებამოსილმა სასამართლომ კანონით დადგენილი წესით. სასამართლოს კომპეტენციისა და მომხმარებლის დაცვის სავალდებულო წესები ძალაში რჩება."
           ]
         },
@@ -714,7 +714,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "heading": "ვინ ახორციელებს დაბრუნებას",
           "paragraphs": [
             "თანხის დაბრუნებას ახორციელებს საქართველოში რეგისტრირებული **შპს „გზადვერთაისმენთ“**, საიდენტიფიკაციო კოდი **400469239**, იურიდიული მისამართით **საქართველო, თბილისი, ევგენი ხარაძის ქუჩა №7**.",
-            "თანხის დაბრუნებისა და დარიცხვის საკითხებზე მოგვწერეთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) ან დაგვირეკეთ: **+995 591 410 914**."
+            "თანხის დაბრუნებისა და დარიცხვის საკითხებზე მოგვწერეთ: [info@gzadvertisement.ge](/contact?topic=billing) ან დაგვირეკეთ: **+995 591 410 914**."
           ]
         },
         {
@@ -773,7 +773,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "request",
           "heading": "როგორ მოითხოვოთ დაბრუნება",
           "paragraphs": [
-            "მოგვწერეთ [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge)-ზე Gzad-ის ანგარიშზე მითითებული ელ-ფოსტიდან, ან მიუთითეთ კომპანიის სახელი. დაწერეთ, რომელი შევსების ან რა თანხის დაბრუნება გსურთ.",
+            "მოგვწერეთ [info@gzadvertisement.ge](/contact?topic=billing)-ზე Gzad-ის ანგარიშზე მითითებული ელ-ფოსტიდან, ან მიუთითეთ კომპანიის სახელი. დაწერეთ, რომელი შევსების ან რა თანხის დაბრუნება გსურთ.",
             "პასუხად დაგიდასტურებთ დასაბრუნებელ თანხას. თუ რამე ჯერ შესამოწმებელია, მაგალითად ბოლო ჩვენებები, გეტყვით, რა და რამდენ ხანს დასჭირდება."
           ]
         },

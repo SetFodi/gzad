@@ -77,7 +77,7 @@ export default function SignupForm({ initialRole, verificationReady }: { initial
       <AuthShell audience={role === 'fleet' ? 'fleet' : 'advertiser'}>
         <h1 className="auth-title">{f.title}</h1>
         <p className="auth-subtitle">{f.registrationPending}</p>
-        <a className="auth-btn" href="mailto:info@gzadvertisement.ge">{f.contactUs}</a>
+        <Link className="auth-btn" href={`/contact?topic=${role === 'fleet' ? 'fleet' : 'quote'}`}>{f.contactUs}</Link>
         <p className="auth-switch">{f.alreadyHaveAccount} <Link href="/portal/login">{f.signIn}</Link></p>
       </AuthShell>
     )

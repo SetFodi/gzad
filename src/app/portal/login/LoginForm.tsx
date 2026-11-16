@@ -71,7 +71,7 @@ export default function LoginForm({ linkFailed, emailVerified }: { linkFailed: b
             <label htmlFor="password" className="auth-label">{p.password}</label>
             <a
               className="auth-label-link"
-              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Password reset')}`}
+              href="/contact?topic=account"
             >
               {p.forgot}
             </a>
@@ -94,7 +94,7 @@ export default function LoginForm({ linkFailed, emailVerified }: { linkFailed: b
         {p.noAccount} <Link href="/portal/fleet-signup">{p.createAccount}</Link>
       </p>
       <p className="auth-help">
-        {p.help} <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+        {p.help} <Link href="/contact?topic=account">{SUPPORT_EMAIL}</Link>
       </p>
     </AuthShell>
   )

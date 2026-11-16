@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, ArrowUpRight, ChevronDown, Mail } from 'lucide-react'
 import { LanguageProvider, useTranslations } from '@/lib/i18n'
 import ThemeSwitch from '@/components/app/ThemeSwitch'
-import { LEGAL_EMAIL, LEGAL_UPDATED, legalDocuments, legalLabels, type LegalKind } from '@/content/legal'
+import { LEGAL_UPDATED, legalDocuments, legalLabels, type LegalKind } from '@/content/legal'
 import '@/app/legal.css'
 
 /** The legal copy is trusted static text. Only links and emphasis are formatted. */
@@ -24,12 +24,14 @@ function InlineText({ text }: { text: string }) {
   return <>{nodes.map((node, index) => <Fragment key={index}>{node}</Fragment>)}</>
 }
 
-function Document({ kind }: { kind: LegalKind }) {
+/** Where a page's "write to us" links open the contact form. */
+export const CONTACT_TOPIC: Record<LegalKind, string> = { privacy: 'other', terms: 'other', refund: 'billing' }
+
+/** Header, back link and footer around a legal document or the contact page. */
+export function LegalShell({ current, children }: { current: LegalKind | 'contact'; children: ReactNode }) {
   const { lang, setLang } = useTranslations()
-  const document = legalDocuments[lang][kind]
   const labels = legalLabels[lang]
-  const [contentsOpen, setContentsOpen] = useState(false)
-  const sectionId = (id: string) => `${kind}-${id}`
+  const contactHref = current === 'contact' ? null : `/contact?topic=${CONTACT_TOPIC[current]}`
 
   return (
     <div className="legal-page" lang={lang === 'ge' ? 'ka' : 'en'}>
@@ -52,6 +54,31 @@ function Document({ kind }: { kind: LegalKind }) {
 
       <main id="legal-content" className="legal-main" tabIndex={-1}>
         <Link href="/" className="legal-back"><ArrowLeft size={15} aria-hidden />{labels.back}</Link>
+        {children}
+
+        <footer className="legal-footer">
+          {contactHref && <div><p>{labels.contact}</p><Link className="legal-contact" href={contactHref}>{labels.email}<ArrowUpRight size={15} aria-hidden /></Link></div>}
+          <nav aria-label={labels.legal}>
+            <Link href="/privacy" aria-current={current === 'privacy' ? 'page' : undefined}>{labels.privacy}</Link>
+            <Link href="/terms" aria-current={current === 'terms' ? 'page' : undefined}>{labels.terms}</Link>
+            <Link href="/refund-policy" aria-current={current === 'refund' ? 'page' : undefined}>{labels.refund}</Link>
+            <Link href="/portal/login">{labels.login}</Link>
+          </nav>
+        </footer>
+      </main>
+    </div>
+  )
+}
+
+function Document({ kind }: { kind: LegalKind }) {
+  const { lang } = useTranslations()
+  const document = legalDocuments[lang][kind]
+  const labels = legalLabels[lang]
+  const [contentsOpen, setContentsOpen] = useState(false)
+  const sectionId = (id: string) => `${kind}-${id}`
+
+  return (
+    <LegalShell current={kind}>
         <div className="legal-title-block">
           <p className="legal-eyebrow">{document.eyebrow}</p>
           <h1>{document.title}</h1>
@@ -59,7 +86,7 @@ function Document({ kind }: { kind: LegalKind }) {
         </div>
         <div className="legal-summary">
           <p>{document.summary}</p>
-          <a href={`mailto:${LEGAL_EMAIL}`}><Mail size={16} aria-hidden />{LEGAL_EMAIL}<ArrowUpRight size={15} aria-hidden /></a>
+          <Link href={`/contact?topic=${CONTACT_TOPIC[kind]}`}><Mail size={16} aria-hidden />{labels.email}<ArrowUpRight size={15} aria-hidden /></Link>
         </div>
 
         <div className="legal-document">
@@ -87,18 +114,7 @@ function Document({ kind }: { kind: LegalKind }) {
             ))}
           </article>
         </div>
-
-        <footer className="legal-footer">
-          <div><p>{labels.contact}</p><a className="legal-contact" href={`mailto:${LEGAL_EMAIL}`}>{LEGAL_EMAIL}<ArrowUpRight size={15} aria-hidden /></a></div>
-          <nav aria-label={labels.legal}>
-            <Link href="/privacy" aria-current={kind === 'privacy' ? 'page' : undefined}>{labels.privacy}</Link>
-            <Link href="/terms" aria-current={kind === 'terms' ? 'page' : undefined}>{labels.terms}</Link>
-            <Link href="/refund-policy" aria-current={kind === 'refund' ? 'page' : undefined}>{labels.refund}</Link>
-            <Link href="/portal/login">{labels.login}</Link>
-          </nav>
-        </footer>
-      </main>
-    </div>
+    </LegalShell>
   )
 }
 

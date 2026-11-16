@@ -389,3 +389,9 @@ body:has(.legal-page) {
     .legal-contents ul[data-open] { grid-template-columns: 1fr; }
     .legal-footer nav { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
+
+/* Contact page: the form sits on the soft fill like the summary panel. */
+.contact-title p a { font-weight: 600; text-decoration: none; }
+.contact-body { padding: 40px 0 8px; }
+.contact-body .cf { margin: 0; max-width: 760px; background: var(--legal-soft); }
+:root[data-app-theme='dark'] .contact-body .cf { background: var(--legal-surface); }

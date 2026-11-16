@@ -3,7 +3,8 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import Link from 'next/link'
 import { useState } from 'react'
-import { CONTACT, type Copy } from './copy'
+import ContactForm from '@/components/contact/ContactForm'
+import { CONTACT, type Copy, type Lang } from './copy'
 import { Chevron } from './Hero'
 import { Logo } from './Nav'
 import RoofScreen from './RoofScreen'
@@ -116,25 +117,23 @@ export function Faq({ t }: { t: Copy }) {
   )
 }
 
-export function Closing({ t }: { t: Copy }) {
+export function Closing({ t, lang }: { t: Copy; lang: Lang }) {
   return (
     <section id="contact" className="lp-section lp-alt lp-closing">
       <div className="lp-wrap lp-center">
         <Reveal>
           <h2 className="lp-display lp-closing-title">{t.closing.title}</h2>
           <p className="lp-lede lp-closing-lede">{t.closing.lede}</p>
-          <div className="lp-hero-ctas">
-            <a href={`mailto:${CONTACT.email}`} className="lp-btn">
-              {t.closing.email}
-            </a>
-            <a href={CONTACT.phoneHref} className="lp-link">
-              {t.closing.call} {CONTACT.phone}
-              <Chevron />
-            </a>
-          </div>
-          <p className="lp-fineprint">
-            {CONTACT.email} · {t.closing.hours}
-          </p>
+        </Reveal>
+        <Reveal className="lp-closing-form">
+          <ContactForm lang={lang} />
+        </Reveal>
+        <Reveal>
+          <a href={CONTACT.phoneHref} className="lp-link">
+            {t.closing.call} {CONTACT.phone}
+            <Chevron />
+          </a>
+          <p className="lp-fineprint">{t.closing.hours}</p>
         </Reveal>
       </div>
     </section>
@@ -175,7 +174,7 @@ export function Footer({ t }: { t: Copy }) {
         <div className="lp-footer-bottom">
           <p>{t.footer.rights}</p>
           <p>
-            <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+            <a href="#contact">{CONTACT.email}</a>
             <span aria-hidden> · </span>
             <a href={CONTACT.phoneHref}>{CONTACT.phone}</a>
           </p>

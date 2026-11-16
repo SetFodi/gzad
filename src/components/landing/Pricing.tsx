@@ -8,7 +8,7 @@ import AirtimeSimulator from '@/components/education/AirtimeSimulator'
 import BudgetCalculator from '@/components/education/BudgetCalculator'
 import { calculatorCopy } from '@/components/education/copy'
 import '@/components/education/calculators.css'
-import { CONTACT, type Copy } from './copy'
+import type { Copy } from './copy'
 import { Reveal } from './Reveal'
 import { TILES } from './tiles'
 
@@ -59,7 +59,7 @@ export default function Pricing({ t }: { t: Copy }) {
             <Link href="/portal/fleet-signup" className="lp-btn">{p.register}</Link>
             <Link href="/portal/login" className="lp-btn lp-btn-ghost">{p.login}</Link>
           </div>
-          <a className="lp-pricing-contact" href={`mailto:${CONTACT.email}`}>{p.contact} ↗</a>
+          <a className="lp-pricing-contact" href="#contact">{p.contact} ↓</a>
         </Reveal>
       </div>
     </section>

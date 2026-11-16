@@ -31,7 +31,7 @@ function Page({ style }: { style?: CSSProperties }) {
         <Pricing t={t} />
         <Fleets t={t} />
         <Faq t={t} />
-        <Closing t={t} />
+        <Closing t={t} lang={lang} />
       </main>
       <Footer t={t} />
     </div>

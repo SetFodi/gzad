@@ -1961,6 +1961,14 @@ html:has(.lp) {
     margin-right: auto;
 }
 
+.lp-closing-form {
+    margin: 40px auto 28px;
+}
+
+.lp-closing-form .cf {
+    font-family: inherit;
+}
+
 .lp-footer {
     background: var(--lp-alt);
     border-top: 1px solid var(--lp-hairline);
