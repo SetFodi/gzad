@@ -324,7 +324,7 @@ export const translations = {
             rights: "© 2026 Gzad Georgia. All rights reserved."
         },
         auth: {
-            backToSite: "gzad.ge",
+            backToSite: "gzadvertisement.ge",
             terms: "Terms",
             privacy: "Privacy",
             refund: "Refunds",
@@ -1006,7 +1006,7 @@ export const translations = {
             rights: "© 2026 Gzad Georgia. ყველა უფლება დაცულია."
         },
         auth: {
-            backToSite: "gzad.ge",
+            backToSite: "gzadvertisement.ge",
             terms: "წესები",
             privacy: "კონფიდენციალურობა",
             refund: "დაბრუნება",

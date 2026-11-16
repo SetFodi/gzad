@@ -24,7 +24,7 @@ describe('emails', () => {
     const html = contactNotificationHtml({
       name: '<img src=x onerror=alert(1)>', email: 'a@b.ge', company: '', phone: '',
       topic: 'other', message: '<script>alert(1)</script>\nsecond line', lang: 'en',
-    }, 'https://gzad.ge')
+    }, 'https://gzadvertisement.ge')
     expect(html).not.toContain('<script>alert')
     expect(html).not.toContain('<img src=x')
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;\nsecond line')
@@ -36,10 +36,10 @@ describe('emails', () => {
   })
 
   it('shows the balance and links to billing in both languages', () => {
-    const mail = billingAlertEmail({ kind: 'depleted', balance: 0, billingUrl: 'https://gzad.ge/portal/dashboard/billing', siteUrl: 'https://gzad.ge' })
+    const mail = billingAlertEmail({ kind: 'depleted', balance: 0, billingUrl: 'https://gzadvertisement.ge/portal/dashboard/billing', siteUrl: 'https://gzadvertisement.ge' })
     expect(mail.subject).toBe('Gzad: ბალანსი ამოიწურა / Your balance has run out')
     expect(mail.html).toContain('₾0.00')
-    expect(mail.html).toContain('href="https://gzad.ge/portal/dashboard/billing"')
+    expect(mail.html).toContain('href="https://gzadvertisement.ge/portal/dashboard/billing"')
     expect(mail.html).toContain('lang="en"')
     expect(mail.text).toContain('Balance left: ₾0.00')
   })

@@ -71,7 +71,7 @@ export function contactEmail(m: ContactMessage, route: { from: string; to: strin
     reply_to: m.email,
     subject: `${topic}: ${who}`.slice(0, 150),
     text: [
-      'New message from the gzad.ge contact form.',
+      'New message from the gzadvertisement.ge contact form.',
       '',
       `Topic: ${topic}`,
       `Name: ${m.name}`,

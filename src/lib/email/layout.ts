@@ -157,7 +157,7 @@ export function renderEmail({ preheader, lang, title, body, footer, siteUrl }: E
     </td></tr>
     <tr><td class="gz-foot" style="padding:22px 8px 0;font-size:12px;line-height:1.6;color:${C.muted}">
       ${footerLines}
-      <p style="margin:10px 0 0"><a href="${site}" style="color:${C.muted}">gzad.ge</a> &nbsp;·&nbsp; <a href="${site}/privacy" style="color:${C.muted}">Privacy</a> &nbsp;·&nbsp; <a href="${site}/contact" style="color:${C.muted}">Contact</a></p>
+      <p style="margin:10px 0 0"><a href="${site}" style="color:${C.muted}">${SITE_NAME}</a> &nbsp;·&nbsp; <a href="${site}/privacy" style="color:${C.muted}">Privacy</a> &nbsp;·&nbsp; <a href="${site}/contact" style="color:${C.muted}">Contact</a></p>
     </td></tr>
   </table>
 </td></tr>
@@ -166,6 +166,9 @@ export function renderEmail({ preheader, lang, title, body, footer, siteUrl }: E
 </html>
 `
 }
+
+/** The site's address as shown in emails. */
+export const SITE_NAME = 'gzadvertisement.ge'
 
 /** The company line every email ends with. */
 export const COMPANY_FOOTER = 'Gzad · შპს „გზადვერთაისმენთ“ / Gzadvertisement LLC · Tbilisi, Georgia'

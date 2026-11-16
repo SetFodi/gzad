@@ -156,7 +156,7 @@ export function contactNotificationHtml(m: ContactMessage, siteUrl: string): str
       button(replyHref, `Reply to ${m.name.split(' ')[0]}`),
       paragraph(`Replying to this email also goes straight to ${m.email}.`, 'muted'),
     ],
-    footer: [COMPANY_FOOTER, 'Sent from the contact form on gzad.ge.'],
+    footer: [COMPANY_FOOTER, 'Sent from the contact form on gzadvertisement.ge.'],
   })
 }
 

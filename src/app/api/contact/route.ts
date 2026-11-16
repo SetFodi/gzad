@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       from: process.env.CONTACT_EMAIL_FROM || '"გზად | Gzad" <website@gzadvertisement.ge>',
       to: process.env.CONTACT_EMAIL_TO || 'info@gzadvertisement.ge',
     }),
-    html: contactNotificationHtml(parsed.value, process.env.APP_URL || 'https://gzad.ge'),
+    html: contactNotificationHtml(parsed.value, process.env.APP_URL || 'https://gzadvertisement.ge'),
   }
   // A retried submit of the same form doesn't send twice.
   const id = typeof body.id === 'string' && UUID.test(body.id) ? body.id : crypto.randomUUID()
