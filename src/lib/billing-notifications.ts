@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { billingMailProvider, type BillingMail } from './billing-mail'
+import { billingAlertEmail } from './email/messages'
 
 // Imported only by server billing routes. Keep provider credentials out of client code.
 const EMAIL_KINDS = ['low_20pct', 'runway_1d', 'depleted'] as const
@@ -33,26 +34,16 @@ function emailPayload(alert: PendingAlert, from: string, appUrl: URL): BillingMa
   const balance = Number(alert.balance)
   if (alert.balance === null || !Number.isFinite(balance)) return null
 
-  let message: string
-  let subject: string
-  if (alert.kind === 'depleted') {
-    subject = 'Gzad: ბალანსი ამოიწურა'
-    message = 'ბალანსი ამოიწურა. თქვენი აქტიური კამპანიები შეჩერებულია. რეკლამის გასაგრძელებლად შეავსეთ ბალანსი.'
-  } else if (alert.kind === 'runway_1d') {
-    subject = 'Gzad: ბალანსი დაახლოებით ერთი დღის რეკლამას ეყოფა'
-    message = 'ბოლო დღეების ხარჯის მიხედვით, ბალანსი დაახლოებით ერთი დღის რეკლამას ეყოფა. კამპანიის შეუფერხებლად გასაგრძელებლად შეავსეთ ბალანსი.'
-  } else {
-    const pct = Number(alert.detail?.pct)
-    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) return null
-    subject = 'Gzad: ბალანსი იწურება'
-    message = `ბალანსი ბოლო შევსების შემდეგ არსებული თანხის ${pct}%-მდე შემცირდა. კამპანიის შეუფერხებლად გასაგრძელებლად შეავსეთ ბალანსი.`
-  }
-  return {
-    from,
-    to: [client.email],
-    subject,
-    text: `${message}\n\nდარჩენილი ბალანსი: ₾${balance.toFixed(2)}\n\nბალანსი და ხარჯები: ${new URL('/portal/dashboard/billing', appUrl).toString()}`,
-  }
+  const pct = Number(alert.detail?.pct)
+  if (alert.kind === 'low_20pct' && (!Number.isFinite(pct) || pct <= 0 || pct > 100)) return null
+  const email = billingAlertEmail({
+    kind: alert.kind,
+    balance,
+    pct,
+    billingUrl: new URL('/portal/dashboard/billing', appUrl).toString(),
+    siteUrl: appUrl.origin,
+  })
+  return { from, to: [client.email], ...email }
 }
 
 /**

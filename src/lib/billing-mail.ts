@@ -5,6 +5,8 @@ export interface BillingMail {
   to: string[]
   subject: string
   text: string
+  /** Optional branded HTML; `text` stays as the plain-text part. */
+  html?: string
 }
 
 interface Delivery {

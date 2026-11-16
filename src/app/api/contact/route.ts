@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { checkOrigin } from '@/lib/auth/challenge'
 import { allowRequest, clientIp } from '@/lib/rate-limit'
 import { contactEmail, parseContact } from '@/lib/contact'
+import { contactNotificationHtml } from '@/lib/email/messages'
 
 // Website contact form. Sends one email to our inbox through Resend with the
 // visitor as Reply-To. Nothing is sent to the visitor, so the form can't be
@@ -48,10 +49,13 @@ export async function POST(request: NextRequest) {
     return reply({ error: 'TOO_MANY' }, 429)
   }
 
-  const mail = contactEmail(parsed.value, {
-    from: process.env.CONTACT_EMAIL_FROM || '"გზად | Gzad" <website@gzadvertisement.ge>',
-    to: process.env.CONTACT_EMAIL_TO || 'info@gzadvertisement.ge',
-  })
+  const mail = {
+    ...contactEmail(parsed.value, {
+      from: process.env.CONTACT_EMAIL_FROM || '"გზად | Gzad" <website@gzadvertisement.ge>',
+      to: process.env.CONTACT_EMAIL_TO || 'info@gzadvertisement.ge',
+    }),
+    html: contactNotificationHtml(parsed.value, process.env.APP_URL || 'https://gzad.ge'),
+  }
   // A retried submit of the same form doesn't send twice.
   const id = typeof body.id === 'string' && UUID.test(body.id) ? body.id : crypto.randomUUID()
 

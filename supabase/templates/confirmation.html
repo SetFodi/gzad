@@ -1,14 +1,58 @@
 <!doctype html>
-<html lang="en">
-  <body style="margin:0;padding:32px;background:#fff;color:#1d1d1f;font-family:Arial,sans-serif;line-height:1.6">
-    <main style="max-width:480px;margin:auto">
-      <p style="font-size:24px;font-weight:700;color:#0b4d3c">gzad</p>
-      <h1 style="font-size:22px">Verify your email / დაადასტურეთ ელ-ფოსტა</h1>
-      <p>Enter this code on the Gzad verification page.</p>
-      <p lang="ka">შეიყვანეთ ეს კოდი Gzad-ის დადასტურების გვერდზე.</p>
-      <p style="font-size:32px;font-weight:700;letter-spacing:6px">{{ .Token }}</p>
-      <p>If you did not create a Gzad account, you can ignore this email. Do not share the code.</p>
-      <p lang="ka">თუ ანგარიში არ შეგიქმნიათ, წერილს ყურადღება არ მიაქციოთ. კოდი არავის გაუზიაროთ.</p>
-    </main>
-  </body>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Gzad: დაადასტურეთ ელ-ფოსტა / Confirm your email</title>
+<style>
+  body { margin:0; padding:0; }
+  a { color:#0b4d3c; }
+  @media (max-width:600px) {
+    .gz-card { padding:28px 22px !important; border-radius:18px !important; }
+    .gz-code { font-size:28px !important; letter-spacing:7px !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    .gz-page { background:#101313 !important; }
+    .gz-card { background:#181d1a !important; }
+    .gz-ink { color:#f0f4f1 !important; }
+    .gz-copy { color:#c8d0ca !important; }
+    .gz-muted, .gz-foot { color:#a5afa8 !important; }
+    .gz-accent, .gz-foot a { color:#7ce1b0 !important; }
+    .gz-code { background:#243e30 !important; color:#7ce1b0 !important; }
+    .gz-stat { background:#243e30 !important; }
+    .gz-stat p { color:#7ce1b0 !important; }
+    .gz-warn { background:#3a2a12 !important; }
+    .gz-warn p { color:#ffb35c !important; }
+    .gz-btn { background:#7ce1b0 !important; }
+    .gz-btn-link { color:#0b2719 !important; }
+    .gz-quote { background:#101313 !important; }
+    .gz-rule { border-color:#364139 !important; background:#364139 !important; }
+    .gz-mark { background:#7ce1b0 !important; }
+  }
+</style>
+</head>
+<body class="gz-page" style="margin:0;padding:0;background:#f5f5f7">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">დაადასტურეთ ელ-ფოსტა · Confirm your email&#8202;&#847;&#8202;&#847;&#8202;&#847;&#8202;&#847;</div>
+<table role="presentation" class="gz-page" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f5f5f7">
+<tr><td align="center" style="padding:32px 16px">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,'Noto Sans Georgian',sans-serif">
+    <tr><td style="padding:0 4px 18px">
+      <a href="{{ .SiteURL }}" style="text-decoration:none"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td valign="middle" style="width:26px"><div class="gz-mark" style="width:26px;height:14px;border-radius:4px;background:#0b4d3c;font-size:1px;line-height:14px">&nbsp;</div></td>
+        <td class="gz-ink" style="padding-left:9px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,'Noto Sans Georgian',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.03em;color:#1d1d1f">gzad</td>
+      </tr></table></a>
+    </td></tr>
+    <tr><td class="gz-card" style="padding:40px 40px 30px;border-radius:24px;background:#ffffff">
+      <div lang="ka"><p class="gz-accent" style="margin:0 0 10px;font-size:13px;font-weight:600;letter-spacing:0.02em;color:#0b4d3c">რეგისტრაცია · Sign up</p><h1 class="gz-ink" style="margin:0 0 14px;font-size:26px;line-height:1.2;font-weight:700;letter-spacing:-0.02em;color:#1d1d1f">დაადასტურეთ ელ-ფოსტა</h1><p class="gz-copy" style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#424245">Gzad-ის ანგარიშის შექმნის დასასრულებლად შეიყვანეთ ეს კოდი. ის მოქმედებს 10 წუთის განმავლობაში.</p></div><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 22px"><tr><td class="gz-code" style="padding:18px 28px;border-radius:14px;background:#eaf4ee;color:#0b4d3c;font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;font-size:34px;line-height:1;font-weight:700;letter-spacing:10px">{{ .Token }}</td></tr></table><div lang="ka"><p class="gz-muted" style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#6e6e73">თუ ანგარიში არ შეგიქმნიათ, ეს წერილი უგულებელყავით. კოდი არავის გაუზიაროთ.</p></div><div class="gz-rule" style="height:1px;margin:10px 0 26px;background:#e5e5ea;line-height:1px;font-size:1px">&nbsp;</div><div lang="en"><h1 class="gz-ink" style="margin:0 0 10px;font-size:18px;line-height:1.3;font-weight:650;letter-spacing:-0.01em;color:#1d1d1f">Confirm your email</h1><p class="gz-copy" style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#424245">Enter the code above to finish creating your Gzad account. It works for 10 minutes.</p><p class="gz-muted" style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#6e6e73">If you didn’t create an account, ignore this email. Don’t share the code.</p></div>
+    </td></tr>
+    <tr><td class="gz-foot" style="padding:22px 8px 0;font-size:12px;line-height:1.6;color:#6e6e73">
+      <p style="margin:0 0 6px">Gzad · შპს „გზადვერთაისმენთ“ / Gzadvertisement LLC · Tbilisi, Georgia</p><p style="margin:0 0 6px">ეს წერილი ავტომატურად გაიგზავნა. · This email was sent automatically.</p>
+      <p style="margin:10px 0 0"><a href="{{ .SiteURL }}" style="color:#6e6e73">gzad.ge</a> &nbsp;·&nbsp; <a href="{{ .SiteURL }}/privacy" style="color:#6e6e73">Privacy</a> &nbsp;·&nbsp; <a href="{{ .SiteURL }}/contact" style="color:#6e6e73">Contact</a></p>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
 </html>
