@@ -75,7 +75,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
             "**Campaigns and creative.** Campaign names, dates, settings, uploaded images and videos, review decisions, and the information contained in your creative.",
             "**Vehicles and screens.** Fleet account details, vehicle make, model, year, colour, registration plate, and the identifier of the screen assigned to a vehicle.",
             "**Location and playback.** GPS coordinates, reported speed, timestamps, screen identifiers, and records of which ad played, when, where and for how long.",
-            "**Payments and billing.** Payment confirmations and correspondence, balance movements, billing periods, rates, daily spending limits, and transaction and campaign records. The current website does not collect payment-card details.",
+            "**Payments and billing.** Payment confirmations, balance movements, billing periods, rates, daily spending limits, refunds, and transaction and campaign records. Card payments are made on Bank of Georgia’s secure payment page: we don’t receive or store your full card number, only the payment status and the reference details the bank sends us.",
             "**Technical and security information.** Connection and device information, IP addresses and browser details in service or hosting logs, authentication events, and records of account activity. Where remembered-browser verification is enabled, it uses a browser token and derived IP/browser checks."
           ]
         },
@@ -111,7 +111,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "providers",
           "heading": "Service providers and international processing",
           "paragraphs": [
-            "We use **Supabase** for account authentication, database and advertising-media storage, and **Vercel** for application hosting. Connected screen controllers and our realtime infrastructure transmit device, playback and location reports. Email providers used for account or billing messages process the recipient address and message content.",
+            "We use **Supabase** for account authentication, database and advertising-media storage, and **Vercel** for application hosting. Connected screen controllers and our realtime infrastructure transmit device, playback and location reports. Card payments and refunds are processed by **Bank of Georgia**, which receives your card details on its own payment page. Email providers, including **Resend** for messages sent through our contact form, process the sender and recipient addresses and the message content.",
             "Interactive maps request map tiles and related assets from third-party services, including OpenStreetMap. Those services receive connection information, such as your IP address, when your browser loads their resources.",
             "Some providers process information outside Georgia. International processing must have a lawful basis and appropriate protections under applicable law. Contact [info@gzadvertisement.ge](/contact?topic=other) for information about the providers, destinations and safeguards relevant to your data. We do not sell personal data."
           ]
@@ -241,7 +241,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "pricing",
           "heading": "Rates and billing",
           "paragraphs": [
-            "The campaign’s confirmed rates and billing unit determine its charges. Pricing can depend on the ad’s duration, the screen’s location and the time of day. Payment and tax treatment, and any separate production or setup charges, are confirmed with the campaign arrangements.",
+            "The campaign’s confirmed rates and billing unit determine its charges. Pricing can depend on the ad’s duration, the screen’s location and the time of day. Top-ups are paid by card on our website, through Bank of Georgia’s payment page; we don’t accept other payment methods. Tax treatment and any separate production or setup charges are confirmed with the campaign arrangements.",
             "The service supports whole-hour billing and, where agreed and enabled, metered billing blocks. A whole-hour unit may be charged once when qualifying playback occurs in that period; a metered unit uses the recorded share of its billing block. The billing arrangement confirmed for your campaign applies.",
             "Playback and device records support billing and may arrive or be reconciled after display. Balance updates are not necessarily immediate. We can correct missing, duplicated or erroneous records and explain the resulting adjustment. Rate changes apply to future delivery after they are communicated, subject to any fixed terms already agreed."
           ]
@@ -250,7 +250,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "balance",
           "heading": "Prepaid balances and limits",
           "paragraphs": [
-            "Advertising uses a prepaid balance. Funds become available after Gzad receives and records the agreed payment or credit. A calculator, top-up example or selected amount on a demonstration does not make a payment or increase your actual account balance.",
+            "Advertising uses a prepaid balance, which you top up by card on our website. Funds become available once Bank of Georgia confirms your payment, or when we add bonus or promo credit. A calculator, top-up example or selected amount on a demonstration does not make a payment or increase your actual account balance.",
             "Campaigns may pause when funds are exhausted or a relevant daily limit is reached. Charges already incurred, including records awaiting reconciliation, remain payable. Adding funds does not bypass creative review, campaign dates, screen allocation or technical availability.",
             "You can request that a campaign be paused or ended through the available account controls or by contacting our team. Allow for processing and screen synchronisation; stopping a campaign does not cancel charges for delivery that already occurred."
           ]
@@ -343,7 +343,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "balance",
           "heading": "How your balance is used",
           "paragraphs": [
-            "You pay into a prepaid balance. Airtime is deducted from it only for playback our screens actually record, at the rates confirmed for your campaign.",
+            "You top up a prepaid balance by card on our website. Airtime is deducted from it only for playback our screens actually record, at the rates confirmed for your campaign.",
             "Airtime is paid from any bonus or promo credit first, then from your top-ups in the order you made them."
           ]
         },
@@ -395,7 +395,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "request",
           "heading": "How to request a refund",
           "paragraphs": [
-            "Email [info@gzadvertisement.ge](/contact?topic=billing) from the email address on your Gzad account, or include your company name. Tell us which top-up you want refunded, or the amount.",
+            "Write to us through our [contact form](/contact?topic=billing) using the email address on your Gzad account, or include your company name. Tell us which top-up you want refunded, or the amount.",
             "We reply to confirm the refundable amount. If something needs checking first, such as recent playback that is still being reconciled, we tell you what it is and how long it will take."
           ]
         },
@@ -403,8 +403,8 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "timing",
           "heading": "When and how you’re paid",
           "paragraphs": [
-            "We send the refund back the way you paid: to the same card, or to the bank account the transfer came from, within **10 business days** after we confirm the amount. Your bank may take a few more days to show it.",
-            "If the original card or account can no longer receive the money, we agree another account in your name with you in writing."
+            "We refund to the card you paid with, through Bank of Georgia, within **10 business days** after we confirm the amount. Your bank may take a few more days to show it on your card.",
+            "If the refund can’t reach that card, for example because it has been closed, we agree with you in writing how to return the money to an account in your name."
           ]
         },
         {
@@ -453,7 +453,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
             "**კამპანიები და ვიზუალები.** კამპანიის დასახელება, თარიღები, პარამეტრები, ატვირთული სურათები და ვიდეოები, განხილვის შედეგები და ვიზუალში მოცემული ინფორმაცია.",
             "**ავტომობილები და ეკრანები.** ავტოპარკის ანგარიშის მონაცემები, ავტომობილის მარკა, მოდელი, წელი, ფერი, სახელმწიფო ნომერი და მასზე მინიჭებული ეკრანის იდენტიფიკატორი.",
             "**მდებარეობა და ჩვენებები.** GPS კოორდინატები, გადმოცემული სიჩქარე, დრო, ეკრანის იდენტიფიკატორი და ჩანაწერები იმის შესახებ, რომელი რეკლამა, როდის, სად და რა ხანგრძლივობით გავიდა.",
-            "**გადახდები და დარიცხვები.** გადახდის დადასტურება და შესაბამისი მიმოწერა, ბალანსის მოძრაობა, დარიცხვის პერიოდები, ტარიფები, დღიური ლიმიტები და ტრანზაქციებისა და კამპანიების ჩანაწერები. არსებული ვებგვერდი საბანკო ბარათის მონაცემებს არ აგროვებს.",
+            "**გადახდები და დარიცხვები.** გადახდის დადასტურება, ბალანსის მოძრაობა, დარიცხვის პერიოდები, ტარიფები, დღიური ლიმიტები, თანხის დაბრუნება და ტრანზაქციებისა და კამპანიების ჩანაწერები. ბარათით გადახდა ხდება საქართველოს ბანკის დაცულ გადახდის გვერდზე: ბარათის სრულ ნომერს არ ვიღებთ და არ ვინახავთ, მხოლოდ გადახდის სტატუსსა და ბანკის მიერ გამოგზავნილ საიდენტიფიკაციო მონაცემებს.",
             "**ტექნიკური და უსაფრთხოების ინფორმაცია.** კავშირის და მოწყობილობის ინფორმაცია, სერვისის ან ჰოსტინგის ჟურნალებში მოხვედრილი IP მისამართები და ბრაუზერის მონაცემები, ავტორიზაციისა და ანგარიშის მოქმედებების ჩანაწერები. დამახსოვრებული ბრაუზერის გადამოწმების ფუნქცია, როცა ჩართულია, იყენებს ბრაუზერის ტოკენსა და IP-ისა და ბრაუზერის მონაცემების საფუძველზე მიღებულ შემოწმების მნიშვნელობებს."
           ]
         },
@@ -489,7 +489,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "providers",
           "heading": "მომწოდებლები და საერთაშორისო დამუშავება",
           "paragraphs": [
-            "**Supabase**-ს ვიყენებთ ანგარიშების ავტორიზაციისთვის, მონაცემთა ბაზისა და სარეკლამო ფაილების შესანახად, ხოლო **Vercel**-ს ვებაპლიკაციის ჰოსტინგისთვის. ეკრანის კონტროლერები და ჩვენი საკომუნიკაციო ინფრასტრუქტურა გადასცემს მოწყობილობის, ჩვენებისა და მდებარეობის ჩანაწერებს. ანგარიშისა და ბილინგის შეტყობინებებისთვის გამოყენებული ელფოსტის მომწოდებლები ამუშავებს მიმღების მისამართსა და შეტყობინების შინაარსს.",
+            "**Supabase**-ს ვიყენებთ ანგარიშების ავტორიზაციისთვის, მონაცემთა ბაზისა და სარეკლამო ფაილების შესანახად, ხოლო **Vercel**-ს ვებაპლიკაციის ჰოსტინგისთვის. ეკრანის კონტროლერები და ჩვენი საკომუნიკაციო ინფრასტრუქტურა გადასცემს მოწყობილობის, ჩვენებისა და მდებარეობის ჩანაწერებს. ბარათით გადახდასა და თანხის დაბრუნებას ამუშავებს **საქართველოს ბანკი**, რომელიც ბარათის მონაცემებს საკუთარ გადახდის გვერდზე იღებს. ელფოსტის მომწოდებლები, მათ შორის **Resend** საკონტაქტო ფორმით გამოგზავნილი შეტყობინებებისთვის, ამუშავებს გამგზავნისა და მიმღების მისამართებსა და შეტყობინების შინაარსს.",
             "ინტერაქტიული რუკები რუკის ფრაგმენტებსა და სხვა რესურსებს ითხოვს მესამე მხარის სერვისებიდან, მათ შორის OpenStreetMap-იდან. რესურსის ჩატვირთვისას ეს სერვისები იღებს კავშირის ინფორმაციას, მაგალითად თქვენს IP მისამართს.",
             "ზოგი მომწოდებელი ინფორმაციას საქართველოს ფარგლებს გარეთ ამუშავებს. საერთაშორისო დამუშავებას უნდა ჰქონდეს სამართლებრივი საფუძველი და კანონით გათვალისწინებული დაცვის მექანიზმები. თქვენს მონაცემებთან დაკავშირებული მომწოდებლების, ქვეყნების და დაცვის ზომების შესახებ ინფორმაციისთვის მოგვწერეთ: [info@gzadvertisement.ge](/contact?topic=other). პერსონალურ მონაცემებს არ ვყიდით."
           ]
@@ -619,7 +619,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "pricing",
           "heading": "ტარიფები და დარიცხვა",
           "paragraphs": [
-            "კამპანიის ხარჯს განსაზღვრავს მისთვის დადასტურებული ტარიფი და დარიცხვის ერთეული. ფასი შეიძლება დამოკიდებული იყოს რეკლამის ხანგრძლივობაზე, ეკრანის მდებარეობასა და დღის დროზე. გადახდისა და გადასახადების პირობები, ასევე წარმოებისა თუ მომზადების ცალკე საფასური, კამპანიის შეთანხმებისას დასტურდება.",
+            "კამპანიის ხარჯს განსაზღვრავს მისთვის დადასტურებული ტარიფი და დარიცხვის ერთეული. ფასი შეიძლება დამოკიდებული იყოს რეკლამის ხანგრძლივობაზე, ეკრანის მდებარეობასა და დღის დროზე. ბალანსი ივსება ბარათით ჩვენს ვებგვერდზე, საქართველოს ბანკის გადახდის გვერდის მეშვეობით; გადახდის სხვა მეთოდს არ ვიღებთ. გადასახადების პირობები, ასევე წარმოებისა თუ მომზადების ცალკე საფასური, კამპანიის შეთანხმებისას დასტურდება.",
             "სერვისი ითვალისწინებს სრულსაათიან დარიცხვას და, შეთანხმებისა და შესაბამისი რეჟიმის ჩართვის შემთხვევაში, გაზომილ ბლოკებს. საათობრივ რეჟიმში შესაბამის პერიოდში დაფიქსირებული ჩვენება შეიძლება ერთხელ დაირიცხოს სრული საათის ერთეულით; ბლოკურ რეჟიმში ითვლება ბლოკის აღრიცხული წილი. მოქმედებს თქვენი კამპანიისთვის დადასტურებული წესი.",
             "დარიცხვა ეყრდნობა ჩვენებისა და მოწყობილობის ჩანაწერებს, რომლებიც ჩვენების შემდეგაც შეიძლება მოვიდეს ან შეჯერდეს. ბალანსი ყოველთვის მყისიერად არ ახლდება. შეგვიძლია გავასწოროთ გამოტოვებული, დუბლირებული ან მცდარი ჩანაწერი და აგიხსნათ კორექტირება. ტარიფის ცვლილება ვრცელდება შეტყობინების შემდეგ გასაწევ მომსახურებაზე, უკვე შეთანხმებული ფიქსირებული პირობების გათვალისწინებით."
           ]
@@ -628,7 +628,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "balance",
           "heading": "წინასწარი ბალანსი და ლიმიტები",
           "paragraphs": [
-            "რეკლამა მუშაობს წინასწარი ბალანსით. თანხა ხელმისაწვდომი ხდება Gzad-ის მიერ შეთანხმებული გადახდის ან კრედიტის მიღებისა და აღრიცხვის შემდეგ. კალკულატორი, შევსების მაგალითი ან დემონსტრაციაში არჩეული თანხა გადახდას არ ნიშნავს და თქვენს რეალურ ბალანსს არ ზრდის.",
+            "რეკლამა მუშაობს წინასწარი ბალანსით, რომელსაც ჩვენს ვებგვერდზე ბარათით ავსებთ. თანხა ხელმისაწვდომი ხდება, როცა საქართველოს ბანკი გადახდას დაადასტურებს, ან როცა ბონუსს ან პრომოკოდით დამატებულ თანხას დაგირიცხავთ. კალკულატორი, შევსების მაგალითი ან დემონსტრაციაში არჩეული თანხა გადახდას არ ნიშნავს და თქვენს რეალურ ბალანსს არ ზრდის.",
             "თანხის ან შესაბამისი დღიური ლიმიტის ამოწურვისას კამპანია შეიძლება შეჩერდეს. უკვე წარმოქმნილი ხარჯი, მათ შორის შესაჯერებელი ჩანაწერებიდან, გადასახდელი რჩება. თანხის დამატება არ აუქმებს ვიზუალის შემოწმების, კამპანიის თარიღების, ეკრანზე განაწილებისა და ტექნიკური ხელმისაწვდომობის მოთხოვნებს.",
             "კამპანიის შეჩერება ან დასრულება შეგიძლიათ მოითხოვოთ ანგარიშში არსებული მართვის საშუალებით ან ჩვენს გუნდთან დაკავშირებით. გაითვალისწინეთ მოთხოვნის დამუშავებისა და ეკრანთან სინქრონიზაციის დრო; შეჩერება უკვე გაწეული მომსახურების ხარჯს არ აუქმებს."
           ]
@@ -721,7 +721,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "balance",
           "heading": "როგორ იხარჯება ბალანსი",
           "paragraphs": [
-            "თქვენ წინასწარ ავსებთ ბალანსს. მისგან ეთერის ღირებულება ჩამოიჭრება მხოლოდ იმ ჩვენებებისთვის, რომლებსაც ჩვენი ეკრანები რეალურად აღრიცხავს, თქვენი კამპანიისთვის დადასტურებული ტარიფებით.",
+            "ბალანსს წინასწარ ავსებთ ჩვენს ვებგვერდზე ბარათით. მისგან ეთერის ღირებულება ჩამოიჭრება მხოლოდ იმ ჩვენებებისთვის, რომლებსაც ჩვენი ეკრანები რეალურად აღრიცხავს, თქვენი კამპანიისთვის დადასტურებული ტარიფებით.",
             "ეთერის ღირებულება ჯერ ბონუსიდან ან პრომოკოდით დამატებული თანხიდან ჩამოიჭრება, შემდეგ კი თქვენი შევსებებიდან, მათი შეტანის თანმიმდევრობით."
           ]
         },
@@ -773,7 +773,7 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "request",
           "heading": "როგორ მოითხოვოთ დაბრუნება",
           "paragraphs": [
-            "მოგვწერეთ [info@gzadvertisement.ge](/contact?topic=billing)-ზე Gzad-ის ანგარიშზე მითითებული ელ-ფოსტიდან, ან მიუთითეთ კომპანიის სახელი. დაწერეთ, რომელი შევსების ან რა თანხის დაბრუნება გსურთ.",
+            "მოგვწერეთ [საკონტაქტო ფორმით](/contact?topic=billing) Gzad-ის ანგარიშზე მითითებული ელ-ფოსტით, ან მიუთითეთ კომპანიის სახელი. დაწერეთ, რომელი შევსების ან რა თანხის დაბრუნება გსურთ.",
             "პასუხად დაგიდასტურებთ დასაბრუნებელ თანხას. თუ რამე ჯერ შესამოწმებელია, მაგალითად ბოლო ჩვენებები, გეტყვით, რა და რამდენ ხანს დასჭირდება."
           ]
         },
@@ -781,8 +781,8 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "id": "timing",
           "heading": "როდის და როგორ გიბრუნდებათ თანხა",
           "paragraphs": [
-            "თანხას ვაბრუნებთ იმავე გზით, რითაც გადაიხადეთ: იმავე ბარათზე ან საბანკო ანგარიშზე, საიდანაც გადმორიცხეთ, თანხის დადასტურებიდან **10 სამუშაო დღეში**. ბანკს თანხის ასახვისთვის შეიძლება რამდენიმე დამატებითი დღე დასჭირდეს.",
-            "თუ თავდაპირველ ბარათზე ან ანგარიშზე თანხის მიღება აღარ არის შესაძლებელი, თქვენს სახელზე არსებულ სხვა ანგარიშს წერილობით შევთანხმდებით."
+            "თანხას ვაბრუნებთ იმავე ბარათზე, რომლითაც გადაიხადეთ, საქართველოს ბანკის მეშვეობით, თანხის დადასტურებიდან **10 სამუშაო დღეში**. ბანკს ბარათზე თანხის ასახვისთვის შეიძლება რამდენიმე დამატებითი დღე დასჭირდეს.",
+            "თუ თანხა ამ ბარათზე ვერ ბრუნდება, მაგალითად ბარათი დახურულია, წერილობით შევთანხმდებით, როგორ დაგიბრუნოთ ის თქვენს სახელზე არსებულ ანგარიშზე."
           ]
         },
         {

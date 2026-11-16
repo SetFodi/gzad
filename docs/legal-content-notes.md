@@ -14,7 +14,8 @@ The company name, identification number 400469239 and registered address at 7 Ev
 - Advertiser playback queries can return screen identifiers and campaign locations. The policy therefore does not promise that screen or route data is anonymous or that advertisers never receive device identifiers.
 - Creative uploads use a public `ad-media` bucket and `getPublicUrl`; the notice explains that public media links are not private storage.
 - Billing remains hourly by default. Metered billing, retention pruning, verification and billing email are separately enabled features. The terms describe the confirmed campaign arrangement and delayed reconciliation, rather than promising that every customer is charged in ten-minute blocks.
-- There is no card-payment integration in this checkout; balances are credited through the service's administrative flow. Calculator inputs are distinguished from actual payments.
+- Top-ups will be taken only by card on the website through Bank of Georgia's payment API (decided 16 November 2026), and no money is accepted before that integration ships. The documents describe card payment as the only method and refunds back to the same card. The integration itself isn't built yet; until then balances are credited through the administrative flow for testing only. Calculator inputs are distinguished from actual payments.
+- The website contact form (`/contact`, `src/app/api/contact/route.ts`) emails info@gzadvertisement.ge through Resend, with the visitor as Reply-To; the privacy policy names Resend for it.
 - Retention periods are configurable and pruning is separately enabled. The policy uses retention purposes and criteria and does not promise automatic deletion after an unverified fixed period.
 - Supabase, Vercel, the realtime/controller infrastructure, email providers and external OpenStreetMap tiles are covered. No unverified hosting country, transfer authorisation or signed provider contract is claimed.
 - Browser storage reflects language/theme preferences, the session introduction marker, auth cookies and the optional remembered-browser cookie. The 180-day maximum comes from `src/lib/auth/trust.ts`.
@@ -35,7 +36,7 @@ Added 16 November 2026 at `/refund-policy`, after an advertiser asked for one. U
 - Ads that are rejected and campaigns that can't start are refunded in full at any time.
 - Billing errors are corrected (to the balance or as a refund, the client's choice) when reported within 30 days of the charge. No automatic extra compensation.
 - Bonus and promo-code credit is never refunded and is spent before paid money; paid money is spent in top-up order. The rule that a bonus tied to a refunded top-up is withdrawn was added by Claude to prevent abuse and still needs a founder's confirmation.
-- Refunds go back to the same card or bank account within 10 business days of confirming the amount.
+- Refunds go back to the same card, through Bank of Georgia, within 10 business days of confirming the amount.
 - The policy covers advertisers only; fleet partners are paid under their agreements.
 
 The code does not yet track bonus credit or which top-up each charge is paid from, so refunds are calculated by hand from `balance_transactions` until it does.
