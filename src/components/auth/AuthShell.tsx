@@ -41,6 +41,7 @@ export default function AuthShell({ audience, children }: { audience: AuthAudien
           <span>© Gzad</span>
           <Link href="/terms">{a.terms}</Link>
           <Link href="/privacy">{a.privacy}</Link>
+          <Link href="/refund-policy">{a.refund}</Link>
         </footer>
       </div>
 

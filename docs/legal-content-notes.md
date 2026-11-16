@@ -25,4 +25,18 @@ The company name, identification number 400469239 and registered address at 7 Ev
 - [Georgia's Law on Personal Data Protection, consolidated English text](https://www.matsne.gov.ge/en/document/view/5827307), including data-subject rights, controller transparency, transfers and the supervisory authority. The authority is now the State Audit Office of Georgia, rather than the former Personal Data Protection Service.
 - [Georgia's Law on the Protection of Consumer Rights](https://matsne.gov.ge/en/document/view/5420598). Mandatory consumer rights are preserved where applicable; the website does not impose a blanket non-refundable-credit rule.
 
-The documents avoid inventing a refund period, liability cap, fixed retention schedule, guaranteed delivery, blanket driver consent or DPO appointment. Actual refund arrangements, retention operations, driver notices, transfer safeguards and any DPO obligation remain matters for the operator and its legal adviser. No live billing setting, data-retention job, contract, payment workflow or consent record is changed by editing these pages.
+Apart from the refund policy below, the documents avoid inventing a refund period, liability cap, fixed retention schedule, guaranteed delivery, blanket driver consent or DPO appointment. Actual refund arrangements, retention operations, driver notices, transfer safeguards and any DPO obligation remain matters for the operator and its legal adviser. No live billing setting, data-retention job, contract, payment workflow or consent record is changed by editing these pages.
+
+## Refund policy
+
+Added 16 November 2026 at `/refund-policy`, after an advertiser asked for one. Unlike the rest of these pages, its commercial terms were decided by the company (Luka, 16 November 2026), not inferred from the code:
+
+- A top-up can be refunded within 14 days of making it, for its unspent part, with no fee. After 14 days unused money stays on the balance as credit and is not paid out.
+- Ads that are rejected and campaigns that can't start are refunded in full at any time.
+- Billing errors are corrected (to the balance or as a refund, the client's choice) when reported within 30 days of the charge. No automatic extra compensation.
+- Bonus and promo-code credit is never refunded and is spent before paid money; paid money is spent in top-up order. The rule that a bonus tied to a refunded top-up is withdrawn was added by Claude to prevent abuse and still needs a founder's confirmation.
+- Refunds go back to the same card or bank account within 10 business days of confirming the amount.
+- The policy covers advertisers only; fleet partners are paid under their agreements.
+
+The code does not yet track bonus credit or which top-up each charge is paid from, so refunds are calculated by hand from `balance_transactions` until it does.
+

@@ -168,6 +168,7 @@ export function Footer({ t }: { t: Copy }) {
               <h4>{t.footer.legal}</h4>
               <Link href="/privacy">{t.footer.privacy}</Link>
               <Link href="/terms">{t.footer.terms}</Link>
+              <Link href="/refund-policy">{t.footer.refund}</Link>
             </div>
           </nav>
         </div>

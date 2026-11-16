@@ -93,6 +93,7 @@ function Document({ kind }: { kind: LegalKind }) {
           <nav aria-label={labels.legal}>
             <Link href="/privacy" aria-current={kind === 'privacy' ? 'page' : undefined}>{labels.privacy}</Link>
             <Link href="/terms" aria-current={kind === 'terms' ? 'page' : undefined}>{labels.terms}</Link>
+            <Link href="/refund-policy" aria-current={kind === 'refund' ? 'page' : undefined}>{labels.refund}</Link>
             <Link href="/portal/login">{labels.login}</Link>
           </nav>
         </footer>

@@ -1,11 +1,11 @@
 // The operating facts are documented in docs/legal-content-notes.md.
 export const LEGAL_EMAIL = 'info@gzadvertisement.ge'
-export const LEGAL_UPDATED = '2026-11-10'
-export type LegalKind = 'privacy' | 'terms'
+export const LEGAL_UPDATED = '2026-11-16'
+export type LegalKind = 'privacy' | 'terms' | 'refund'
 export type LegalLang = 'en' | 'ge'
 export interface LegalSectionContent { id: string; heading: string; paragraphs: string[]; bullets?: string[] }
 export interface LegalDocumentContent { title: string; eyebrow: string; summary: string; intro: string[]; sections: LegalSectionContent[] }
-export interface LegalLabels { home: string; back: string; login: string; skip: string; updated: string; contents: string; showContents: string; hideContents: string; contact: string; email: string; legal: string; privacy: string; terms: string; date: string; language: string }
+export interface LegalLabels { home: string; back: string; login: string; skip: string; updated: string; contents: string; showContents: string; hideContents: string; contact: string; email: string; legal: string; privacy: string; terms: string; refund: string; date: string; language: string }
 export const legalLabels: Record<LegalLang, LegalLabels> = {
   "en": {
     "home": "Gzad home",
@@ -21,7 +21,8 @@ export const legalLabels: Record<LegalLang, LegalLabels> = {
     "legal": "Legal documents",
     "privacy": "Privacy policy",
     "terms": "Terms of service",
-    "date": "10 November 2026",
+    "refund": "Refund policy",
+    "date": "16 November 2026",
     "language": "Language"
   },
   "ge": {
@@ -38,7 +39,8 @@ export const legalLabels: Record<LegalLang, LegalLabels> = {
     "legal": "სამართლებრივი დოკუმენტები",
     "privacy": "კონფიდენციალურობის პოლიტიკა",
     "terms": "მომსახურების პირობები",
-    "date": "2026 წლის 10 ნოემბერი",
+    "refund": "დაბრუნების პოლიტიკა",
+    "date": "2026 წლის 16 ნოემბერი",
     "language": "ენა"
   }
 }
@@ -255,10 +257,10 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
         },
         {
           "id": "refunds",
-          "heading": "Billing questions and unused funds",
+          "heading": "Billing questions and refunds",
           "paragraphs": [
             "If you question a charge, contact [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) with the relevant account, campaign, dates and the issue you want us to investigate. We review the delivery and payment records and correct established billing errors.",
-            "Contact us before closing an account or requesting return of unused funds. Refund eligibility, cancellation charges and the handling of unused credit depend on your confirmed commercial terms and applicable law. No automatic cash withdrawal or refund facility is promised by a demonstration or balance display.",
+            "You can get back the unspent part of a top-up within 14 days of making it, and a full refund if we don’t approve your ad or can’t start your campaign. Bonus and promo credit is not refunded. The details, including how to ask and how long it takes, are in our [Refund policy](/refund-policy).",
             "Nothing in these terms removes a mandatory consumer, cancellation or refund right. If consumer-protection rules apply to your transaction, those rules take priority over inconsistent commercial terms."
           ]
         },
@@ -317,6 +319,106 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "paragraphs": [
             "We may revise these terms as the service changes and will update the date above. We will communicate material changes to affected account holders before they apply, using an appropriate account or contact channel. Where fresh acceptance is required, we will request it.",
             "Changes do not rewrite already delivered services or override specific fixed terms without an applicable contractual or legal basis. If you do not agree to a material change, contact us about ending future use and settling the existing relationship."
+          ]
+        }
+      ]
+    },
+    "refund": {
+      "title": "Refund policy",
+      "eyebrow": "Payments and refunds",
+      "summary": "When you can get money back from your Gzad balance, what isn’t refunded, and how long a refund takes.",
+      "intro": [
+        "This policy applies to advertisers who prepay a Gzad balance to run campaigns on our taxi-top screens. Read it together with our [Terms of service](/terms). Fleet partners are paid under their partnership agreement, which this policy does not cover."
+      ],
+      "sections": [
+        {
+          "id": "operator",
+          "heading": "Who handles refunds",
+          "paragraphs": [
+            "Refunds are handled by **Gzadvertisement LLC**, registered in Georgia, identification number **400469239**, with its registered address at **7 Evgeni Kharadze Street, Tbilisi, Georgia**.",
+            "For refunds and billing questions, write to [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) or call **+995 591 410 914**."
+          ]
+        },
+        {
+          "id": "balance",
+          "heading": "How your balance is used",
+          "paragraphs": [
+            "You pay into a prepaid balance. Airtime is deducted from it only for playback our screens actually record, at the rates confirmed for your campaign.",
+            "Airtime is paid from any bonus or promo credit first, then from your top-ups in the order you made them."
+          ]
+        },
+        {
+          "id": "top-ups",
+          "heading": "Refunding a top-up",
+          "paragraphs": [
+            "You can ask for a refund of a top-up **within 14 days** of making it, for any reason. We refund the part of that top-up that hasn’t been spent on airtime, in full, with no cancellation or refund fee.",
+            "After 14 days, unused money stays on your balance as credit for future campaigns and is not paid out, except in the cases described below.",
+            "Unused means what remains after charges for airtime that has already played, including recent playback that is still being reconciled. While a refund is being processed, that money is no longer used for airtime; if your active campaigns then have no balance left, they pause."
+          ]
+        },
+        {
+          "id": "bonus",
+          "heading": "Bonus and promo credit",
+          "paragraphs": [
+            "Bonus credit and amounts added with promo codes are not refunded or paid out in cash. We only refund money you actually paid in. Because airtime is paid from bonus credit first, unused bonus credit never reduces the refund you’re entitled to.",
+            "If a bonus was given for making a top-up and that top-up is refunded, any unused part of the bonus is removed from your balance."
+          ]
+        },
+        {
+          "id": "not-started",
+          "heading": "Rejected ads and campaigns that don’t start",
+          "paragraphs": [
+            "If we don’t approve your ad, or we can’t start your campaign, no airtime is charged and you get back the money you paid in for it **in full, even after 14 days**. If you prefer, it can stay on your balance for another ad."
+          ]
+        },
+        {
+          "id": "errors",
+          "heading": "Billing errors",
+          "paragraphs": [
+            "If you were charged for airtime that didn’t play, charged twice, or charged at the wrong rate, tell us **within 30 days** of the charge. We check the delivery and payment records and, where the error is confirmed, return the amount to your balance or refund it to you, whichever you choose.",
+            "We correct the charge itself; we don’t add free airtime or other compensation automatically."
+          ]
+        },
+        {
+          "id": "not-refundable",
+          "heading": "What isn’t refunded",
+          "paragraphs": [
+            "Pausing or ending a campaign stops further charges, but these are not refunded:"
+          ],
+          "bullets": [
+            "Airtime that has already played according to our delivery records, at the rates confirmed for your campaign.",
+            "Bonus credit and amounts added with promo codes.",
+            "Unused money from a top-up made more than 14 days ago. It stays on your balance as credit for future campaigns."
+          ]
+        },
+        {
+          "id": "request",
+          "heading": "How to request a refund",
+          "paragraphs": [
+            "Email [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) from the email address on your Gzad account, or include your company name. Tell us which top-up you want refunded, or the amount.",
+            "We reply to confirm the refundable amount. If something needs checking first, such as recent playback that is still being reconciled, we tell you what it is and how long it will take."
+          ]
+        },
+        {
+          "id": "timing",
+          "heading": "When and how you’re paid",
+          "paragraphs": [
+            "We send the refund back the way you paid: to the same card, or to the bank account the transfer came from, within **10 business days** after we confirm the amount. Your bank may take a few more days to show it.",
+            "If the original card or account can no longer receive the money, we agree another account in your name with you in writing."
+          ]
+        },
+        {
+          "id": "rights",
+          "heading": "Your legal rights",
+          "paragraphs": [
+            "Nothing in this policy limits a refund or cancellation right you have under Georgian consumer-protection law. Where those rules apply to your purchase, they take priority over this policy."
+          ]
+        },
+        {
+          "id": "changes",
+          "heading": "Changes to this policy",
+          "paragraphs": [
+            "We may update this policy and will change the date above when we do. A change does not apply to refund requests made before it takes effect."
           ]
         }
       ]
@@ -533,10 +635,10 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
         },
         {
           "id": "refunds",
-          "heading": "დარიცხვის საკითხები და გამოუყენებელი თანხა",
+          "heading": "დარიცხვის საკითხები და თანხის დაბრუნება",
           "paragraphs": [
             "დარიცხვაზე შეკითხვისას მოგვწერეთ [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge)-ზე და მიუთითეთ ანგარიში, კამპანია, თარიღები და შესასწავლი საკითხი. განვიხილავთ ჩვენებისა და გადახდის ჩანაწერებს და დადასტურებულ შეცდომას გავასწორებთ.",
-            "ანგარიშის დახურვამდე ან გამოუყენებელი თანხის დაბრუნების მოთხოვნამდე დაგვიკავშირდით. დაბრუნების შესაძლებლობა, გაუქმების საფასური და დარჩენილი კრედიტის ბედი დამოკიდებულია დადასტურებულ კომერციულ პირობებსა და კანონზე. დემონსტრაცია ან ბალანსის ჩვენება ავტომატურ გატანას ან დაბრუნების ფუნქციას არ გულისხმობს.",
+            "შევსებული თანხის დაუხარჯავი ნაწილის დაბრუნება შეგიძლიათ შევსებიდან 14 დღის განმავლობაში, ხოლო თუ თქვენს რეკლამას არ დავამტკიცებთ ან კამპანიას ვერ დავიწყებთ, თანხას სრულად დაგიბრუნებთ. ბონუსი და პრომოკოდით დამატებული თანხა არ ბრუნდება. დეტალები, მათ შორის როგორ მოითხოვოთ და რა ვადაში ხდება დაბრუნება, აღწერილია ჩვენს [დაბრუნების პოლიტიკაში](/refund-policy).",
             "ეს პირობები არ ზღუდავს მომხმარებლის კანონით დადგენილ სავალდებულო უფლებას, მათ შორის გაუქმებისა თუ თანხის დაბრუნების უფლებას. თუ თქვენს გარიგებაზე მომხმარებლის დაცვის წესები ვრცელდება, ისინი უპირატესია შეუსაბამო კომერციულ პირობებთან შედარებით."
           ]
         },
@@ -595,6 +697,106 @@ export const legalDocuments: Record<LegalLang, Record<LegalKind, LegalDocumentCo
           "paragraphs": [
             "მომსახურების ცვლილებისას შეიძლება განვაახლოთ ეს პირობები და ზემოთ მითითებული თარიღი. არსებით ცვლილებებს მოქმედებამდე შეგატყობინებთ ანგარიშის ან საკონტაქტო არხით. საჭიროების შემთხვევაში ახალ თანხმობას მოვითხოვთ.",
             "ცვლილება არ ცვლის უკვე გაწეული მომსახურების პირობებს და არ აუქმებს ცალკე შეთანხმებულ ფიქსირებულ პირობებს შესაბამისი სახელშეკრულებო ან სამართლებრივი საფუძვლის გარეშე. თუ არსებით ცვლილებას არ ეთანხმებით, მოგვმართეთ სამომავლო გამოყენების შეწყვეტისა და არსებული ურთიერთობის მოწესრიგებისთვის."
+          ]
+        }
+      ]
+    },
+    "refund": {
+      "title": "დაბრუნების პოლიტიკა",
+      "eyebrow": "გადახდა და თანხის დაბრუნება",
+      "summary": "როდის შეგიძლიათ Gzad-ის ბალანსიდან თანხის დაბრუნება, რა არ ბრუნდება და რა ვადაში ხდება დაბრუნება.",
+      "intro": [
+        "ეს პოლიტიკა ვრცელდება რეკლამის განმთავსებლებზე, რომლებიც ტაქსის სახურავის ეკრანებზე კამპანიებისთვის Gzad-ის ბალანსს წინასწარ ავსებენ. წაიკითხეთ ის ჩვენს [მომსახურების პირობებთან](/terms) ერთად. ავტოპარკის პარტნიორებთან ანგარიშსწორება ხდება პარტნიორობის ხელშეკრულებით და ეს პოლიტიკა მათზე არ ვრცელდება."
+      ],
+      "sections": [
+        {
+          "id": "operator",
+          "heading": "ვინ ახორციელებს დაბრუნებას",
+          "paragraphs": [
+            "თანხის დაბრუნებას ახორციელებს საქართველოში რეგისტრირებული **შპს „გზადვერთაისმენთ“**, საიდენტიფიკაციო კოდი **400469239**, იურიდიული მისამართით **საქართველო, თბილისი, ევგენი ხარაძის ქუჩა №7**.",
+            "თანხის დაბრუნებისა და დარიცხვის საკითხებზე მოგვწერეთ: [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge) ან დაგვირეკეთ: **+995 591 410 914**."
+          ]
+        },
+        {
+          "id": "balance",
+          "heading": "როგორ იხარჯება ბალანსი",
+          "paragraphs": [
+            "თქვენ წინასწარ ავსებთ ბალანსს. მისგან ეთერის ღირებულება ჩამოიჭრება მხოლოდ იმ ჩვენებებისთვის, რომლებსაც ჩვენი ეკრანები რეალურად აღრიცხავს, თქვენი კამპანიისთვის დადასტურებული ტარიფებით.",
+            "ეთერის ღირებულება ჯერ ბონუსიდან ან პრომოკოდით დამატებული თანხიდან ჩამოიჭრება, შემდეგ კი თქვენი შევსებებიდან, მათი შეტანის თანმიმდევრობით."
+          ]
+        },
+        {
+          "id": "top-ups",
+          "heading": "შევსებული თანხის დაბრუნება",
+          "paragraphs": [
+            "შევსებული თანხის დაბრუნება შეგიძლიათ მოითხოვოთ **შევსებიდან 14 დღის განმავლობაში**, ნებისმიერი მიზეზით. გიბრუნებთ ამ შევსებიდან ეთერზე დაუხარჯავ ნაწილს სრულად, გაუქმების ან დაბრუნების საფასურის გარეშე.",
+            "14 დღის შემდეგ დაუხარჯავი თანხა ბალანსზე რჩება სამომავლო კამპანიებისთვის და არ გაიცემა, გარდა ქვემოთ აღწერილი შემთხვევებისა.",
+            "დაუხარჯავი არის ის, რაც რჩება უკვე გასული ეთერის ღირებულების ჩამოჭრის შემდეგ, მათ შორის ბოლო ჩვენებებისა, რომლებიც ჯერ კიდევ მოწმდება. დაბრუნების დამუშავებისას ეს თანხა ეთერზე აღარ იხარჯება; თუ ამის შემდეგ აქტიურ კამპანიებს ბალანსი აღარ რჩება, ისინი ჩერდება."
+          ]
+        },
+        {
+          "id": "bonus",
+          "heading": "ბონუსი და პრომოკოდით დამატებული თანხა",
+          "paragraphs": [
+            "ბონუსი და პრომოკოდით დამატებული თანხა არ ბრუნდება და ნაღდი ფულით არ გაიცემა. ვაბრუნებთ მხოლოდ იმ თანხას, რომელიც რეალურად გადაიხადეთ. რადგან ეთერის ღირებულება ჯერ ბონუსიდან ჩამოიჭრება, დაუხარჯავი ბონუსი დასაბრუნებელ თანხას არასდროს ამცირებს.",
+            "თუ ბონუსი შევსებისთვის მოგეცათ და ეს შევსება დაგიბრუნდათ, ბონუსის დაუხარჯავი ნაწილი ბალანსიდან მოიხსნება."
+          ]
+        },
+        {
+          "id": "not-started",
+          "heading": "დაუმტკიცებელი რეკლამა და კამპანია, რომელიც ვერ დაიწყო",
+          "paragraphs": [
+            "თუ თქვენს რეკლამას არ დავამტკიცებთ ან კამპანიას ვერ დავიწყებთ, ეთერის ღირებულება არ ჩამოიჭრება და მისთვის გადახდილ თანხას **სრულად დაგიბრუნებთ, 14 დღის შემდეგაც**. თუ გსურთ, თანხა ბალანსზე დარჩება სხვა რეკლამისთვის."
+          ]
+        },
+        {
+          "id": "errors",
+          "heading": "დარიცხვის შეცდომები",
+          "paragraphs": [
+            "თუ თანხა ჩამოგეჭრათ ეთერისთვის, რომელიც არ გასულა, ორჯერ ჩამოგეჭრათ ან არასწორი ტარიფით, შეგვატყობინეთ **ჩამოჭრიდან 30 დღის განმავლობაში**. გადავამოწმებთ ჩვენებისა და გადახდის ჩანაწერებს და, თუ შეცდომა დადასტურდება, თანხას დაგიბრუნებთ ბალანსზე ან პირდაპირ თქვენ, თქვენი არჩევანით.",
+            "ვასწორებთ თავად ჩამოჭრას; დამატებით კომპენსაციას, მაგალითად უფასო ეთერს, ავტომატურად არ ვაძლევთ."
+          ]
+        },
+        {
+          "id": "not-refundable",
+          "heading": "რა არ ბრუნდება",
+          "paragraphs": [
+            "კამპანიის შეჩერება ან დასრულება აჩერებს შემდგომ ჩამოჭრას, თუმცა არ ბრუნდება:"
+          ],
+          "bullets": [
+            "იმ ეთერის ღირებულება, რომელიც ჩვენი ჩანაწერებით უკვე გავიდა, თქვენი კამპანიისთვის დადასტურებული ტარიფებით.",
+            "ბონუსი და პრომოკოდით დამატებული თანხა.",
+            "14 დღეზე ადრე შევსებული თანხის დაუხარჯავი ნაწილი. ის ბალანსზე რჩება სამომავლო კამპანიებისთვის."
+          ]
+        },
+        {
+          "id": "request",
+          "heading": "როგორ მოითხოვოთ დაბრუნება",
+          "paragraphs": [
+            "მოგვწერეთ [info@gzadvertisement.ge](mailto:info@gzadvertisement.ge)-ზე Gzad-ის ანგარიშზე მითითებული ელ-ფოსტიდან, ან მიუთითეთ კომპანიის სახელი. დაწერეთ, რომელი შევსების ან რა თანხის დაბრუნება გსურთ.",
+            "პასუხად დაგიდასტურებთ დასაბრუნებელ თანხას. თუ რამე ჯერ შესამოწმებელია, მაგალითად ბოლო ჩვენებები, გეტყვით, რა და რამდენ ხანს დასჭირდება."
+          ]
+        },
+        {
+          "id": "timing",
+          "heading": "როდის და როგორ გიბრუნდებათ თანხა",
+          "paragraphs": [
+            "თანხას ვაბრუნებთ იმავე გზით, რითაც გადაიხადეთ: იმავე ბარათზე ან საბანკო ანგარიშზე, საიდანაც გადმორიცხეთ, თანხის დადასტურებიდან **10 სამუშაო დღეში**. ბანკს თანხის ასახვისთვის შეიძლება რამდენიმე დამატებითი დღე დასჭირდეს.",
+            "თუ თავდაპირველ ბარათზე ან ანგარიშზე თანხის მიღება აღარ არის შესაძლებელი, თქვენს სახელზე არსებულ სხვა ანგარიშს წერილობით შევთანხმდებით."
+          ]
+        },
+        {
+          "id": "rights",
+          "heading": "თქვენი კანონიერი უფლებები",
+          "paragraphs": [
+            "ეს პოლიტიკა არ ზღუდავს თანხის დაბრუნების ან გაუქმების უფლებას, რომელიც მომხმარებლის უფლებების დაცვის შესახებ საქართველოს კანონით გაქვთ. თუ ეს წესები თქვენს შენაძენზე ვრცელდება, ისინი ამ პოლიტიკაზე უპირატესია."
+          ]
+        },
+        {
+          "id": "changes",
+          "heading": "პოლიტიკის ცვლილება",
+          "paragraphs": [
+            "შეიძლება განვაახლოთ ეს პოლიტიკა და ასეთ შემთხვევაში ზემოთ მითითებულ თარიღს შევცვლით. ცვლილება არ ვრცელდება მის ძალაში შესვლამდე შემოსულ დაბრუნების მოთხოვნებზე."
           ]
         }
       ]

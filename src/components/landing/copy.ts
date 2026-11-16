@@ -257,6 +257,7 @@ const en = {
     "fleetSignup": "Fleet sign-up",
     "privacy": "Privacy",
     "terms": "Terms",
+    "refund": "Refund policy",
     "rights": "© 2026 Gzadvertisement LLC. All rights reserved."
   }
 }
@@ -506,6 +507,7 @@ const ge: Copy = {
     "fleetSignup": "ავტოპარკის რეგისტრაცია",
     "privacy": "კონფიდენციალურობა",
     "terms": "წესები და პირობები",
+    "refund": "დაბრუნების პოლიტიკა",
     "rights": "© 2026 შპს „გზადვერთაისმენთ“. ყველა უფლება დაცულია."
   }
 }
