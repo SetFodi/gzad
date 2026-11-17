@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { readAllRows } from '@/lib/supabase/read'
 import { useTranslations } from '@/lib/i18n'
+import { formatGel } from '@/lib/money'
 import { AlertTriangle, Receipt, WalletCards, Wallet } from 'lucide-react'
 import TestBalanceBox from '@/components/app/TestBalanceBox'
 
@@ -51,7 +53,8 @@ export default function BillingPage() {
   const [attempt, setAttempt] = useState(0)
   // Admins on an internal (never charged) account get a box to set a test balance.
   const [testClientId, setTestClientId] = useState<string | null>(null)
-  const { t } = useTranslations()
+  const { t, lang } = useTranslations()
+  const locale = lang === 'ge' ? 'ka-GE' : 'en-GB'
   const p = t.portal.billing
   const c = t.portal.common
 
@@ -180,7 +183,7 @@ export default function BillingPage() {
   if (loadError) return (
     <div className="portal-page">
       <h1 className="portal-page-title">{p.title}</h1>
-      <div className="portal-alert portal-alert-error" role="alert">{c.loadError}</div>
+      <div className="portal-alert portal-alert-danger" role="alert">{c.loadError}</div>
       <button type="button" className="portal-btn-primary" onClick={() => { setLoadError(false); setLoading(true); setAttempt(value => value + 1) }}>{c.retry}</button>
     </div>
   )
@@ -194,7 +197,7 @@ export default function BillingPage() {
   if ((balance ?? 0) <= 0) banners.push(p.depleted)
   else {
     const low = balanceAlerts.find(a => a.kind === 'low_20pct' && Number(a.detail?.pct) > 0)
-    if (low) banners.push(p.lowBalanceAlert.replace('{pct}', String(low.detail?.pct)).replace('{balance}', (balance ?? 0).toFixed(2)))
+    if (low) banners.push(p.lowBalanceAlert.replace('{pct}', String(low.detail?.pct)).replace('₾{balance}', formatGel(balance ?? 0)).replace('{balance}', formatGel(balance ?? 0)))
     if (balanceAlerts.some(a => a.kind === 'runway_1d') || (runwayDays !== null && runwayDays < 1)) banners.push(p.runwaySoon)
     else if (runwayDays !== null && runwayDays < 3) banners.push(p.runway.replace('{days}', runwayDays.toFixed(1)))
   }
@@ -207,6 +210,8 @@ export default function BillingPage() {
           <h1 className="portal-page-title">{p.title}</h1>
           <p className="portal-subtitle">{p.subtitle}</p>
         </div>
+        {/* Top-ups go through us until card payments ship. */}
+        <Link href="/contact?topic=billing" className="portal-btn-secondary">{p.topUp}</Link>
       </div>
 
       {banners.map((text) => (
@@ -223,7 +228,7 @@ export default function BillingPage() {
           </div>
           <div className="stat-card-info">
             <span className="stat-card-value" style={{ color: (balance ?? 0) > 0 ? 'var(--portal-text)' : 'var(--portal-danger)' }}>
-              ₾{(balance ?? 0).toFixed(2)}
+              {formatGel(balance ?? 0)}
             </span>
             <span className="stat-card-label">{p.balance}</span>
           </div>
@@ -233,7 +238,7 @@ export default function BillingPage() {
             <Receipt size={24} />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value">₾{spent30.toFixed(2)}</span>
+            <span className="stat-card-value">{formatGel(spent30)}</span>
             <span className="stat-card-label">{p.spent30}</span>
           </div>
         </div>
@@ -242,7 +247,7 @@ export default function BillingPage() {
             <WalletCards size={24} />
           </div>
           <div className="stat-card-info">
-            <span className="stat-card-value">₾{toppedUp.toFixed(2)}</span>
+            <span className="stat-card-value">{formatGel(toppedUp)}</span>
             <span className="stat-card-label">{p.toppedUp}</span>
           </div>
         </div>
@@ -287,14 +292,14 @@ export default function BillingPage() {
                 {charges.map((l) => (
                   <tr key={l.key}>
                     <td style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
-                      {new Date(l.hour_start).toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {new Date(l.hour_start).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td>{l.campaign_name || '—'}</td>
                     <td>{l.district || '—'}</td>
                     <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--portal-muted)', fontSize: 13 }}>
                       {l.coverage === null ? '—' : `${Math.round(l.coverage * 100)}%`}
                     </td>
-                    <td style={{ textAlign: 'right' }}>₾{l.total_cost.toFixed(2)}</td>
+                    <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatGel(l.total_cost)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -322,7 +327,7 @@ export default function BillingPage() {
                 {transactions.map((tx) => (
                   <tr key={tx.id}>
                     <td style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
-                      {new Date(tx.created_at).toLocaleDateString('en-GB', { timeZone: 'Asia/Tbilisi', year: 'numeric', month: 'short', day: 'numeric' })}
+                      {new Date(tx.created_at).toLocaleDateString(locale, { timeZone: 'Asia/Tbilisi', year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
                     <td>{p.txTypes[tx.type as keyof typeof p.txTypes] || tx.type}</td>
                     <td style={{ color: 'var(--portal-muted)', fontSize: 13 }}>{tx.note || '—'}</td>
@@ -331,7 +336,7 @@ export default function BillingPage() {
                       fontVariantNumeric: 'tabular-nums',
                       color: tx.amount > 0 ? 'var(--portal-success)' : 'var(--portal-danger)',
                     }}>
-                      {tx.amount > 0 ? '+' : '−'}₾{Math.abs(Number(tx.amount)).toFixed(2)}
+                      {formatGel(Number(tx.amount), { signed: true })}
                     </td>
                   </tr>
                 ))}

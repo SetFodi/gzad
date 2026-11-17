@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { formatGel } from './money'
 
 // Staff-facing timeline of what the system did (migration
 // 20261026120000_system_events.sql). Writing an event must never break the
@@ -46,7 +47,7 @@ export interface BillingRunSummary {
   error?: string
 }
 
-const gel = (n: number) => `₾${n.toFixed(2)}`
+const gel = (n: number) => formatGel(n)
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 /** One readable entry per billing run, with everything it did in `detail`. */

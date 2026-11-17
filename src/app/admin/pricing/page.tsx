@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { DollarSign, MapPin, Clock, Users, Receipt, Save, Plus, Minus, Map } from 'lucide-react'
 import { TBILISI_DISTRICTS } from '@/lib/districts'
 import { useAdminText } from '@/lib/admin-i18n'
+import { formatGel } from '@/lib/money'
 
 const DistrictMapEditor = dynamic(() => import('@/components/admin/DistrictMapEditor'), { ssr: false })
 
@@ -27,9 +28,7 @@ const TIME_LABELS: Record<string, { label: string; color: string }> = {
   '1.30': { label: 'Rush Hour', color: 'var(--portal-warning)' },
 }
 
-function formatGEL(n: number): string {
-  return `${n.toFixed(2)} ₾`
-}
+const formatGEL = (n: number) => formatGel(n)
 
 interface ClientRow {
   id: string
@@ -96,7 +95,8 @@ export default function PricingPage() {
         supabase.from('billing_logs').select(columns).order('period_start', { ascending: false }).limit(100)
       const [configRes, clientsRes, meteredLogsRes] = await Promise.all([
         supabase.from('pricing_config').select('key, value'),
-        supabase.from('clients').select('id, company_name, balance').eq('is_admin', false).neq('role', 'fleet').order('company_name'),
+        // Internal accounts aren't charged, so they stay out of the totals and this list.
+        supabase.from('clients').select('id, company_name, balance').eq('is_admin', false).neq('role', 'fleet').eq('billing_exempt', false).order('company_name'),
         recentLogs(`${logColumns}, billing_unit, plays, expected_plays, proration`),
       ])
       // Before migration 010 the metering columns don't exist yet.
@@ -201,7 +201,8 @@ export default function PricingPage() {
     </div>
   )
 
-  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
+  // After saving the page refreshes in place; only the first load blanks it.
+  if (loading && Object.keys(baseRates).length === 0) return <div className="portal-loading">{t('Loading…')}</div>
 
   const vakeTier = districtTiers.Vake ?? 4
   const vakeMultiplier = districtMultipliers[vakeTier.toString()]
@@ -681,43 +682,35 @@ export default function PricingPage() {
                         <input
                           type="number"
                           step="1"
+                          min="0"
+                          className="input-sm"
                           placeholder={t('Amount, ₾')}
                           aria-label={t('Amount in lari')}
                           value={topUpAmounts[c.id] || ''}
                           onChange={e => setTopUpAmounts({ ...topUpAmounts, [c.id]: e.target.value })}
-                          style={{
-                            width: 120, textAlign: 'right', padding: '4px 8px',
-                            background: 'var(--card)', color: 'var(--foreground)',
-                            border: '1px solid var(--border)', borderRadius: 6, fontSize: 14,
-                          }}
+                          style={{ width: 120, textAlign: 'right' }}
                         />
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: 4 }}>
+                        <div className="admin-actions" style={{ flexWrap: 'nowrap' }}>
                           <button
+                            type="button"
+                            className="action-btn approve"
                             onClick={() => adjustBalance(c.id, parseFloat(topUpAmounts[c.id] || '0'))}
                             title={t('Add balance')}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px',
-                              borderRadius: 6, border: 'none', background: 'var(--portal-success)', color: 'var(--portal-on-primary)',
-                              cursor: 'pointer', fontSize: 12, fontWeight: 500,
-                            }}
                           >
-                            <Plus size={14} /> {t('Add')}
+                            <Plus size={14} aria-hidden /> {t('Add')}
                           </button>
                           <button
+                            type="button"
+                            className="action-btn"
                             onClick={() => {
                               const amt = parseFloat(topUpAmounts[c.id] || '0')
-                              if (amt > 0) adjustBalance(c.id, -amt)
+                              if (amt > 0 && confirm(t('Deduct {amount} from {client}?', { amount: formatGEL(amt), client: c.company_name }))) adjustBalance(c.id, -amt)
                             }}
                             title={t('Deduct balance')}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px',
-                              borderRadius: 6, border: '1px solid var(--border)', background: 'transparent',
-                              color: 'var(--muted-foreground)', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-                            }}
                           >
-                            <Minus size={14} /> {t('Deduct')}
+                            <Minus size={14} aria-hidden /> {t('Deduct')}
                           </button>
                         </div>
                       </td>

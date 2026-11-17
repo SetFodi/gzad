@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Plus, Search, X } from 'lucide-react'
 import AppDialog from '@/components/app/AppDialog'
 import { useAdminText } from '@/lib/admin-i18n'
+import { formatGel } from '@/lib/money'
 
 interface Client {
   id: string
@@ -106,7 +107,8 @@ export default function AdminClientsPage() {
     </div>
   )
 
-  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
+  // After an action the list refreshes in place; only the first load blanks it.
+  if (loading && clients.length === 0) return <div className="portal-loading">{t('Loading…')}</div>
 
   const visible = clients.filter(c => {
     const q = query.trim().toLowerCase()
@@ -226,8 +228,8 @@ export default function AdminClientsPage() {
                       {c.active_count ? <span>{t('{n} active', { n: c.active_count })}</span> : null}
                       <span className="cell-sub">{c.active_count ? ` · ${t('{n} total', { n: c.campaign_count ?? 0 })}` : t('{n} total', { n: c.campaign_count ?? 0 })}</span>
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 500, color: balance <= 0 ? 'var(--portal-danger)' : 'var(--portal-text)' }}>
-                      {balance < 0 ? `−₾${Math.abs(balance).toFixed(2)}` : `₾${balance.toFixed(2)}`}
+                    <td style={{ textAlign: 'right', fontWeight: 500, color: c.billing_exempt ? 'var(--portal-muted)' : balance <= 0 ? 'var(--portal-danger)' : 'var(--portal-text)' }}>
+                      {formatGel(balance)}
                     </td>
                     <td className="cell-nowrap cell-sub">{new Date(c.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                   </tr>

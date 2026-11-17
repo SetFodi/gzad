@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { SLOTS_PER_DEVICE } from '@/lib/slots'
 import StatusBadge from '@/components/app/StatusBadge'
 import { useAdminText } from '@/lib/admin-i18n'
+import { formatGel } from '@/lib/money'
 
 const CAMPAIGN_STATUSES = [
   { value: 'draft', label: 'Draft' },
@@ -486,7 +487,7 @@ export default function AdminCampaignDetailPage() {
             <div>
               <dt>{t('Daily cap')}</dt>
               <dd>
-                {campaign.daily_cap ? `₾${Number(campaign.daily_cap).toFixed(2)}` : t('No cap')}
+                {campaign.daily_cap ? formatGel(Number(campaign.daily_cap)) : t('No cap')}
                 {spentToday !== null && <span className="cell-sub"> · {t('₾{amount} spent today', { amount: spentToday.toFixed(2) })}</span>}
               </dd>
             </div>

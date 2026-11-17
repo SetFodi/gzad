@@ -76,7 +76,8 @@ export default function AdminOverview() {
         supabase.from('ad_media').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
         readAllRows<{ play_count: number }>((from, to) => supabase.from('play_stats').select('play_count').order('id').range(from, to)),
         // Clients whose credit has run out — their ads are paused until topped up.
-        supabase.from('clients').select('id, company_name').eq('is_admin', false).neq('role', 'fleet').lte('balance', 0),
+        // Internal accounts are never charged, so they never count as out of balance.
+        supabase.from('clients').select('id, company_name').eq('is_admin', false).neq('role', 'fleet').eq('billing_exempt', false).lte('balance', 0),
         // Billing alerts must load successfully before the overview is trusted.
         supabase.from('billing_alerts').select('*', { count: 'exact', head: true }).is('dismissed_at', null).gte('created_at', since),
         supabase.from('play_logs').select('began_at').order('began_at', { ascending: false }).limit(1),

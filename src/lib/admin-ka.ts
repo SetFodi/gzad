@@ -734,5 +734,13 @@ export const KA: Record<string, string> = {
   'Set balance': 'ბალანსის დაყენება',
   'Balance set to {amount}.': 'ბალანსი დაყენდა: {amount}.',
   'Could not set the test balance': 'სატესტო ბალანსი ვერ დაყენდა',
+  'Stop charging {client}? Plays are recorded at ₾0 while this is on.': 'შევწყვიტოთ თანხის დარიცხვა: {client}? სანამ ეს ჩართულია, ჩვენებები ₾0-ად აღირიცხება.',
+  'Could not update {name}. Try again.': '{name} ვერ განახლდა. სცადეთ თავიდან.',
+  'Could not delete {name}. Try again.': '{name} ვერ წაიშალა. სცადეთ თავიდან.',
+  'Approving…': 'მტკიცდება…',
+  'Rejecting…': 'უარყოფა…',
+  'Pausing…': 'ჩერდება…',
+  'Resuming…': 'ახლდება…',
+  'Deleting…': 'იშლება…',
   // END
 }

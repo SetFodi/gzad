@@ -51,7 +51,7 @@ export default function ClientGuide({ config, welcome = false }: { config: Prici
       ) : (
         <div id="guide-tools" role="tabpanel" aria-labelledby="guide-tools-tab">
           <p className="guide-practice">{g.simulation}</p>
-          {config ? <><AirtimeSimulator t={t} config={config} /><BudgetCalculator t={t} config={config} /></> : <p className="portal-alert portal-alert-error" role="alert">{g.unavailable}</p>}
+          {config ? <><AirtimeSimulator t={t} config={config} /><BudgetCalculator t={t} config={config} /></> : <p className="portal-alert portal-alert-danger" role="alert">{g.unavailable}</p>}
         </div>
       )}
       <div className="guide-finish"><Link className="portal-btn-primary" href="/portal/dashboard" onClick={finishClientIntroduction}>{g.continue}<ArrowRight size={16} aria-hidden /></Link></div>

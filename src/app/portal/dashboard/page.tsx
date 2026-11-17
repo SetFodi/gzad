@@ -6,6 +6,7 @@ import { ArrowRight, Clock, Megaphone, Play, Plus, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { readAllRows } from '@/lib/supabase/read'
 import { useTranslations } from '@/lib/i18n'
+import { gelParts } from '@/lib/money'
 import CampaignCard, { summariseMedia, type CampaignSummary } from '@/components/portal/CampaignCard'
 
 function formatScreenTime(seconds: number) {
@@ -128,7 +129,7 @@ export default function DashboardPage() {
   if (loadError) return (
     <div className="portal-page">
       <h1 className="portal-page-title">{p.title}</h1>
-      <div className="portal-alert portal-alert-error" role="alert">{c.loadError}</div>
+      <div className="portal-alert portal-alert-danger" role="alert">{c.loadError}</div>
       <button type="button" className="portal-btn-primary" onClick={() => { setLoadError(false); setLoading(true); setAttempt(value => value + 1) }}>{c.retry}</button>
     </div>
   )
@@ -151,10 +152,12 @@ export default function DashboardPage() {
           <h1 className="portal-page-title">{p.title}</h1>
           <p className="portal-subtitle">{p.subtitle}</p>
         </div>
-        <Link href="/portal/dashboard/submit" className="portal-btn-primary">
-          <Plus size={16} aria-hidden />
-          {p.submitAd}
-        </Link>
+        {campaigns.length > 0 && (
+          <Link href="/portal/dashboard/submit" className="portal-btn-primary">
+            <Plus size={16} aria-hidden />
+            {p.submitAd}
+          </Link>
+        )}
       </div>
 
       <div className="overview-grid">
@@ -170,8 +173,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="balance-card-value">
-            <span className="balance-card-currency">₾</span>
-            {amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {gelParts(amount).sign}<span className="balance-card-currency">₾</span>{gelParts(amount).amount}
           </div>
           <p className="balance-card-note">{balanceNote}</p>
         </section>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import { formatGel } from '@/lib/money'
 
 // Admin-only box that sets an internal account's balance to an exact amount,
 // so staff can test campaigns without real top-ups. The server only accepts it
@@ -48,7 +49,7 @@ export default function TestBalanceBox({ clientId, labels, onSaved }: Props) {
         return
       }
       const balance = Number(result.balance)
-      setMessage({ ok: true, text: labels.done.split('{amount}').join(`₾${balance.toFixed(2)}`) })
+      setMessage({ ok: true, text: labels.done.split('{amount}').join(formatGel(balance)) })
       onSaved?.(balance)
     } catch {
       setMessage({ ok: false, text: labels.failed })

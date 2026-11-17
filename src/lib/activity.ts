@@ -1,4 +1,5 @@
 import type { EventSeverity } from './system-events'
+import { formatGel } from './money'
 
 // Turns the rows behind the admin Activity page into one timeline. Pure, so
 // the wording is tested without a database. Text goes through `t` (the admin
@@ -76,7 +77,7 @@ export interface AlertRow {
   campaign: string | null
 }
 
-const gel = (n: number) => `${n < 0 ? '−' : ''}₾${Math.abs(n).toFixed(2)}`
+const gel = (n: number) => formatGel(n)
 
 /** "3 h 20 min", "45 min", "12 s"; mirrors formatDuration in system-events. */
 function duration(seconds: number, t: Translate): string {

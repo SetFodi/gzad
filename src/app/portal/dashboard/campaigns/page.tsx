@@ -69,7 +69,7 @@ export default function CampaignsPage() {
   if (loadError) return (
     <div className="portal-page">
       <h1 className="portal-page-title">{p.title}</h1>
-      <div className="portal-alert portal-alert-error" role="alert">{c.loadError}</div>
+      <div className="portal-alert portal-alert-danger" role="alert">{c.loadError}</div>
       <button type="button" className="portal-btn-primary" onClick={() => { setLoadError(false); setLoading(true); setAttempt(value => value + 1) }}>{c.retry}</button>
     </div>
   )
@@ -81,16 +81,21 @@ export default function CampaignsPage() {
           <h1 className="portal-page-title">{p.title}</h1>
           <p className="portal-subtitle">{p.subtitle}</p>
         </div>
-        <Link href="/portal/dashboard/submit" className="portal-btn-primary">
-          <Plus size={16} aria-hidden />
-          {p.newCampaign}
-        </Link>
+        {campaigns.length > 0 && (
+          <Link href="/portal/dashboard/submit" className="portal-btn-primary">
+            <Plus size={16} aria-hidden />
+            {p.newCampaign}
+          </Link>
+        )}
       </div>
 
       {campaigns.length === 0 ? (
         <div className="portal-empty">
           <p>{p.noCampaigns}</p>
-          <Link href="/portal/dashboard/submit" className="portal-btn-primary">{p.createFirst}</Link>
+          <Link href="/portal/dashboard/submit" className="portal-btn-primary">
+            <Plus size={16} aria-hidden />
+            {p.createFirst}
+          </Link>
         </div>
       ) : (
         <div className="campaigns-grid">

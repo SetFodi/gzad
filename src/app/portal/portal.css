@@ -20,8 +20,8 @@ body:has(.portal-layout) {
     --portal-fill-strong: #e8e8ed;
     --portal-text: #1d1d1f;
     --portal-text-soft: #424245;
-    --portal-muted: #6e6e73;
-    --portal-faint: #86868b;
+    --portal-muted: #6a6a6f;
+    --portal-faint: #6e6e73;
     --portal-border: rgba(0, 0, 0, 0.09);
     --portal-border-strong: rgba(0, 0, 0, 0.18);
     --portal-hairline: rgba(0, 0, 0, 0.06);
@@ -50,7 +50,7 @@ body:has(.portal-layout) {
     --portal-row-hover: #fafafc;
     --portal-field-border: #d2d2d7;
     --portal-field-hover: #a1a1a6;
-    --portal-placeholder: #a1a1a6;
+    --portal-placeholder: #76767b;
     --portal-dashed: #c7c7cc;
     --portal-ink: #1d1d1f;
     --portal-on-ink: #ffffff;
@@ -88,8 +88,17 @@ body:has(.portal-layout) {
 }
 
 .portal-layout ::selection {
-    background: rgba(11, 77, 60, 0.2);
+    background: rgba(var(--portal-primary-rgb), 0.2);
     color: inherit;
+}
+
+:root[data-app-theme='dark'] .portal-layout ::selection {
+    background: rgba(var(--portal-primary-rgb), 0.3);
+}
+
+.portal-layout {
+    caret-color: var(--portal-primary);
+    scrollbar-color: var(--portal-fill-strong) transparent;
 }
 
 .portal-layout :focus-visible {
@@ -132,13 +141,14 @@ body:has(.portal-layout) {
     max-width: 1200px;
     margin: 0 auto;
     color: var(--portal-text);
-    animation: portal-page-in 0.45s var(--portal-ease) both;
+    animation: portal-page-in 0.22s var(--portal-ease) both;
 }
 
+/* A quick settle, not a show: people move between these pages all day. */
 @keyframes portal-page-in {
     from {
         opacity: 0;
-        transform: translateY(6px);
+        transform: translateY(3px);
     }
 }
 
@@ -381,6 +391,33 @@ body:has(.portal-layout) {
     transform: scale(0.97);
 }
 
+/* While a row's action runs, its buttons give way to what is happening. */
+.action-busy {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    padding: 0 4px;
+    color: var(--portal-muted);
+    font-size: 13px;
+    white-space: nowrap;
+    animation: portal-fade-in 0.15s ease-out both;
+}
+
+.action-busy::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid var(--portal-fill-strong);
+    border-top-color: var(--portal-text-soft);
+    border-radius: 50%;
+    animation: portal-spin 0.75s linear infinite;
+}
+
+[aria-busy='true'] {
+    cursor: progress;
+}
+
 .portal-btn-primary:disabled,
 .portal-login-btn:disabled,
 .portal-btn-secondary:disabled,
@@ -487,6 +524,7 @@ body:has(.portal-layout) {
     letter-spacing: 0;
     line-height: 1;
     white-space: nowrap;
+    transition: color 0.15s ease, background-color 0.15s ease;
 }
 
 .status-badge::before {
@@ -538,9 +576,11 @@ body:has(.portal-layout) {
     transition: box-shadow 0.25s var(--portal-ease), transform 0.25s var(--portal-ease);
 }
 
-a.campaign-card:hover {
-    box-shadow: var(--portal-shadow-lift);
-    transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+    a.campaign-card:hover {
+        box-shadow: var(--portal-shadow-lift);
+        transform: translateY(-2px);
+    }
 }
 
 /* Ads are 3:1, the shape of the screen. */
@@ -565,7 +605,7 @@ a.campaign-card:hover {
     display: grid;
     place-items: center;
     background: var(--portal-fill);
-    color: var(--portal-faint);
+    color: var(--portal-muted);
     font-size: 13px;
 }
 
@@ -721,6 +761,14 @@ a.campaign-card:hover {
     min-height: 60vh;
     color: var(--portal-muted);
     font-size: 14px;
+    /* Fast loads never flash a spinner; slow ones fade it in. */
+    animation: portal-fade-in 0.2s ease-out 0.3s both;
+}
+
+@keyframes portal-fade-in {
+    from {
+        opacity: 0;
+    }
 }
 
 .portal-loading::before {
@@ -736,6 +784,20 @@ a.campaign-card:hover {
 @keyframes portal-spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* Feedback that appears after an action eases in so the eye catches it. */
+.balance-card-note[role='status'],
+.test-balance-note,
+.portal-alert {
+    animation: portal-note-in 0.18s var(--portal-ease) both;
+}
+
+@keyframes portal-note-in {
+    from {
+        opacity: 0;
+        transform: translateY(-2px);
     }
 }
 
@@ -1146,6 +1208,19 @@ dialog.admin-modal::backdrop {
     display: grid;
     grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
     gap: 14px;
+}
+
+/* Admin client page: the balance card carries forms, so it gets the width and
+   the figures stack beside it instead of stretching to its height. */
+.overview-grid-tools {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    align-items: start;
+}
+
+.overview-side {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
 }
 
 .balance-card {
@@ -1562,7 +1637,15 @@ dialog.admin-modal::backdrop {
 .segmented button[aria-selected='true'] {
     background: var(--portal-surface);
     color: var(--portal-text);
+    font-weight: 600;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* In the dark the chosen segment must be lighter than its track to read as chosen. */
+:root[data-app-theme='dark'] .segmented button:is([aria-checked='true'], [aria-pressed='true'], [aria-selected='true']),
+:root[data-app-theme='dark'] .app-lang button[aria-pressed='true'] {
+    background: #636366;
+    box-shadow: none;
 }
 
 .submit-summary {
@@ -1758,8 +1841,10 @@ a.stat-card-link {
     transition: box-shadow 0.25s var(--portal-ease);
 }
 
-a.stat-card-link:hover {
-    box-shadow: var(--portal-shadow-lift);
+@media (hover: hover) and (pointer: fine) {
+    a.stat-card-link:hover {
+        box-shadow: var(--portal-shadow-lift);
+    }
 }
 
 .stat-card-of {
@@ -1804,8 +1889,10 @@ a.stat-card-link:hover {
     transition: box-shadow 0.25s var(--portal-ease);
 }
 
-a.attention-row:hover {
-    box-shadow: var(--portal-shadow-lift);
+@media (hover: hover) and (pointer: fine) {
+    a.attention-row:hover {
+        box-shadow: var(--portal-shadow-lift);
+    }
 }
 
 .attention-icon {
@@ -3159,6 +3246,27 @@ a.attention-row:hover {
     color: var(--portal-text);
 }
 
+/* Small controls answer a press and look unavailable when they are. */
+:is(.app-icon-btn, .admin-filter-btn, .segmented button, .app-lang button) {
+    transition-property: background-color, color, box-shadow, transform;
+    transition-duration: 0.15s;
+    transition-timing-function: ease-out;
+}
+
+:is(.app-icon-btn, .admin-filter-btn, .segmented button, .app-lang button):active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+:is(.app-icon-btn, .admin-filter-btn, .segmented button):disabled {
+    cursor: default;
+    opacity: 0.45;
+    background: transparent;
+}
+
+.app-lang button:hover {
+    color: var(--portal-text);
+}
+
 .app-topbar {
     display: none;
 }
@@ -3187,7 +3295,7 @@ a.attention-row:hover {
     --portal-text: #f5f5f7;
     --portal-text-soft: #d1d1d6;
     --portal-muted: #98989d;
-    --portal-faint: #6e6e73;
+    --portal-faint: #8e8e93;
     --portal-border: rgba(255, 255, 255, 0.12);
     --portal-border-strong: rgba(255, 255, 255, 0.22);
     --portal-hairline: rgba(255, 255, 255, 0.08);
@@ -3210,7 +3318,7 @@ a.attention-row:hover {
     --portal-row-hover: #1d1d20;
     --portal-field-border: #3a3a3c;
     --portal-field-hover: #545458;
-    --portal-placeholder: #6e6e73;
+    --portal-placeholder: #86868b;
     --portal-dashed: #48484a;
     --portal-ink: #f5f5f7;
     --portal-on-ink: #0b0b0c;
@@ -3256,6 +3364,14 @@ a.attention-row:hover {
     }
 
     .overview-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .overview-grid-tools {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .overview-side {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
@@ -3431,6 +3547,19 @@ a.attention-row:hover {
         grid-column: 1 / -1;
     }
 
+    .overview-grid-tools {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .overview-side {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .overview-side > .stat-card:first-child {
+        grid-column: 1 / -1;
+    }
+
     .overview-grid .stat-card-value {
         white-space: nowrap;
         overflow-wrap: normal;
@@ -3505,6 +3634,12 @@ a.attention-row:hover {
 
     a.campaign-card:hover {
         transform: none;
+    }
+
+    .balance-card-note[role='status'],
+    .test-balance-note,
+    .portal-alert {
+        animation-name: portal-fade-in;
     }
 }
 .app-sidebar-error {

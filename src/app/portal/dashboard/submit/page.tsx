@@ -1,10 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, CheckCircle, X } from 'lucide-react'
 import ScreenPreview from '@/components/portal/ScreenPreview'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n'
 
 const NAME_REGEX = /^[a-z0-9][a-z0-9 ]*[a-z0-9]$|^[a-z0-9]$/
@@ -32,7 +32,6 @@ export default function SubmitAdPage() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
-  const router = useRouter()
   const supabase = createClient()
   const { t } = useTranslations()
   const p = t.portal.submit
@@ -62,7 +61,7 @@ export default function SubmitAdPage() {
 
     const wrongType = selected.find(f => !ALLOWED_TYPES.includes(f.type))
     if (wrongType) {
-      setError(`${wrongType.name}: unsupported file type. Use JPG, PNG, WebP, MP4 or WebM.`)
+      setError(p.unsupportedType.replace('{name}', wrongType.name))
       return
     }
 
@@ -176,9 +175,8 @@ export default function SubmitAdPage() {
       }
 
       setSuccess(true)
-      setTimeout(() => router.push('/portal/dashboard/campaigns'), 2000)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
+      setError(err instanceof Error && err.message ? err.message : p.uploadFailed)
     } finally {
       setUploading(false)
     }
@@ -191,6 +189,7 @@ export default function SubmitAdPage() {
           <CheckCircle size={48} color="var(--portal-success)" />
           <h2>{p.success}</h2>
           <p>{p.successMessage}</p>
+          <Link href="/portal/dashboard/campaigns" className="portal-btn-primary">{p.seeCampaigns}</Link>
         </div>
       </div>
     )
@@ -218,11 +217,11 @@ export default function SubmitAdPage() {
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder={p.campaignNamePlaceholder}
               aria-invalid={nameError ? true : undefined}
-              aria-describedby="name-hint"
+              aria-describedby={nameError ? 'name-error' : 'name-hint'}
               required
             />
             {nameError
-              ? <span className="field-error">{nameError}</span>
+              ? <span id="name-error" className="field-error" role="alert">{nameError}</span>
               : <span id="name-hint" className="field-hint">{p.nameHint}</span>}
           </div>
 

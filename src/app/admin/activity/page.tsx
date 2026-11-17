@@ -10,6 +10,7 @@ import {
   buildActivity, type ActivityCategory, type ActivityItem, type AlertRow, type EventRow, type StatusRow, type TransactionRow,
 } from '@/lib/activity'
 import { useAdminText } from '@/lib/admin-i18n'
+import { formatGel } from '@/lib/money'
 
 type Range = '24h' | '7d' | '30d'
 const RANGE_HOURS: Record<Range, number> = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30 }
@@ -245,7 +246,7 @@ export default function ActivityPage() {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-card-info">
-            <span className="stat-card-value">₾{summary.charged.toFixed(2)}</span>
+            <span className="stat-card-value">{formatGel(summary.charged)}</span>
             <span className="stat-card-label">{t('Charged in the {range}', { range: t(RANGE_LABEL[range]) })}</span>
           </div>
         </div>

@@ -65,6 +65,9 @@ export default function AdminCampaignsPage() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
   const [newCampaign, setNewCampaign] = useState({ name: '', client_id: '' })
+  // The row whose action is running, so its buttons can say so and can't be pressed twice.
+  const [busy, setBusy] = useState<{ id: string; label: string } | null>(null)
+  const [actionError, setActionError] = useState('')
   const supabase = createClient()
 
   async function loadClients() {
@@ -165,24 +168,34 @@ export default function AdminCampaignsPage() {
 
   useEffect(() => { loadCampaigns() }, [])
 
-  const updateStatus = async (campaignId: string, newStatus: string) => {
+  const updateStatus = async (campaignId: string, newStatus: string, busyLabel: string) => {
     const campaign = campaigns.find(c => c.id === campaignId)
-    await supabase.from('campaigns').update({ status: newStatus }).eq('id', campaignId)
+    setBusy({ id: campaignId, label: busyLabel })
+    setActionError('')
+    try {
+      const { error } = await supabase.from('campaigns').update({ status: newStatus }).eq('id', campaignId)
+      if (error) {
+        setActionError(t('Could not update {name}. Try again.', { name: campaign?.name ?? '' }))
+        return
+      }
 
-    // When approving a campaign, auto-approve all pending media
-    if (newStatus === 'active') {
-      await supabase
-        .from('ad_media')
-        .update({ status: 'approved' })
-        .eq('campaign_id', campaignId)
-        .eq('status', 'pending_review')
-    }
+      // When approving a campaign, auto-approve all pending media
+      if (newStatus === 'active') {
+        await supabase
+          .from('ad_media')
+          .update({ status: 'approved' })
+          .eq('campaign_id', campaignId)
+          .eq('status', 'pending_review')
+      }
 
-    // Re-sync group when rotation changes (resume/pause/complete)
-    if (newStatus === 'active' || newStatus === 'paused' || newStatus === 'completed') {
-      await syncGroupDevices(campaign?.device_group_id || null)
+      // Re-sync group when rotation changes (resume/pause/complete)
+      if (newStatus === 'active' || newStatus === 'paused' || newStatus === 'completed') {
+        await syncGroupDevices(campaign?.device_group_id || null)
+      }
+      await loadCampaigns()
+    } finally {
+      setBusy(null)
     }
-    await loadCampaigns()
   }
 
   const deleteCampaign = async (campaignId: string, campaignName: string) => {
@@ -191,10 +204,20 @@ export default function AdminCampaignsPage() {
     const campaign = campaigns.find(c => c.id === campaignId)
     const groupId = campaign?.device_group_id || null
 
-    await supabase.from('ad_media').delete().eq('campaign_id', campaignId)
-    await supabase.from('campaigns').delete().eq('id', campaignId)
-    await syncGroupDevices(groupId)
-    await loadCampaigns()
+    setBusy({ id: campaignId, label: t('Deleting…') })
+    setActionError('')
+    try {
+      await supabase.from('ad_media').delete().eq('campaign_id', campaignId)
+      const { error } = await supabase.from('campaigns').delete().eq('id', campaignId)
+      if (error) {
+        setActionError(t('Could not delete {name}. Try again.', { name: campaignName }))
+        return
+      }
+      await syncGroupDevices(groupId)
+      await loadCampaigns()
+    } finally {
+      setBusy(null)
+    }
   }
 
   const syncGroupDevices = async (groupId: string | null) => {
@@ -268,6 +291,10 @@ export default function AdminCampaignsPage() {
       (!q || c.name.toLowerCase().includes(q) || (c.clients?.company_name ?? '').toLowerCase().includes(q)),
     )
   }, [campaigns, filter, query])
+  // Billing is prepaid airtime now; the old monthly price only shows if a campaign still has one.
+  const showPrice = campaigns.some((c) => c.monthly_price)
+  // Most campaigns run open-ended; the column only earns its place when one has dates.
+  const showDates = campaigns.some((c) => c.start_date || c.end_date)
 
   if (loadError) return (
     <div className="portal-page">
@@ -278,7 +305,8 @@ export default function AdminCampaignsPage() {
     </div>
   )
 
-  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
+  // After an action the list refreshes in place; only the first load blanks it.
+  if (loading && campaigns.length === 0) return <div className="portal-loading">{t('Loading…')}</div>
 
   return (
     <div className="portal-page">
@@ -369,6 +397,8 @@ export default function AdminCampaignsPage() {
         </label>
       </div>
 
+      {actionError && <div className="portal-alert portal-alert-danger" role="alert">{actionError}</div>}
+
       {visible.length === 0 ? (
         <div className="portal-empty">
           <p>{campaigns.length === 0 ? t('No campaigns yet.') : t('No campaigns match this view.')}</p>
@@ -382,8 +412,8 @@ export default function AdminCampaignsPage() {
                 <th>{t('Status')}</th>
                 <th>{t('Group')}</th>
                 <th>{t('Media')}</th>
-                <th>{t('Dates')}</th>
-                <th>{t('Price')}</th>
+                {showDates && <th>{t('Dates')}</th>}
+                {showPrice && <th>{t('Price')}</th>}
                 <th aria-label={t('Actions')} />
               </tr>
             </thead>
@@ -420,31 +450,38 @@ export default function AdminCampaignsPage() {
                       {c.pending_media! > 0 && <span className="cell-sub" style={{ color: 'var(--portal-warning)' }}>{t('{n} to review', { n: c.pending_media ?? 0 })}</span>}
                     </div>
                   </td>
-                  <td className="cell-nowrap">{c.start_date || c.end_date ? `${c.start_date || '…'} → ${c.end_date || '…'}` : <span className="cell-sub">{t('No end date')}</span>}</td>
-                  <td className="cell-nowrap">{c.monthly_price ? t('₾{amount}/mo', { amount: c.monthly_price }) : '—'}</td>
+                  {showDates && <td className="cell-nowrap">{c.start_date || c.end_date ? `${c.start_date || '…'} → ${c.end_date || '…'}` : <span className="cell-sub">{t('No end date')}</span>}</td>}
+                  {showPrice && <td className="cell-nowrap">{c.monthly_price ? t('₾{amount}/mo', { amount: c.monthly_price }) : '—'}</td>}
                   <td>
-                    <div className="admin-actions" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
-                      {c.status === 'pending_review' && (
+                    <div className="admin-actions" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap' }} aria-busy={busy?.id === c.id || undefined}>
+                      {busy?.id === c.id ? (
+                        <span className="action-busy" role="status">{busy.label}</span>
+                      ) : (
                         <>
-                          <button type="button" className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>{t('Approve')}</button>
-                          <button type="button" className="action-btn reject" onClick={() => updateStatus(c.id, 'paused')}>{t('Reject')}</button>
+                          {c.status === 'pending_review' && (
+                            <>
+                              <button type="button" className="action-btn approve" disabled={!!busy} onClick={() => updateStatus(c.id, 'active', t('Approving…'))}>{t('Approve')}</button>
+                              <button type="button" className="action-btn reject" disabled={!!busy} onClick={() => updateStatus(c.id, 'paused', t('Rejecting…'))}>{t('Reject')}</button>
+                            </>
+                          )}
+                          {c.status === 'active' && (
+                            <button type="button" className="action-btn" disabled={!!busy} onClick={() => updateStatus(c.id, 'paused', t('Pausing…'))}>{t('Pause')}</button>
+                          )}
+                          {(c.status === 'paused' || c.status === 'paused_billing' || c.status === 'paused_cap') && (
+                            <button type="button" className="action-btn approve" disabled={!!busy} onClick={() => updateStatus(c.id, 'active', t('Resuming…'))}>{t('Resume')}</button>
+                          )}
+                          <button
+                            type="button"
+                            className="app-icon-btn danger"
+                            disabled={!!busy}
+                            onClick={() => deleteCampaign(c.id, c.name)}
+                            aria-label={t('Delete {name}', { name: c.name })}
+                            title={t('Delete')}
+                          >
+                            <Trash2 size={16} aria-hidden />
+                          </button>
                         </>
                       )}
-                      {c.status === 'active' && (
-                        <button type="button" className="action-btn" onClick={() => updateStatus(c.id, 'paused')}>{t('Pause')}</button>
-                      )}
-                      {(c.status === 'paused' || c.status === 'paused_billing' || c.status === 'paused_cap') && (
-                        <button type="button" className="action-btn approve" onClick={() => updateStatus(c.id, 'active')}>{t('Resume')}</button>
-                      )}
-                      <button
-                        type="button"
-                        className="app-icon-btn danger"
-                        onClick={() => deleteCampaign(c.id, c.name)}
-                        aria-label={t('Delete {name}', { name: c.name })}
-                        title={t('Delete')}
-                      >
-                        <Trash2 size={16} aria-hidden />
-                      </button>
                     </div>
                   </td>
                 </tr>

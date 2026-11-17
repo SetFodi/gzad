@@ -8,6 +8,7 @@ import Link from 'next/link'
 import StatusBadge from '@/components/app/StatusBadge'
 import TestBalanceBox from '@/components/app/TestBalanceBox'
 import { useAdminText } from '@/lib/admin-i18n'
+import { formatGel, gelParts } from '@/lib/money'
 
 interface ClientDetail {
   id: string
@@ -45,7 +46,7 @@ const TRANSACTION_LABELS: Record<string, string> = {
   refund: 'Refund',
 }
 
-const gel = (value: number) => `₾${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const gel = (value: number) => formatGel(value)
 
 export default function AdminClientDetailPage() {
   const { t, locale } = useAdminText()
@@ -141,6 +142,7 @@ export default function AdminClientDetailPage() {
 
   async function setExempt(exempt: boolean) {
     if (!client) return
+    if (exempt && !confirm(t('Stop charging {client}? Plays are recorded at ₾0 while this is on.', { client: client.company_name }))) return
     setSavingExempt(true)
     setMessage(null)
     try {
@@ -176,10 +178,13 @@ export default function AdminClientDetailPage() {
     </div>
   )
 
-  if (loading) return <div className="portal-loading">{t('Loading…')}</div>
+  // After an action the page refreshes in place; only the first load blanks it.
+  if (loading && !client) return <div className="portal-loading">{t('Loading…')}</div>
   if (!client) return <div className="portal-loading">{t('Client not found')}</div>
 
   const balance = Number(client.balance ?? 0)
+  const showPrice = campaigns.some((c) => c.monthly_price)
+  const showDates = campaigns.some((c) => c.start_date || c.end_date)
   const toppedUp = transactions
     .filter(tx => tx.amount > 0)
     .reduce((sum, tx) => sum + Number(tx.amount), 0)
@@ -200,46 +205,48 @@ export default function AdminClientDetailPage() {
         </div>
       </div>
 
-      <div className="overview-grid">
-        <section className="balance-card" data-tone={balance <= 0 ? 'danger' : 'ok'}>
+      <div className="overview-grid overview-grid-tools">
+        <section className="balance-card" data-tone={balance <= 0 && !client.billing_exempt ? 'danger' : 'ok'}>
           <div className="balance-card-top">
             <span className="balance-card-label">{t('Balance')}</span>
           </div>
           <div className="balance-card-value">
-            <span className="balance-card-currency">₾</span>
-            {balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {gelParts(balance).sign}<span className="balance-card-currency">₾</span>{gelParts(balance).amount}
           </div>
-          <form
-            className="balance-form"
-            onSubmit={(e) => { e.preventDefault(); adjust(1) }}
-          >
-            <input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder={t('Amount, ₾')}
-              aria-label={t('Amount in lari')}
-            />
-            <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder={t('Note (optional), e.g. invoice number')}
-              aria-label={t('Note')}
-              maxLength={500}
-            />
-            <div className="balance-form-actions">
-              <button type="submit" className="portal-btn-primary" disabled={saving}>
-                <Plus size={15} aria-hidden /> {t('Add')}
-              </button>
-              <button type="button" className="portal-btn-secondary" disabled={saving} onClick={() => adjust(-1)}>
-                <Minus size={15} aria-hidden /> {t('Deduct')}
-              </button>
-            </div>
-          </form>
+          {/* Internal accounts use the test balance below instead of top-ups. */}
+          {!client.billing_exempt && (
+            <form
+              className="balance-form"
+              onSubmit={(e) => { e.preventDefault(); adjust(1) }}
+            >
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder={t('Amount, ₾')}
+                aria-label={t('Amount in lari')}
+              />
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={t('Note (optional), e.g. invoice number')}
+                aria-label={t('Note')}
+                maxLength={500}
+              />
+              <div className="balance-form-actions">
+                <button type="submit" className="portal-btn-primary" disabled={saving}>
+                  <Plus size={15} aria-hidden /> {t('Add')}
+                </button>
+                <button type="button" className="portal-btn-secondary" disabled={saving} onClick={() => adjust(-1)}>
+                  <Minus size={15} aria-hidden /> {t('Deduct')}
+                </button>
+              </div>
+            </form>
+          )}
           {message && (
             <p className="balance-card-note" role="status" style={{ color: message.ok ? 'var(--portal-success)' : 'var(--portal-danger)' }}>
               {message.text}
@@ -273,24 +280,26 @@ export default function AdminClientDetailPage() {
           )}
         </section>
 
-        <div className="stat-card">
-          <div className="stat-card-info">
-            <span className="stat-card-value">
-              {activeCount}<span className="stat-card-of"> / {campaigns.length}</span>
-            </span>
-            <span className="stat-card-label">{t('Active campaigns')}</span>
+        <div className="overview-side">
+          <div className="stat-card">
+            <div className="stat-card-info">
+              <span className="stat-card-value">
+                {activeCount}<span className="stat-card-of"> / {campaigns.length}</span>
+              </span>
+              <span className="stat-card-label">{t('Active campaigns')}</span>
+            </div>
           </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-info">
-            <span className="stat-card-value">{gel(toppedUp)}</span>
-            <span className="stat-card-label">{t('Topped up')}</span>
+          <div className="stat-card">
+            <div className="stat-card-info">
+              <span className="stat-card-value">{gel(toppedUp)}</span>
+              <span className="stat-card-label">{t('Topped up')}</span>
+            </div>
           </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-info">
-            <span className="stat-card-value">{gel(spent)}</span>
-            <span className="stat-card-label">{t('Spent on airtime')}</span>
+          <div className="stat-card">
+            <div className="stat-card-info">
+              <span className="stat-card-value">{gel(spent)}</span>
+              <span className="stat-card-label">{t('Spent on airtime')}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -306,8 +315,8 @@ export default function AdminClientDetailPage() {
                 <tr>
                   <th>{t('Name')}</th>
                   <th>{t('Status')}</th>
-                  <th>{t('Dates')}</th>
-                  <th>{t('Price')}</th>
+                  {showDates && <th>{t('Dates')}</th>}
+                  {showPrice && <th>{t('Price')}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -319,10 +328,12 @@ export default function AdminClientDetailPage() {
                     <td>
                       <StatusBadge status={c.status} />
                     </td>
-                    <td className="cell-nowrap">
-                      {c.start_date || c.end_date ? `${c.start_date || '…'} → ${c.end_date || '…'}` : <span className="cell-sub">{t('No end date')}</span>}
-                    </td>
-                    <td>{c.monthly_price ? t('₾{amount}/mo', { amount: c.monthly_price }) : '—'}</td>
+                    {showDates && (
+                      <td className="cell-nowrap">
+                        {c.start_date || c.end_date ? `${c.start_date || '…'} → ${c.end_date || '…'}` : <span className="cell-sub">{t('No end date')}</span>}
+                      </td>
+                    )}
+                    {showPrice && <td>{c.monthly_price ? t('₾{amount}/mo', { amount: c.monthly_price }) : '—'}</td>}
                   </tr>
                 ))}
               </tbody>
