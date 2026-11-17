@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { blockCost, parsePricingConfig, slotCost } from './billing'
-import { groupByClient, priceBlocks, type PositionRow, type UsageRow } from './metering'
+import { chargesFor, groupByClient, priceBlocks, type BlockCharge, type PositionRow, type UsageRow } from './metering'
 
 const config = parsePricingConfig([
   { key: 'district_tiers', value: { Vake: 1, Saburtalo: 2 } },
@@ -129,5 +129,20 @@ describe('groupByClient', () => {
     const { charges } = priceBlocks(metered, [use('A', 'A', 20, 20, 10), use('C', 'C', 5, 5, 30)], [], config, campaigns)
     const grouped = groupByClient(charges, campaigns)
     expect([...grouped.keys()].sort()).toEqual(['c1', 'c2'])
+  })
+})
+
+describe('chargesFor', () => {
+  const row = { campaign_id: 'c', gross_cost: 0.57 } as BlockCharge
+
+  it('posts exempt accounts at zero but keeps the play', () => {
+    const [free] = chargesFor([row], true)
+    expect(free.gross_cost).toBe(0)
+    expect(free.campaign_id).toBe('c')
+    expect(row.gross_cost).toBe(0.57)
+  })
+
+  it('leaves paying accounts untouched', () => {
+    expect(chargesFor([row], false)).toEqual([row])
   })
 })

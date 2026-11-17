@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { readAllRows } from '@/lib/supabase/read'
 import { useTranslations } from '@/lib/i18n'
 import { AlertTriangle, Receipt, WalletCards, Wallet } from 'lucide-react'
+import TestBalanceBox from '@/components/app/TestBalanceBox'
 
 /** One hour of one campaign on one taxi; ten-minute blocks fold into it. */
 interface HourCharge {
@@ -48,6 +49,8 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  // Admins on an internal (never charged) account get a box to set a test balance.
+  const [testClientId, setTestClientId] = useState<string | null>(null)
   const { t } = useTranslations()
   const p = t.portal.billing
   const c = t.portal.common
@@ -62,7 +65,7 @@ export default function BillingPage() {
 
         const { data: client, error: clientError } = await supabase
           .from('clients')
-          .select('id, balance')
+          .select('id, balance, is_admin, billing_exempt')
           .eq('auth_user_id', user.id)
           .single()
 
@@ -104,6 +107,7 @@ export default function BillingPage() {
 
         if (!active) return
         setBalance(amount)
+        setTestClientId(client.is_admin && client.billing_exempt ? client.id : null)
         setAvgDailySpend(null)
         if (!hourly.error) {
           setCharges((hourly.data || []).map((h) => ({
@@ -245,6 +249,23 @@ export default function BillingPage() {
       </div>
 
       <p className="field-hint" style={{ marginTop: 12 }}>{p.balanceHint}</p>
+
+      {testClientId && (
+        <div className="portal-panel test-balance-panel">
+          <TestBalanceBox
+            clientId={testClientId}
+            labels={{
+              title: p.testBalance,
+              hint: p.testBalanceHint,
+              amount: p.testBalanceAmount,
+              set: p.testBalanceSet,
+              done: p.testBalanceDone,
+              failed: p.testBalanceFailed,
+            }}
+            onSaved={(value) => { setBalance(value); setAttempt(n => n + 1) }}
+          />
+        </div>
+      )}
 
       <div className="portal-section">
         <h2>{p.recentCharges}</h2>

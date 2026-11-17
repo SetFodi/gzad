@@ -13,6 +13,7 @@ import {
   type PricingConfig,
 } from '@/lib/billing'
 import {
+  chargesFor,
   groupByClient,
   priceBlocks,
   type BlockCharge,
@@ -152,7 +153,13 @@ async function loadContext(supabase: SupabaseClient) {
   if (campaignError) throw new Error(`campaigns read failed: ${campaignError.message}`)
   const campaigns = new Map<string, CampaignRow>((campaignRows || []).map((c) => [c.id, c as CampaignRow]))
 
-  return { config, settings, campaigns }
+  // Internal and test accounts are recorded at ₾0 and never paused for balance.
+  // Before the column exists every account is billed as usual.
+  const { data: exemptRows, error: exemptError } = await supabase.from('clients').select('id').eq('billing_exempt', true)
+  if (exemptError && exemptError.code !== '42703') throw new Error(`clients read failed: ${exemptError.message}`)
+  const exempt = new Set((exemptRows || []).map((r) => r.id as string))
+
+  return { config, settings, campaigns, exempt }
 }
 
 /** Refuses a switch-over that would start inside airtime already billed by the hour. */
@@ -199,13 +206,13 @@ async function completeExpiredCampaigns(supabase: SupabaseClient, today: string)
 }
 
 /** First run of a Tbilisi day: campaigns paused by their daily cap go back on air. */
-async function resumeCappedCampaigns(supabase: SupabaseClient, today: string): Promise<StatusChange> {
+async function resumeCappedCampaigns(supabase: SupabaseClient, today: string, exempt: Set<string>): Promise<StatusChange> {
   const last = await readState<{ date?: string }>(supabase, 'cap_resume_date')
   if (last?.date === today) return { groups: [], names: [] }
 
   const { data: capped, error } = await supabase
     .from('campaigns')
-    .select('id, name, device_group_id, clients(balance)')
+    .select('id, name, client_id, device_group_id, clients(balance)')
     .eq('status', 'paused_cap')
   if (error) throw new Error(`Reading capped campaigns failed: ${error.message}`)
 
@@ -213,7 +220,7 @@ async function resumeCappedCampaigns(supabase: SupabaseClient, today: string): P
   const names: string[] = []
   for (const c of capped || []) {
     const client = (Array.isArray(c.clients) ? c.clients[0] : c.clients) as { balance?: number } | null
-    const status = (client?.balance ?? 0) > 0 ? 'active' : 'paused_billing'
+    const status = exempt.has(c.client_id) || (client?.balance ?? 0) > 0 ? 'active' : 'paused_billing'
     const { error: updateError } = await supabase
       .from('campaigns')
       .update({ status })
@@ -376,12 +383,12 @@ async function run() {
   const today = tbilisiDate(now)
   const meteredFrom = parseMeteredFrom(process.env.BILLING_METERED_FROM)
 
-  const { config, settings, campaigns } = await loadContext(supabase)
+  const { config, settings, campaigns, exempt } = await loadContext(supabase)
   await checkMeteredFrom(supabase, meteredFrom)
 
   const groupsToSync = new Set<string>()
   const completed = await completeExpiredCampaigns(supabase, today)
-  const resumed = await resumeCappedCampaigns(supabase, today)
+  const resumed = await resumeCappedCampaigns(supabase, today, exempt)
   for (const g of [...completed.groups, ...resumed.groups]) groupsToSync.add(g)
 
   // Late uploads: anything received since the last fully successful run.
@@ -405,7 +412,9 @@ async function run() {
     lateBlocks += priced.lateBlocks
     suspectDeviceBlocks += priced.suspectDeviceBlocks
 
-    for (const [clientId, charges] of groupByClient(priced.charges, campaigns)) {
+    for (const [clientId, rows] of groupByClient(priced.charges, campaigns)) {
+      const free = exempt.has(clientId)
+      const charges = chargesFor(rows, free)
       const { data, error } = await supabase.rpc('post_billing_blocks', {
         p_client_id: clientId,
         p_rows: charges,
@@ -423,7 +432,7 @@ async function run() {
         const prev = chargedByClient.get(clientId)?.charged ?? 0
         chargedByClient.set(clientId, { charged: money(prev + Number(result.charged)), balance: Number(result.balance) })
       }
-      if (Number(result.balance) <= 0) depleted.add(clientId)
+      if (Number(result.balance) <= 0 && !free) depleted.add(clientId)
       for (const campaignId of result.capped || []) {
         capped.push({ campaignId, clientId })
         const group = campaigns.get(campaignId)?.device_group_id

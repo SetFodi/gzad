@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { ArrowLeft, Minus, Plus } from 'lucide-react'
 import Link from 'next/link'
 import StatusBadge from '@/components/app/StatusBadge'
+import TestBalanceBox from '@/components/app/TestBalanceBox'
 import { useAdminText } from '@/lib/admin-i18n'
 
 interface ClientDetail {
@@ -16,6 +17,7 @@ interface ClientDetail {
   phone: string
   created_at: string
   balance: number | null
+  billing_exempt?: boolean
 }
 
 interface Campaign {
@@ -59,6 +61,7 @@ export default function AdminClientDetailPage() {
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  const [savingExempt, setSavingExempt] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -133,6 +136,34 @@ export default function AdminClientDetailPage() {
       setMessage({ ok: false, text: t('Could not reach the server') })
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function setExempt(exempt: boolean) {
+    if (!client) return
+    setSavingExempt(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/billing-exempt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, exempt }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        setMessage({ ok: false, text: result.error || t('Could not change billing for this account') })
+        return
+      }
+      setClient({ ...client, billing_exempt: exempt })
+      const resumed = result.reactivated
+        ? ' ' + t('{n} campaign(s) resumed on {devices} device(s).', { n: result.reactivated, devices: result.devicesSynced })
+        : ''
+      setMessage({ ok: true, text: (exempt ? t('This account is no longer charged.') : t('This account is charged again.')) + resumed })
+      void load()
+    } catch {
+      setMessage({ ok: false, text: t('Could not reach the server') })
+    } finally {
+      setSavingExempt(false)
     }
   }
 
@@ -213,6 +244,32 @@ export default function AdminClientDetailPage() {
             <p className="balance-card-note" role="status" style={{ color: message.ok ? 'var(--portal-success)' : 'var(--portal-danger)' }}>
               {message.text}
             </p>
+          )}
+          <label className="exempt-toggle">
+            <input
+              type="checkbox"
+              checked={!!client.billing_exempt}
+              disabled={savingExempt}
+              onChange={(e) => void setExempt(e.target.checked)}
+            />
+            <span>
+              <strong>{t('Internal account, never charged')}</strong>
+              <small>{t('For staff and test accounts. Ads play and plays are recorded at ₾0, so the balance never runs out.')}</small>
+            </span>
+          </label>
+          {client.billing_exempt && (
+            <TestBalanceBox
+              clientId={client.id}
+              labels={{
+                title: t('Test balance'),
+                hint: t('Sets the balance to exactly this amount. It stays there, because this account is never charged.'),
+                amount: t('Test balance in lari'),
+                set: t('Set balance'),
+                done: t('Balance set to {amount}.'),
+                failed: t('Could not set the test balance'),
+              }}
+              onSaved={() => void load()}
+            />
           )}
         </section>
 

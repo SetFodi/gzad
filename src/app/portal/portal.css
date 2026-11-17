@@ -1216,6 +1216,95 @@ dialog.admin-modal::backdrop {
     line-height: 1.45;
 }
 
+/* Internal (billing-exempt) account switch under the balance form. */
+.exempt-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--portal-hairline);
+    cursor: pointer;
+}
+
+.exempt-toggle input {
+    width: 18px;
+    height: 18px;
+    margin: 2px 0 0;
+    flex: none;
+    accent-color: var(--portal-primary);
+}
+
+.exempt-toggle span {
+    display: grid;
+    gap: 2px;
+    font-size: 14px;
+    color: var(--portal-text);
+}
+
+.exempt-toggle small {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--portal-muted);
+}
+
+.test-balance {
+    display: grid;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--portal-hairline);
+}
+
+.test-balance-text {
+    display: grid;
+    gap: 2px;
+    font-size: 14px;
+    color: var(--portal-text);
+}
+
+.test-balance-text small {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--portal-muted);
+}
+
+.test-balance-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.test-balance-row > span {
+    font-size: 15px;
+    color: var(--portal-muted);
+}
+
+.test-balance-row input {
+    width: 120px;
+    min-width: 0;
+}
+
+.test-balance-note {
+    margin: 0;
+    font-size: 13px;
+    color: var(--portal-danger);
+}
+
+.test-balance-note[data-ok='true'] {
+    color: var(--portal-success);
+}
+
+.test-balance-panel {
+    margin-top: 16px;
+}
+
+.test-balance-panel .test-balance {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+
 .balance-card[data-tone='danger'] .balance-card-value,
 .balance-card[data-tone='danger'] .balance-card-note {
     color: var(--portal-danger);

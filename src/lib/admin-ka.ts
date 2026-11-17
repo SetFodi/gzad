@@ -721,5 +721,18 @@ export const KA: Record<string, string> = {
   '{n} fleets': '{n} ავტოპარკი',
   'No fleets have signed up yet.': 'ავტოპარკები ჯერ არ დარეგისტრირებულან.',
   'Fleets sign up at': 'ავტოპარკები რეგისტრირდებიან მისამართზე',
+  // ── Billing-exempt accounts
+  'Internal account, never charged': 'შიდა ანგარიში, არ ირიცხება',
+  'For staff and test accounts. Ads play and plays are recorded at ₾0, so the balance never runs out.': 'თანამშრომლებისა და სატესტო ანგარიშებისთვის. რეკლამა გადის, ჩვენებები აღირიცხება ₾0-ად, ამიტომ ბალანსი არასდროს იწურება.',
+  'This account is no longer charged.': 'ამ ანგარიშს აღარ ერიცხება თანხა.',
+  'This account is charged again.': 'ამ ანგარიშს თანხა ისევ ერიცხება.',
+  'Could not change billing for this account': 'ამ ანგარიშის ბილინგი ვერ შეიცვალა',
+  'Not charged': 'არ ირიცხება',
+  'Test balance': 'სატესტო ბალანსი',
+  'Sets the balance to exactly this amount. It stays there, because this account is never charged.': 'ბალანსს ზუსტად ამ თანხაზე აყენებს. ის ასე დარჩება, რადგან ამ ანგარიშს თანხა არ ერიცხება.',
+  'Test balance in lari': 'სატესტო ბალანსი ლარში',
+  'Set balance': 'ბალანსის დაყენება',
+  'Balance set to {amount}.': 'ბალანსი დაყენდა: {amount}.',
+  'Could not set the test balance': 'სატესტო ბალანსი ვერ დაყენდა',
   // END
 }

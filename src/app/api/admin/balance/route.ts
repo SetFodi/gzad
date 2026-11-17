@@ -2,11 +2,15 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { adjustBalance } from '@/lib/balance'
-import { syncGroupDevices } from '@/lib/device-sync'
+import { resumeBillingPaused } from '@/lib/campaign-resume'
 
 // Credits and debits to client balance. This is the only write path for
 // clients.balance — the browser must never update it directly, so that every
 // movement lands in the ledger with an author attached.
+//
+// `setTo` sets an exact test balance instead of adding to it. It only works on
+// internal accounts (billing_exempt), which billing never charges, so the
+// amount stays put while staff test.
 
 const MAX_ADJUSTMENT = 100_000
 
@@ -24,18 +28,27 @@ export async function POST(request: NextRequest) {
 
   if (!admin?.is_admin) return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
 
-  const { clientId, amount, note } = await request.json()
+  const { clientId, amount, note, setTo } = await request.json().catch(() => ({}))
 
   if (!clientId || typeof clientId !== 'string') {
     return NextResponse.json({ error: 'clientId required' }, { status: 400 })
   }
 
-  const value = Number(amount)
-  if (!Number.isFinite(value) || value === 0) {
-    return NextResponse.json({ error: 'amount must be a non-zero number' }, { status: 400 })
+  const testBalance = setTo === undefined || setTo === null ? null : Number(setTo)
+  if (testBalance !== null) {
+    if (!Number.isFinite(testBalance) || testBalance < 0 || testBalance > MAX_ADJUSTMENT) {
+      return NextResponse.json({ error: `setTo must be between 0 and ${MAX_ADJUSTMENT} GEL` }, { status: 400 })
+    }
   }
-  if (Math.abs(value) > MAX_ADJUSTMENT) {
-    return NextResponse.json({ error: `amount must be within ±${MAX_ADJUSTMENT} GEL` }, { status: 400 })
+
+  const value = Number(amount)
+  if (testBalance === null) {
+    if (!Number.isFinite(value) || value === 0) {
+      return NextResponse.json({ error: 'amount must be a non-zero number' }, { status: 400 })
+    }
+    if (Math.abs(value) > MAX_ADJUSTMENT) {
+      return NextResponse.json({ error: `amount must be within ±${MAX_ADJUSTMENT} GEL` }, { status: 400 })
+    }
   }
 
   const service = createServiceClient(
@@ -45,22 +58,37 @@ export async function POST(request: NextRequest) {
 
   const { data: target } = await service
     .from('clients')
-    .select('id')
+    .select(testBalance === null ? 'id, balance' : 'id, balance, billing_exempt')
     .eq('id', clientId)
-    .maybeSingle()
+    .maybeSingle<{ id: string; balance: number | null; billing_exempt?: boolean }>()
 
   if (!target) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+  if (testBalance !== null && !target.billing_exempt) {
+    return NextResponse.json(
+      { error: 'A test balance can only be set on an internal account. Mark it "never charged" first.' },
+      { status: 400 },
+    )
+  }
 
-  let balance: number
+  const cleanNote = typeof note === 'string' && note.trim() ? note.trim().slice(0, 500) : null
+  // Internal accounts are charged ₾0, so nothing moves the balance between
+  // this read and the adjustment below.
+  const change = testBalance === null
+    ? Math.round(value * 100) / 100
+    : Math.round((testBalance - Number(target.balance ?? 0)) * 100) / 100
+
+  let balance = Number(target.balance ?? 0)
   try {
-    const result = await adjustBalance(service, {
-      clientId,
-      amount: Math.round(value * 100) / 100,
-      type: value > 0 ? 'topup' : 'adjustment',
-      note: typeof note === 'string' && note.trim() ? note.trim().slice(0, 500) : null,
-      actorId: admin.id,
-    })
-    balance = result.balance
+    if (change !== 0) {
+      const result = await adjustBalance(service, {
+        clientId,
+        amount: change,
+        type: testBalance === null && change > 0 ? 'topup' : 'adjustment',
+        note: cleanNote ?? (testBalance === null ? null : `Test balance set to ₾${testBalance.toFixed(2)}`),
+        actorId: admin.id,
+      })
+      balance = result.balance
+    }
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Balance update failed' },
@@ -74,23 +102,10 @@ export async function POST(request: NextRequest) {
   let devicesSynced = 0
 
   if (balance > 0) {
-    const { data: resumed } = await service
-      .from('campaigns')
-      .update({ status: 'active' })
-      .eq('client_id', clientId)
-      .eq('status', 'paused_billing')
-      .select('device_group_id')
-
-    reactivated = (resumed || []).length
-    const groups = new Set((resumed || []).map(c => c.device_group_id).filter(Boolean) as string[])
-
-    for (const groupId of groups) {
-      try {
-        const result = await syncGroupDevices(service, groupId)
-        devicesSynced += result.synced
-      } catch (err) {
-        console.error(`Resync of group ${groupId} failed:`, err instanceof Error ? err.message : err)
-      }
+    try {
+      ({ reactivated, devicesSynced } = await resumeBillingPaused(service, clientId))
+    } catch (err) {
+      console.error('Resuming campaigns after top-up failed:', err instanceof Error ? err.message : err)
     }
   }
 

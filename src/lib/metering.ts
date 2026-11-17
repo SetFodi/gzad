@@ -164,6 +164,14 @@ export function priceBlocks(
   return { charges, blockCount: blocks.size, lateBlocks, suspectDeviceBlocks }
 }
 
+/**
+ * The rows billing posts for one client. A billing-exempt (internal or test)
+ * account still gets its plays recorded, but at ₾0, so its balance never moves.
+ */
+export function chargesFor(rows: BlockCharge[], exempt: boolean): BlockCharge[] {
+  return exempt ? rows.map((r) => ({ ...r, gross_cost: 0 })) : rows
+}
+
 /** Charges grouped by the client that owns each campaign. */
 export function groupByClient(
   charges: BlockCharge[],

@@ -16,6 +16,7 @@ interface Client {
   created_at: string
   balance: number | null
   is_admin?: boolean
+  billing_exempt?: boolean
   role?: string
   campaign_count?: number
   active_count?: number
@@ -207,6 +208,9 @@ export default function AdminClientsPage() {
                             <span className="portal-chip" title={c.is_admin ? t('Staff account that owns campaigns') : t('Fleet account that owns campaigns')}>
                               {c.is_admin ? t('Staff') : t('Fleet')}
                             </span>
+                          )}
+                          {c.billing_exempt && (
+                            <span className="portal-chip" title={t('Internal account, never charged')}>{t('Not charged')}</span>
                           )}
                         </span>
                         <span className="cell-sub">{c.contact_name}</span>
