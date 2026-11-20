@@ -687,6 +687,11 @@ wss.on('connection', (ws) => {
         ...(offlineSeconds !== null ? { offline_seconds: offlineSeconds } : {}),
       })
     }
+    if (ws.restartedBeforeRegister) {
+      ws.restartedBeforeRegister = false
+      console.log(`[${new Date().toISOString()}] Device restarted: ${cardId}`)
+      postDeviceEvent(cardId, 'restarted')
+    }
 
     // Auto-configure callbacks on every connection, then make sure the screen
     // plays today's playlist: anything paused or ended while it was offline
@@ -749,6 +754,12 @@ wss.on('connection', (ws) => {
 
     // Controller restart notification
     if (data._type === 'restart') {
+      // A booting screen can say so while its registry check is still running,
+      // before we know who it is; record it once it is admitted.
+      if (!cardId) {
+        ws.restartedBeforeRegister = true
+        return
+      }
       console.log(`[${new Date().toISOString()}] Device restarted: ${cardId}`)
       postDeviceEvent(cardId, 'restarted')
       return
