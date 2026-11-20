@@ -1,7 +1,10 @@
-// Controllers stamp every play with their own clock. After a power cut, a board
-// whose clock battery isn't working starts on a fixed default date (seen:
-// 3 Jul 2026 14:35) until the internet sets the time, so the first play or two
-// carry an impossible date and land on the wrong day in client reports.
+// Controllers stamp every play with their own clock. Right after power-on the
+// player starts before the board has loaded its clock, so the first play or two
+// carry a default date (seen: 3 Jul 2026 14:35) and would land on the wrong day
+// in client reports. This happens with a working clock battery too: on 20 Nov
+// y08-s26-60756 kept the right time through a power cut with no internet, yet
+// still did it. A board with no battery and no internet stays on that date for
+// longer, which is what the clock warning looks for.
 //
 // Such plays are moved to when they really happened, as near as we can tell:
 // they were played at boot, shortly before the upload, so the last of them is

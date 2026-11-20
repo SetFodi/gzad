@@ -405,11 +405,11 @@ export default function DevicesPage() {
     })
     if (d.clock && !d.clock.resolved) list.push({
       key: 'clock', severity: 'warning', title: t('Clock wrong'),
-      text: t('{n} plays dated {stamp}. Check the CR2032 battery; 30+ min off confirms the fix.', { n: d.clock.badPlays, stamp: stamp(d.clock.lastBadStamp) }),
+      text: t('{n} plays in a row dated {stamp}: no working clock battery and no internet time. Check the CR2032 battery and NTP.', { n: d.clock.badPlays, stamp: stamp(d.clock.lastBadStamp) }),
     })
     if (d.clock?.resolved) list.push({
       key: 'clock', severity: 'ok', title: t('Clock fixed'),
-      text: t('Kept the right time after {minutes} min off ({when}).', { minutes: Math.round((d.clock.lastRestartOfflineSeconds ?? 0) / 60), when: when(d.clock.lastRestartAt) ?? '—' }),
+      text: t('No wrong dates since it came back on {when} after {minutes} min off.', { minutes: Math.round((d.clock.lastRestartOfflineSeconds ?? 0) / 60), when: when(d.clock.lastRestartAt) ?? '—' }),
     })
     return list
   }

@@ -296,9 +296,9 @@ export const KA: Record<string, string> = {
   'Not in a group': 'ჯგუფში არ არის',
   'It shows no ads. Add it on the Groups page.': 'რეკლამა არ ჩაირთვება. დაამატეთ ჯგუფში, „ჯგუფები“ გვერდზე.',
   'Clock wrong': 'საათი არასწორია',
-  '{n} plays dated {stamp}. Check the CR2032 battery; 30+ min off confirms the fix.': '{n} ჩვენება თარიღით {stamp}. შეამოწმეთ CR2032 ელემენტი; 30+ წუთით გამორთვა დაადასტურებს.',
+  '{n} plays in a row dated {stamp}: no working clock battery and no internet time. Check the CR2032 battery and NTP.': 'ზედიზედ {n} ჩვენება თარიღით {stamp}: არც საათის ელემენტი მუშაობს და არც ინტერნეტიდან იღებს დროს. შეამოწმეთ CR2032 ელემენტი და NTP.',
   'Clock fixed': 'საათი გასწორდა',
-  'Kept the right time after {minutes} min off ({when}).': '{minutes} წუთით გამორთვის შემდეგ სწორი დრო შეინარჩუნა ({when}).',
+  'No wrong dates since it came back on {when} after {minutes} min off.': '{minutes} წუთით გამორთვის შემდეგ, {when}-დან, არასწორი თარიღი აღარ ყოფილა.',
   // Add screen (device managers)
   'Add screen': 'ეკრანის დამატება',
   'Add a screen': 'ეკრანის დამატება',
