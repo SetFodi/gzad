@@ -66,8 +66,16 @@ export default function DevicesPage() {
   const [actionResult, setActionResult] = useState<{ ok: boolean; msg: string; data?: string } | null>(null)
   const [brightness, setBrightness] = useState(100)
   const [volume, setVolume] = useState(8)
-  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
-  const [playingInfo, setPlayingInfo] = useState<string | null>(null)
+  // Per screen: a screenshot or "now playing" belongs only under the card it was taken from.
+  const [screenshots, setScreenshots] = useState<Record<string, string>>({})
+  const [playing, setPlaying] = useState<Record<string, string>>({})
+  const forScreen = (set: typeof setPlaying, cardId: string, value: string | null) =>
+    set(prev => {
+      const next = { ...prev }
+      if (value === null) delete next[cardId]
+      else next[cardId] = value
+      return next
+    })
   const [schedBrightness, setSchedBrightness] = useState({ time: '08:00', value: 100 })
   const [deviceHealth, setDeviceHealth] = useState<Record<string, DeviceHealth>>({})
   const [healthLoading, setHealthLoading] = useState(false)
@@ -220,7 +228,7 @@ export default function DevicesPage() {
 
   const takeScreenshot = async (cardId: string) => {
     setActionLoading(`${cardId}-screenshot`)
-    setScreenshotUrl(null)
+    forScreen(setScreenshots, cardId, null)
     setActionResult(null)
     try {
       const res = await fetch('/api/devices/command', {
@@ -236,7 +244,7 @@ export default function DevicesPage() {
 
         if (imgData) {
           const cleanBase64 = imgData.replace(/\n/g, '')
-          setScreenshotUrl(`data:image/png;base64,${cleanBase64}`)
+          forScreen(setScreenshots, cardId, `data:image/png;base64,${cleanBase64}`)
           setActionResult({ ok: true, msg: t('Screenshot captured') })
         } else {
           setActionResult({ ok: false, msg: t('Screenshot: no image data'), data: JSON.stringify(data, null, 2) })
@@ -253,7 +261,7 @@ export default function DevicesPage() {
 
   const checkPlaying = async (cardId: string) => {
     setActionLoading(`${cardId}-get-playing`)
-    setPlayingInfo(null)
+    forScreen(setPlaying, cardId, null)
     try {
       const res = await fetch('/api/devices/command', {
         method: 'POST',
@@ -263,12 +271,12 @@ export default function DevicesPage() {
       const data = await res.json()
       if (res.ok) {
         const name = data.name || data.result?.name || data.programName
-        setPlayingInfo(name || JSON.stringify(data))
+        forScreen(setPlaying, cardId, name || JSON.stringify(data))
       } else {
-        setPlayingInfo(data.error || t('No program playing'))
+        forScreen(setPlaying, cardId, data.error || t('No program playing'))
       }
     } catch {
-      setPlayingInfo(t('Failed to connect'))
+      forScreen(setPlaying, cardId, t('Failed to connect'))
     } finally {
       setActionLoading(null)
     }
@@ -656,16 +664,16 @@ export default function DevicesPage() {
                       </div>
                     </div>
 
-                    {playingInfo && (
+                    {playing[d.cardId] && (
                       <div className="portal-alert" style={{ margin: 0 }}>
-                        <strong>{t('Now playing')}:</strong> {playingInfo}
+                        <strong>{t('Now playing')}:</strong> {playing[d.cardId]}
                       </div>
                     )}
 
-                    {screenshotUrl && (
+                    {screenshots[d.cardId] && (
                       <figure className="device-screenshot">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={screenshotUrl} alt={t('What the screen is showing')} />
+                        <img src={screenshots[d.cardId]} alt={t('What the screen is showing')} />
                         <figcaption className="cell-sub">{t('Live screenshot')}</figcaption>
                       </figure>
                     )}
