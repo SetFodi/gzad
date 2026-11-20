@@ -38,6 +38,12 @@ module.exports = {
   // from it: one late answer from a busy screen on mobile data is normal.
   heartbeatMisses: parseInt(process.env.HEARTBEAT_MISSES) || 3,
 
+  // A connection that has never answered a ping is dropped after this much
+  // silence (no pong, no message). A screen that loses power right after
+  // connecting never answers one, and would otherwise show online until TCP
+  // gives up, which can take 15 minutes or more.
+  unansweredGraceMs: parseInt(process.env.UNANSWERED_GRACE_MS) || 5 * 60 * 1000,
+
   // How often every connected screen is told again where to report its plays,
   // in case it lost the setting.
   setupRefreshMs: parseInt(process.env.SETUP_REFRESH_MS) || 15 * 60 * 1000,

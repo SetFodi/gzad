@@ -831,8 +831,11 @@ wss.on('connection', (ws) => {
 // Ping all connected devices to keep connections alive, and drop the ones that
 // went silent. A screen that loses power or signal never closes its socket, and
 // TCP can take many minutes to notice; until then it would show as online.
-// Only screens that have answered a ping before are dropped, so a controller
-// that doesn't answer pings at all is left alone.
+// A connection that has never answered a ping gets the longer unansweredGraceMs,
+// so a controller that doesn't answer pings isn't cut every few intervals, yet
+// a screen that died right after connecting doesn't stay online for ages
+// (y08-s26-60756 on 21 Nov: switched off seconds after reconnecting, still
+// shown online 10 minutes later).
 //
 // One late answer is not enough: a screen busy loading a playlist, on a weak
 // mobile link, can take longer than an interval to reply. Dropping it then made
@@ -844,7 +847,8 @@ setInterval(() => {
   for (const [cardId, d] of Object.entries(devices)) {
     const ws = d.ws
     if (!ws || ws.readyState !== 1) continue
-    if (ws.answersPings && Date.now() - ws.lastHeard > silentLimit) {
+    const limit = ws.answersPings ? silentLimit : config.unansweredGraceMs
+    if (Date.now() - ws.lastHeard > limit) {
       console.log(`[${new Date().toISOString()}] Silent for ${Math.round((Date.now() - ws.lastHeard) / 1000)} s, dropping: ${cardId}`)
       ws.terminate()
       continue
