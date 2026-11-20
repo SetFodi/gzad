@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { authenticateCallback } from '@/lib/callback-auth'
+import { correctPlayTimes } from '@/lib/play-times'
 
 const TZ = 'Asia/Tbilisi'
 function toTbilisiDate(iso: string): string {
@@ -22,6 +23,7 @@ function getSupabase() {
 
 export async function POST(request: NextRequest) {
   const supabase = getSupabase()
+  const receivedMs = Date.now()
   try {
     const auth = await authenticateCallback(supabase, request)
     if (!auth.ok) {
@@ -119,18 +121,64 @@ export async function POST(request: NextRequest) {
         program_id: ((log.pid as string) || '').slice(0, 255) || null,
         play_type: ((log.type as string) || 'program').slice(0, 50),
         began_at: beginAt ? new Date(beginAt).toISOString() : new Date().toISOString(),
+        // The controller's own stamp, kept only when began_at had to be corrected.
+        reported_began_at: null as string | null,
         duration_seconds: duration,
         lat,
         lng,
       }
     })
 
+    // A controller that booted without the time (clock battery not working)
+    // stamps its first plays with a default date. Move those to when they
+    // really happened so they count on the right day; keep the original stamp
+    // for the clock warning.
+    const corrections = correctPlayTimes(
+      rows.map((r: typeof rows[number]) => ({ beganAtMs: Date.parse(r.began_at), durationSeconds: r.duration_seconds })),
+      receivedMs,
+    )
+    rows.forEach((r: typeof rows[number], i: number) => {
+      const fixed = corrections[i]
+      if (fixed === null) return
+      r.reported_began_at = r.began_at
+      r.began_at = new Date(fixed).toISOString()
+    })
+    const correctedCount = corrections.filter(c => c !== null).length
+    if (correctedCount) console.log(`[playlog] ${deviceId}: moved ${correctedCount} play(s) off an impossible date`)
+
+    // A resent batch must not store its corrected plays twice: the dedup index
+    // sees the corrected time, which is different on every upload.
+    let toInsert = rows
+    const reported = rows.filter((r: typeof rows[number]) => r.reported_began_at).map((r: typeof rows[number]) => r.reported_began_at as string)
+    if (reported.length > 0) {
+      const { data: seen } = await supabase
+        .from('play_logs')
+        .select('program_name, reported_began_at')
+        .eq('device_id', deviceId)
+        .in('reported_began_at', reported)
+      const seenKeys = new Set((seen ?? []).map(s => `${s.program_name}|${Date.parse(s.reported_began_at)}`))
+      toInsert = rows.filter((r: typeof rows[number]) =>
+        !r.reported_began_at || !seenKeys.has(`${r.program_name}|${Date.parse(r.reported_began_at)}`))
+    }
+
     // Insert with ON CONFLICT DO NOTHING — skips duplicates via unique index
     // Supabase JS doesn't support ON CONFLICT DO NOTHING for insert,
     // so we use upsert with ignoreDuplicates
-    const { error: insertError } = await supabase
+    let { error: insertError } = await supabase
       .from('play_logs')
-      .upsert(rows, { onConflict: 'device_id,program_name,began_at', ignoreDuplicates: true })
+      .upsert(toInsert, { onConflict: 'device_id,program_name,began_at', ignoreDuplicates: true })
+
+    // A database without the reported_began_at column still gets the plays,
+    // at their corrected times.
+    if (insertError?.code === 'PGRST204') {
+      ;({ error: insertError } = await supabase
+        .from('play_logs')
+        .upsert(toInsert.map((r: typeof rows[number]) => {
+          const row: Partial<typeof r> = { ...r }
+          delete row.reported_began_at
+          return row
+        }), { onConflict: 'device_id,program_name,began_at', ignoreDuplicates: true }))
+    }
 
     if (insertError) {
       console.error('Play log insert error:', insertError)
@@ -150,7 +198,7 @@ export async function POST(request: NextRequest) {
     // Recompute play_stats for affected campaign+date combos FROM play_logs
     // This replaces (not adds to) existing stats — idempotent
     const affectedKeys = new Set<string>()
-    for (const row of rows) {
+    for (const row of toInsert) {
       if (!row.campaign_id) continue
       const date = toTbilisiDate(row.began_at)
       affectedKeys.add(`${row.campaign_id}|${date}`)
