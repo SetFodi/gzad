@@ -29,7 +29,7 @@ export async function GET() {
   // Fetch registered devices from Supabase
   const { data: registeredDevices, error: registeredError } = await supabase
     .from('devices')
-    .select('id, name, last_seen_at, last_lat, last_lng, created_at')
+    .select('id, name, group_id, last_seen_at, last_lat, last_lng, created_at')
     .order('created_at', { ascending: true })
 
   if (registeredError) {
@@ -85,6 +85,40 @@ export async function GET() {
     })
   }
 
+  // Failures from each screen's latest connection: the playlist push or the
+  // play-reporting setup. Only events since the screen last connected count,
+  // so a reconnect that goes well clears them. A failed lookup means none.
+  type SessionProblems = {
+    playlistError: { at: string; error: string } | null
+    setupError: { at: string; errors: string[] } | null
+  }
+  const problemsMap = new Map<string, SessionProblems>()
+  const { data: events } = await supabase
+    .from('system_events')
+    .select('device_id, kind, occurred_at, detail')
+    .eq('category', 'screen')
+    .in('kind', ['connected', 'setup_failed', 'playlist_pushed', 'playlist_failed', 'playlist_skipped'])
+    .gte('occurred_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+    .order('occurred_at', { ascending: false })
+    .limit(2000)
+  const sessionClosed = new Set<string>()
+  const playlistSeen = new Set<string>()
+  for (const e of events ?? []) {
+    const id = e.device_id as string | null
+    if (!id || sessionClosed.has(id)) continue
+    if (e.kind === 'connected') { sessionClosed.add(id); continue }   // newest first: older rows are past sessions
+    const entry = problemsMap.get(id) ?? { playlistError: null, setupError: null }
+    const detail = (e.detail ?? {}) as { error?: unknown; errors?: unknown }
+    if (e.kind === 'setup_failed' && !entry.setupError) {
+      entry.setupError = { at: e.occurred_at, errors: Array.isArray(detail.errors) ? detail.errors.map(String) : [] }
+    }
+    if (e.kind.startsWith('playlist_') && !playlistSeen.has(id)) {
+      playlistSeen.add(id)   // only the latest push decides
+      if (e.kind === 'playlist_failed') entry.playlistError = { at: e.occurred_at, error: String(detail.error ?? '') }
+    }
+    problemsMap.set(id, entry)
+  }
+
   // Build a lookup of live devices by cardId
   const liveMap = new Map(liveDevices.map(d => [d.cardId, d]))
 
@@ -103,6 +137,8 @@ export async function GET() {
       last_lat: reg.last_lat ?? null,
       last_lng: reg.last_lng ?? null,
       clock: clockMap.get(reg.id) ?? null,
+      grouped: reg.group_id != null,
+      problems: problemsMap.get(reg.id) ?? null,
     }
   })
 
@@ -119,6 +155,8 @@ export async function GET() {
       last_lat: null,
       last_lng: null,
       clock: clockMap.get(live.cardId) ?? null,
+      grouped: false,
+      problems: problemsMap.get(live.cardId) ?? null,
     })
 
     // Auto-register the new device in Supabase

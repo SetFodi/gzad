@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Monitor, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock, RotateCcw, HardDrive, MapPin, Search, Signal, Thermometer, Zap, Droplets, Plus, Wrench } from 'lucide-react'
+import { Monitor, RefreshCw, Sun, Power, Send, Settings, Camera, Volume2, Trash2, Play, Clock, RotateCcw, HardDrive, MapPin, Search, Signal, Thermometer, Zap, Droplets, Plus, Wrench, TriangleAlert, CircleX, CircleCheck } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import StatusBadge from '@/components/app/StatusBadge'
@@ -26,7 +26,19 @@ interface Device {
     lastRestartAt: string | null
     lastRestartOfflineSeconds: number | null
   } | null
+  /** Whether it belongs to a device group: no group, no ads. */
+  grouped?: boolean
+  /** Failures from its latest connection. */
+  problems?: {
+    playlistError: { at: string; error: string } | null
+    setupError: { at: string; errors: string[] } | null
+  } | null
 }
+
+// One problem (or piece of good news) about a screen, shown behind the sign on its card.
+type IssueSeverity = 'error' | 'warning' | 'ok'
+interface DeviceIssue { key: string; severity: IssueSeverity; title: string; text: string }
+const ISSUE_ICON = { error: CircleX, warning: TriangleAlert, ok: CircleCheck }
 
 interface PendingScreen {
   cardId: string
@@ -63,6 +75,8 @@ export default function DevicesPage() {
   // pending are controllers that tried to connect and wait to be added.
   const [manager, setManager] = useState<{ canManage: boolean; address: string | null; pending: PendingScreen[] }>({ canManage: false, address: null, pending: [] })
   const [addDialog, setAddDialog] = useState<{ setupFor: string | null; cardId?: string } | null>(null)
+  // Cards whose problem list is open.
+  const [openIssues, setOpenIssues] = useState<Record<string, boolean>>({})
 
   const loadManager = useCallback(async () => {
     try {
@@ -374,6 +388,32 @@ export default function DevicesPage() {
   const stamp = (iso: string) =>
     new Date(iso).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
+  // Errors first, then warnings, then good news; kept short, the sign opens them.
+  const issuesFor = (d: Device): DeviceIssue[] => {
+    const list: DeviceIssue[] = []
+    if (d.problems?.playlistError) list.push({
+      key: 'playlist', severity: 'error', title: t('Playlist not delivered'),
+      text: t('Failed when it last connected ({when}). Its ads may be out of date.', { when: when(d.problems.playlistError.at) ?? '—' }),
+    })
+    if (d.problems?.setupError) list.push({
+      key: 'setup', severity: 'error', title: t('Play reporting not set up'),
+      text: t('Failed when it last connected ({when}), so its plays may not be counted. Fix: Advanced → Set up callbacks.', { when: when(d.problems.setupError.at) ?? '—' }),
+    })
+    if (d.registered && d.grouped === false) list.push({
+      key: 'group', severity: 'warning', title: t('Not in a group'),
+      text: t('It shows no ads. Add it on the Groups page.'),
+    })
+    if (d.clock && !d.clock.resolved) list.push({
+      key: 'clock', severity: 'warning', title: t('Clock wrong'),
+      text: t('{n} plays dated {stamp}. Check the CR2032 battery; 30+ min off confirms the fix.', { n: d.clock.badPlays, stamp: stamp(d.clock.lastBadStamp) }),
+    })
+    if (d.clock?.resolved) list.push({
+      key: 'clock', severity: 'ok', title: t('Clock fixed'),
+      text: t('Kept the right time after {minutes} min off ({when}).', { minutes: Math.round((d.clock.lastRestartOfflineSeconds ?? 0) / 60), when: when(d.clock.lastRestartAt) ?? '—' }),
+    })
+    return list
+  }
+
   return (
     <div className="portal-page">
       <div className="portal-page-header">
@@ -472,11 +512,15 @@ export default function DevicesPage() {
               })
             }
 
+            const issues = issuesFor(d)
+            const topSeverity: IssueSeverity = issues.some(i => i.severity === 'error') ? 'error' : issues.some(i => i.severity === 'warning') ? 'warning' : 'ok'
+            const issuesOpen = !!openIssues[d.cardId]
+
             return (
               <article key={d.cardId} className="device-card" data-online={d.online || undefined}>
                 <header className="device-card-head">
                   <span className="device-presence" aria-hidden />
-                  <div className="cell-stack" style={{ flex: 1 }}>
+                  <div className="cell-stack device-card-title">
                     <h3 className="device-name">
                       <Monitor size={16} aria-hidden />
                       {named ? d.name : d.cardId}
@@ -487,11 +531,45 @@ export default function DevicesPage() {
                         : d.lastSeen ? t('Last seen {when}', { when: when(d.lastSeen) ?? '' }) : t('Never connected')}
                     </span>
                   </div>
-                  <StatusBadge status={error ? 'unknown' : d.online ? 'online' : 'offline'}>{error ? t('Unknown') : d.online ? t('Online') : t('Offline')}</StatusBadge>
-                  <Link href={`/admin/activity?device=${encodeURIComponent(d.cardId)}`} className="action-btn" title={t('Connections, playlist pushes and errors for this screen')}>
-                    {t('History')}
-                  </Link>
+                  <div className="device-card-actions">
+                    {issues.length > 0 && (() => {
+                      const Icon = ISSUE_ICON[topSeverity]
+                      return (
+                        <button
+                          type="button"
+                          className="device-issue-btn"
+                          data-severity={topSeverity}
+                          aria-expanded={issuesOpen}
+                          aria-controls={`issues-${d.cardId}`}
+                          aria-label={issues.map(i => i.title).join(', ')}
+                          title={issues.map(i => i.title).join(', ')}
+                          onClick={() => setOpenIssues(prev => ({ ...prev, [d.cardId]: !prev[d.cardId] }))}
+                        >
+                          <Icon size={15} aria-hidden />
+                          {issues.length > 1 && <span>{issues.length}</span>}
+                        </button>
+                      )
+                    })()}
+                    <StatusBadge status={error ? 'unknown' : d.online ? 'online' : 'offline'}>{error ? t('Unknown') : d.online ? t('Online') : t('Offline')}</StatusBadge>
+                    <Link href={`/admin/activity?device=${encodeURIComponent(d.cardId)}`} className="action-btn" title={t('Connections, playlist pushes and errors for this screen')}>
+                      {t('History')}
+                    </Link>
+                  </div>
                 </header>
+
+                {issuesOpen && issues.length > 0 && (
+                  <ul id={`issues-${d.cardId}`} className="device-issues">
+                    {issues.map(i => {
+                      const Icon = ISSUE_ICON[i.severity]
+                      return (
+                        <li key={i.key} className="device-issue" data-severity={i.severity}>
+                          <Icon size={15} aria-hidden />
+                          <span><strong>{i.title}.</strong> {i.text}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
 
                 {chips.length > 0 && (
                   <div className="device-chips">
@@ -500,40 +578,6 @@ export default function DevicesPage() {
                         <c.icon size={12} aria-hidden /> {c.label}
                       </span>
                     ))}
-                  </div>
-                )}
-
-                {d.clock && d.clock.resolved && (
-                  <div className="portal-alert portal-alert-success device-clock-warning" role="status">
-                    <Clock size={16} aria-hidden />
-                    <div>
-                      <strong>{t('Clock fixed')}</strong>
-                      <p>
-                        {t('It was off for {minutes} min and came back on {when} with the right time, so its clock battery works. The {n} older plays with a wrong time stay in the history for 7 days.', {
-                          minutes: Math.round((d.clock.lastRestartOfflineSeconds ?? 0) / 60),
-                          when: when(d.clock.lastRestartAt) ?? '—',
-                          n: d.clock.badPlays,
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {d.clock && !d.clock.resolved && (
-                  <div className="portal-alert portal-alert-warning device-clock-warning" role="status">
-                    <Clock size={16} aria-hidden />
-                    <div>
-                      <strong>{t('This screen’s clock is wrong')}</strong>
-                      <p>
-                        {t('It stamped {n} plays in the last 7 days with an impossible time, most recently {stamp} (received {received}). Those plays land on the wrong day in client reports.', {
-                          n: d.clock.badPlays,
-                          stamp: stamp(d.clock.lastBadStamp),
-                          received: when(d.clock.lastBadAt) ?? '—',
-                        })}
-                      </p>
-                      <p>{t('Usually its CR2032 clock battery is missing or flat. Check the battery, then in LEDOK → Time Sync set the NTP server to pool.ntp.org.')}</p>
-                      <p>{t('To confirm the fix: switch the screen off for at least 30 minutes, then on. If it comes back with the right time, this turns green.')}</p>
-                    </div>
                   </div>
                 )}
 

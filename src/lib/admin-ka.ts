@@ -288,13 +288,17 @@ export const KA: Record<string, string> = {
   'Samgori': 'სამგორი',
   'Krtsanisi': 'კრწანისი',
   // ── Devices
-  // Wrong clock (CR2032 battery)
-  'This screen’s clock is wrong': 'ამ ეკრანის საათი არასწორია',
-  'It stamped {n} plays in the last 7 days with an impossible time, most recently {stamp} (received {received}). Those plays land on the wrong day in client reports.': 'ბოლო 7 დღეში {n} ჩვენება შეუძლებელი დროით ჩაწერა, ბოლოს თარიღით {stamp} (მიღებულია {received}). ეს ჩვენებები კლიენტის ანგარიშში სხვა დღეზე ხვდება.',
-  'Usually its CR2032 clock battery is missing or flat. Check the battery, then in LEDOK → Time Sync set the NTP server to pool.ntp.org.': 'ჩვეულებრივ CR2032 ელემენტი აკლია ან დამჯდარია. შეამოწმეთ ელემენტი, შემდეგ LEDOK → Time Sync-ში NTP სერვერად ჩაწერეთ pool.ntp.org.',
-  'To confirm the fix: switch the screen off for at least 30 minutes, then on. If it comes back with the right time, this turns green.': 'შესამოწმებლად ეკრანი გამორთეთ სულ მცირე 30 წუთით და ისევ ჩართეთ. თუ სწორი დროით ჩაირთვება, ეს ბლოკი მწვანე გახდება.',
+  // Problems on a screen (sign on the device card)
+  'Playlist not delivered': 'პლეილისტი ვერ მივიდა',
+  'Failed when it last connected ({when}). Its ads may be out of date.': 'ბოლო დაკავშირებისას ({when}) ვერ გაიგზავნა. რეკლამები შეიძლება მოძველებული იყოს.',
+  'Play reporting not set up': 'ჩვენებების აღრიცხვა არ არის დაყენებული',
+  'Failed when it last connected ({when}), so its plays may not be counted. Fix: Advanced → Set up callbacks.': 'ბოლო დაკავშირებისას ({when}) ვერ დაყენდა, ამიტომ ჩვენებები შეიძლება არ აღირიცხოს. გამოსწორება: დამატებით → callback-ების დაყენება.',
+  'Not in a group': 'ჯგუფში არ არის',
+  'It shows no ads. Add it on the Groups page.': 'რეკლამა არ ჩაირთვება. დაამატეთ ჯგუფში, „ჯგუფები“ გვერდზე.',
+  'Clock wrong': 'საათი არასწორია',
+  '{n} plays dated {stamp}. Check the CR2032 battery; 30+ min off confirms the fix.': '{n} ჩვენება თარიღით {stamp}. შეამოწმეთ CR2032 ელემენტი; 30+ წუთით გამორთვა დაადასტურებს.',
   'Clock fixed': 'საათი გასწორდა',
-  'It was off for {minutes} min and came back on {when} with the right time, so its clock battery works. The {n} older plays with a wrong time stay in the history for 7 days.': 'ეკრანი {minutes} წუთით იყო გამორთული და {when}-ზე სწორი დროით ჩაირთო, ანუ ელემენტი მუშაობს. {n} ძველი ჩვენება არასწორი დროით ისტორიაში 7 დღე დარჩება.',
+  'Kept the right time after {minutes} min off ({when}).': '{minutes} წუთით გამორთვის შემდეგ სწორი დრო შეინარჩუნა ({when}).',
   // Add screen (device managers)
   'Add screen': 'ეკრანის დამატება',
   'Add a screen': 'ეკრანის დამატება',

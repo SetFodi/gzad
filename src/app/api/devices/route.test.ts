@@ -6,6 +6,14 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
+function eventsQuery(rows: unknown[] | null, error: unknown = null) {
+  const q = {
+    select: () => q, eq: () => q, in: () => q, gte: () => q, order: () => q,
+    limit: async () => ({ data: rows, error }),
+  }
+  return q
+}
+
 describe('registered device data', () => {
   function setup(error: { message: string } | null) {
     const upsert = vi.fn()
@@ -22,6 +30,7 @@ describe('registered device data', () => {
         if (table === 'device_clock_issues') {
           return { select: async () => ({ data: [], error: null }) }
         }
+        if (table === 'system_events') return eventsQuery([])
         if (!['clients', 'devices'].includes(table)) throw new Error('Unexpected table')
         return query
       },
@@ -62,6 +71,7 @@ describe('clock warnings', () => {
       auth: { getUser: async () => ({ data: { user: { id: 'admin-user' } } }) },
       from: (table: string) => {
         if (table === 'device_clock_issues') return { select: async () => clock }
+        if (table === 'system_events') return eventsQuery([])
         const query = {
           select: () => query,
           eq: () => query,
@@ -110,5 +120,79 @@ describe('clock warnings', () => {
     const { devices } = await res.json()
     expect(devices).toHaveLength(2)
     expect(devices.every((d: { clock: unknown }) => d.clock === null)).toBe(true)
+  })
+})
+
+describe('problems from the latest connection', () => {
+  const registered = [
+    { id: 'y08-s26-60759', name: 'y08-s26-60759', group_id: null, last_seen_at: null, last_lat: null, last_lng: null, created_at: '2026-11-17T01:45:23Z' },
+    { id: 'y08-s26-60755', name: 'Taxi #2', group_id: 'g-1', last_seen_at: null, last_lat: null, last_lng: null, created_at: '2026-11-14T01:11:50Z' },
+  ]
+
+  function setup(events: unknown[] | null, eventsError: unknown = null) {
+    const db = {
+      auth: { getUser: async () => ({ data: { user: { id: 'admin-user' } } }) },
+      from: (table: string) => {
+        if (table === 'device_clock_issues') return { select: async () => ({ data: [], error: null }) }
+        if (table === 'system_events') return eventsQuery(events, eventsError)
+        const query = {
+          select: () => query,
+          eq: () => query,
+          single: async () => ({ data: { is_admin: true } }),
+          order: async () => ({ data: registered, error: null }),
+          upsert: vi.fn(),
+        }
+        return query
+      },
+    }
+    vi.mocked(createClient).mockResolvedValue(db as unknown as Awaited<ReturnType<typeof createClient>>)
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json([])))
+  }
+  const byId = async () => {
+    const { devices } = await (await GET()).json()
+    return Object.fromEntries(devices.map((d: { cardId: string }) => [d.cardId, d]))
+  }
+  // Newest first, as the route asks for.
+  const ev = (device_id: string, kind: string, occurred_at: string, detail = {}) => ({ device_id, kind, occurred_at, detail })
+
+  it('reports a failed playlist push and play-reporting setup from the current connection', async () => {
+    setup([
+      ev('y08-s26-60759', 'playlist_failed', '2026-11-17T02:29:14Z', { error: 'push-program returned 500' }),
+      ev('y08-s26-60759', 'setup_failed', '2026-11-17T02:29:13Z', { errors: ['UploadPlayLogs: Command timeout'] }),
+      ev('y08-s26-60759', 'connected', '2026-11-17T02:29:06Z'),
+    ])
+    const d = await byId()
+    expect(d['y08-s26-60759'].problems).toEqual({
+      playlistError: { at: '2026-11-17T02:29:14Z', error: 'push-program returned 500' },
+      setupError: { at: '2026-11-17T02:29:13Z', errors: ['UploadPlayLogs: Command timeout'] },
+    })
+  })
+
+  it('forgets failures from before the screen reconnected, and a later good push clears a failed one', async () => {
+    setup([
+      ev('y08-s26-60759', 'playlist_pushed', '2026-11-17T02:33:37Z'),
+      ev('y08-s26-60759', 'connected', '2026-11-17T02:33:29Z'),
+      ev('y08-s26-60759', 'setup_failed', '2026-11-17T02:29:13Z', { errors: ['x'] }),
+      ev('y08-s26-60759', 'connected', '2026-11-17T02:29:06Z'),
+      ev('y08-s26-60755', 'playlist_pushed', '2026-11-17T02:21:36Z'),
+      ev('y08-s26-60755', 'playlist_failed', '2026-11-17T02:20:00Z', { error: 'timeout' }),
+    ])
+    const d = await byId()
+    expect(d['y08-s26-60759'].problems).toEqual({ playlistError: null, setupError: null })
+    expect(d['y08-s26-60755'].problems).toEqual({ playlistError: null, setupError: null })
+  })
+
+  it('says which screens are in a group', async () => {
+    setup([])
+    const d = await byId()
+    expect(d['y08-s26-60759'].grouped).toBe(false)
+    expect(d['y08-s26-60755'].grouped).toBe(true)
+  })
+
+  it('still lists every screen when the event lookup fails', async () => {
+    setup(null, { message: 'permission denied' })
+    const d = await byId()
+    expect(Object.keys(d)).toHaveLength(2)
+    expect(d['y08-s26-60759'].problems).toBeNull()
   })
 })
