@@ -61,13 +61,28 @@ export async function GET() {
   }
 
   // Screens whose clock stamped plays at impossible times (see the
-  // device_clock_issues view). A failed lookup only means no warnings.
-  const clockMap = new Map<string, { badPlays: number; lastBadAt: string; lastBadStamp: string }>()
+  // device_clock_issues view), and whether a long power cut has since proven
+  // the clock fixed. A failed lookup only means no warnings.
+  const clockMap = new Map<string, {
+    badPlays: number
+    lastBadAt: string
+    lastBadStamp: string
+    resolved: boolean
+    lastRestartAt: string | null
+    lastRestartOfflineSeconds: number | null
+  }>()
   const { data: clockIssues } = await supabase
     .from('device_clock_issues')
-    .select('device_id, bad_plays, last_bad_at, last_bad_stamp')
+    .select('device_id, bad_plays, last_bad_at, last_bad_stamp, last_restart_at, last_restart_offline_s, resolved')
   for (const row of clockIssues ?? []) {
-    clockMap.set(row.device_id, { badPlays: row.bad_plays, lastBadAt: row.last_bad_at, lastBadStamp: row.last_bad_stamp })
+    clockMap.set(row.device_id, {
+      badPlays: row.bad_plays,
+      lastBadAt: row.last_bad_at,
+      lastBadStamp: row.last_bad_stamp,
+      resolved: row.resolved === true,
+      lastRestartAt: row.last_restart_at ?? null,
+      lastRestartOfflineSeconds: row.last_restart_offline_s ?? null,
+    })
   }
 
   // Build a lookup of live devices by cardId

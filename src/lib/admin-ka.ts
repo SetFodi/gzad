@@ -291,7 +291,10 @@ export const KA: Record<string, string> = {
   // Wrong clock (CR2032 battery)
   'This screen’s clock is wrong': 'ამ ეკრანის საათი არასწორია',
   'It stamped {n} plays in the last 7 days with an impossible time, most recently {stamp} (received {received}). Those plays land on the wrong day in client reports.': 'ბოლო 7 დღეში {n} ჩვენება შეუძლებელი დროით ჩაწერა, ბოლოს თარიღით {stamp} (მიღებულია {received}). ეს ჩვენებები კლიენტის ანგარიშში სხვა დღეზე ხვდება.',
-  'Usually its CR2032 clock battery is missing or flat. Check the battery, then in LEDOK → Time Sync set the NTP server to pool.ntp.org. The warning clears 7 days after the last bad stamp.': 'ჩვეულებრივ CR2032 ელემენტი აკლია ან დამჯდარია. შეამოწმეთ ელემენტი, შემდეგ LEDOK → Time Sync-ში NTP სერვერად ჩაწერეთ pool.ntp.org. გაფრთხილება ბოლო არასწორი ჩანაწერიდან 7 დღეში გაქრება.',
+  'Usually its CR2032 clock battery is missing or flat. Check the battery, then in LEDOK → Time Sync set the NTP server to pool.ntp.org.': 'ჩვეულებრივ CR2032 ელემენტი აკლია ან დამჯდარია. შეამოწმეთ ელემენტი, შემდეგ LEDOK → Time Sync-ში NTP სერვერად ჩაწერეთ pool.ntp.org.',
+  'To confirm the fix: switch the screen off for at least 30 minutes, then on. If it comes back with the right time, this turns green.': 'შესამოწმებლად ეკრანი გამორთეთ სულ მცირე 30 წუთით და ისევ ჩართეთ. თუ სწორი დროით ჩაირთვება, ეს ბლოკი მწვანე გახდება.',
+  'Clock fixed': 'საათი გასწორდა',
+  'It was off for {minutes} min and came back on {when} with the right time, so its clock battery works. The {n} older plays with a wrong time stay in the history for 7 days.': 'ეკრანი {minutes} წუთით იყო გამორთული და {when}-ზე სწორი დროით ჩაირთო, ანუ ელემენტი მუშაობს. {n} ძველი ჩვენება არასწორი დროით ისტორიაში 7 დღე დარჩება.',
   // Add screen (device managers)
   'Add screen': 'ეკრანის დამატება',
   'Add a screen': 'ეკრანის დამატება',

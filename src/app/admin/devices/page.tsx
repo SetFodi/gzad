@@ -17,7 +17,15 @@ interface Device {
   info: Record<string, unknown>
   registered: boolean
   /** Plays this screen stamped at impossible times in the last 7 days: its clock is wrong. */
-  clock?: { badPlays: number; lastBadAt: string; lastBadStamp: string } | null
+  clock?: {
+    badPlays: number
+    lastBadAt: string
+    lastBadStamp: string
+    /** It has since booted after 30+ minutes off and kept the right time. */
+    resolved: boolean
+    lastRestartAt: string | null
+    lastRestartOfflineSeconds: number | null
+  } | null
 }
 
 interface PendingScreen {
@@ -495,7 +503,23 @@ export default function DevicesPage() {
                   </div>
                 )}
 
-                {d.clock && (
+                {d.clock && d.clock.resolved && (
+                  <div className="portal-alert portal-alert-success device-clock-warning" role="status">
+                    <Clock size={16} aria-hidden />
+                    <div>
+                      <strong>{t('Clock fixed')}</strong>
+                      <p>
+                        {t('It was off for {minutes} min and came back on {when} with the right time, so its clock battery works. The {n} older plays with a wrong time stay in the history for 7 days.', {
+                          minutes: Math.round((d.clock.lastRestartOfflineSeconds ?? 0) / 60),
+                          when: when(d.clock.lastRestartAt) ?? '—',
+                          n: d.clock.badPlays,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {d.clock && !d.clock.resolved && (
                   <div className="portal-alert portal-alert-warning device-clock-warning" role="status">
                     <Clock size={16} aria-hidden />
                     <div>
@@ -507,7 +531,8 @@ export default function DevicesPage() {
                           received: when(d.clock.lastBadAt) ?? '—',
                         })}
                       </p>
-                      <p>{t('Usually its CR2032 clock battery is missing or flat. Check the battery, then in LEDOK → Time Sync set the NTP server to pool.ntp.org. The warning clears 7 days after the last bad stamp.')}</p>
+                      <p>{t('Usually its CR2032 clock battery is missing or flat. Check the battery, then in LEDOK → Time Sync set the NTP server to pool.ntp.org.')}</p>
+                      <p>{t('To confirm the fix: switch the screen off for at least 30 minutes, then on. If it comes back with the right time, this turns green.')}</p>
                     </div>
                   </div>
                 )}

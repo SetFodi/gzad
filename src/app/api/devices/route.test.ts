@@ -83,8 +83,24 @@ describe('clock warnings', () => {
     })
     const { devices } = await (await GET()).json()
     const byId = Object.fromEntries(devices.map((d: { cardId: string }) => [d.cardId, d]))
-    expect(byId['y08-s26-60755'].clock).toEqual({ badPlays: 1, lastBadAt: '2026-11-16T21:33:00Z', lastBadStamp: '2026-07-03T10:35:33Z' })
+    expect(byId['y08-s26-60755'].clock).toEqual({
+      badPlays: 1, lastBadAt: '2026-11-16T21:33:00Z', lastBadStamp: '2026-07-03T10:35:33Z',
+      resolved: false, lastRestartAt: null, lastRestartOfflineSeconds: null,
+    })
     expect(byId['y1c-825-61009'].clock).toBeNull()
+  })
+
+  it('reports a clock proven fixed by a long power cut', async () => {
+    setup({
+      data: [{
+        device_id: 'y08-s26-60755', bad_plays: 2, last_bad_at: '2026-11-20T17:16:07Z', last_bad_stamp: '2026-07-03T10:35:33Z',
+        last_restart_at: '2026-11-20T19:05:00Z', last_restart_offline_s: 2400, resolved: true,
+      }],
+      error: null,
+    })
+    const { devices } = await (await GET()).json()
+    const clock = devices.find((d: { cardId: string }) => d.cardId === 'y08-s26-60755').clock
+    expect(clock).toMatchObject({ resolved: true, lastRestartAt: '2026-11-20T19:05:00Z', lastRestartOfflineSeconds: 2400 })
   })
 
   it('still lists every screen when the clock check fails', async () => {
