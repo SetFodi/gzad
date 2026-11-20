@@ -288,6 +288,10 @@ export const KA: Record<string, string> = {
   'Samgori': 'სამგორი',
   'Krtsanisi': 'კრწანისი',
   // ── Devices
+  // Wrong clock (CR2032 battery)
+  'This screen’s clock is wrong': 'ამ ეკრანის საათი არასწორია',
+  'It stamped {n} plays in the last 7 days with an impossible time, most recently {stamp} (received {received}). Those plays land on the wrong day in client reports.': 'ბოლო 7 დღეში {n} ჩვენება შეუძლებელი დროით ჩაწერა, ბოლოს თარიღით {stamp} (მიღებულია {received}). ეს ჩვენებები კლიენტის ანგარიშში სხვა დღეზე ხვდება.',
+  'Usually its CR2032 clock battery is missing or flat. Check the battery, then in LEDOK → Time Sync set the NTP server to pool.ntp.org. The warning clears 7 days after the last bad stamp.': 'ჩვეულებრივ CR2032 ელემენტი აკლია ან დამჯდარია. შეამოწმეთ ელემენტი, შემდეგ LEDOK → Time Sync-ში NTP სერვერად ჩაწერეთ pool.ntp.org. გაფრთხილება ბოლო არასწორი ჩანაწერიდან 7 დღეში გაქრება.',
   // Add screen (device managers)
   'Add screen': 'ეკრანის დამატება',
   'Add a screen': 'ეკრანის დამატება',

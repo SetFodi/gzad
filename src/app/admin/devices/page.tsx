@@ -16,6 +16,8 @@ interface Device {
   lastSeen: string | null
   info: Record<string, unknown>
   registered: boolean
+  /** Plays this screen stamped at impossible times in the last 7 days: its clock is wrong. */
+  clock?: { badPlays: number; lastBadAt: string; lastBadStamp: string } | null
 }
 
 interface PendingScreen {
@@ -360,6 +362,9 @@ export default function DevicesPage() {
   const busy = !!actionLoading
   const when = (iso: string | null) =>
     iso ? new Date(iso).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null
+  // A wrong clock is usually off by months or years, so show the year.
+  const stamp = (iso: string) =>
+    new Date(iso).toLocaleString(locale, { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
   return (
     <div className="portal-page">
@@ -487,6 +492,23 @@ export default function DevicesPage() {
                         <c.icon size={12} aria-hidden /> {c.label}
                       </span>
                     ))}
+                  </div>
+                )}
+
+                {d.clock && (
+                  <div className="portal-alert portal-alert-warning device-clock-warning" role="status">
+                    <Clock size={16} aria-hidden />
+                    <div>
+                      <strong>{t('This screen’s clock is wrong')}</strong>
+                      <p>
+                        {t('It stamped {n} plays in the last 7 days with an impossible time, most recently {stamp} (received {received}). Those plays land on the wrong day in client reports.', {
+                          n: d.clock.badPlays,
+                          stamp: stamp(d.clock.lastBadStamp),
+                          received: when(d.clock.lastBadAt) ?? '—',
+                        })}
+                      </p>
+                      <p>{t('Usually its CR2032 clock battery is missing or flat. Check the battery, then in LEDOK → Time Sync set the NTP server to pool.ntp.org. The warning clears 7 days after the last bad stamp.')}</p>
+                    </div>
                   </div>
                 )}
 

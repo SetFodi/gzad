@@ -60,6 +60,16 @@ export async function GET() {
     realtimeError = err instanceof Error ? err.message : 'Failed to reach Realtime Server'
   }
 
+  // Screens whose clock stamped plays at impossible times (see the
+  // device_clock_issues view). A failed lookup only means no warnings.
+  const clockMap = new Map<string, { badPlays: number; lastBadAt: string; lastBadStamp: string }>()
+  const { data: clockIssues } = await supabase
+    .from('device_clock_issues')
+    .select('device_id, bad_plays, last_bad_at, last_bad_stamp')
+  for (const row of clockIssues ?? []) {
+    clockMap.set(row.device_id, { badPlays: row.bad_plays, lastBadAt: row.last_bad_at, lastBadStamp: row.last_bad_stamp })
+  }
+
   // Build a lookup of live devices by cardId
   const liveMap = new Map(liveDevices.map(d => [d.cardId, d]))
 
@@ -77,6 +87,7 @@ export async function GET() {
       registered: true,
       last_lat: reg.last_lat ?? null,
       last_lng: reg.last_lng ?? null,
+      clock: clockMap.get(reg.id) ?? null,
     }
   })
 
@@ -92,6 +103,7 @@ export async function GET() {
       registered: false,
       last_lat: null,
       last_lng: null,
+      clock: clockMap.get(live.cardId) ?? null,
     })
 
     // Auto-register the new device in Supabase

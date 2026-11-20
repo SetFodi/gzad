@@ -2036,6 +2036,25 @@ a.stat-card-link {
     line-height: 1.5;
 }
 
+/* Screen whose clock stamps plays at impossible times */
+.device-clock-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.device-clock-warning > svg {
+    flex: none;
+    margin-top: 2px;
+}
+
+.device-clock-warning p {
+    margin: 4px 0 0;
+}
+
 .action-btn[aria-pressed='true'] {
     background: var(--portal-ink);
     color: var(--portal-on-ink);

@@ -19,6 +19,9 @@ describe('registered device data', () => {
           order: async () => ({ data: error ? null : [], error }),
           upsert,
         }
+        if (table === 'device_clock_issues') {
+          return { select: async () => ({ data: [], error: null }) }
+        }
         if (!['clients', 'devices'].includes(table)) throw new Error('Unexpected table')
         return query
       },
@@ -45,5 +48,51 @@ describe('registered device data', () => {
     expect(await response.json()).toEqual({ devices: [] })
     expect(realtime).toHaveBeenCalledOnce()
     expect(upsert).not.toHaveBeenCalled()
+  })
+})
+
+describe('clock warnings', () => {
+  const registered = [
+    { id: 'y08-s26-60755', name: 'Taxi #2', last_seen_at: null, last_lat: null, last_lng: null, created_at: '2026-11-14T01:11:50Z' },
+    { id: 'y1c-825-61009', name: 'Taxi #1', last_seen_at: null, last_lat: null, last_lng: null, created_at: '2026-02-07T09:33:51Z' },
+  ]
+
+  function setup(clock: { data: unknown; error: unknown }) {
+    const db = {
+      auth: { getUser: async () => ({ data: { user: { id: 'admin-user' } } }) },
+      from: (table: string) => {
+        if (table === 'device_clock_issues') return { select: async () => clock }
+        const query = {
+          select: () => query,
+          eq: () => query,
+          single: async () => ({ data: { is_admin: true } }),
+          order: async () => ({ data: registered, error: null }),
+          upsert: vi.fn(),
+        }
+        return query
+      },
+    }
+    vi.mocked(createClient).mockResolvedValue(db as unknown as Awaited<ReturnType<typeof createClient>>)
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json([])))
+  }
+
+  it('marks the screen whose plays carry impossible times, and only that one', async () => {
+    setup({
+      data: [{ device_id: 'y08-s26-60755', bad_plays: 1, last_bad_at: '2026-11-16T21:33:00Z', last_bad_stamp: '2026-07-03T10:35:33Z' }],
+      error: null,
+    })
+    const { devices } = await (await GET()).json()
+    const byId = Object.fromEntries(devices.map((d: { cardId: string }) => [d.cardId, d]))
+    expect(byId['y08-s26-60755'].clock).toEqual({ badPlays: 1, lastBadAt: '2026-11-16T21:33:00Z', lastBadStamp: '2026-07-03T10:35:33Z' })
+    expect(byId['y1c-825-61009'].clock).toBeNull()
+  })
+
+  it('still lists every screen when the clock check fails', async () => {
+    setup({ data: null, error: { message: 'relation "device_clock_issues" does not exist' } })
+    const res = await GET()
+    expect(res.status).toBe(200)
+    const { devices } = await res.json()
+    expect(devices).toHaveLength(2)
+    expect(devices.every((d: { clock: unknown }) => d.clock === null)).toBe(true)
   })
 })
