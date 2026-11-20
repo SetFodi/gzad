@@ -7,7 +7,7 @@ import { deviceEvent, recordEvents, type DeviceEventKind } from '@/lib/system-ev
 // authenticates with CALLBACK_SECRET, not a device key). Feeds the admin
 // Activity log; a screen's own play reports keep updating last_seen_at.
 
-const KINDS: DeviceEventKind[] = ['connected', 'disconnected', 'restarted', 'setup_failed']
+const KINDS: DeviceEventKind[] = ['connected', 'disconnected', 'restarted', 'setup_failed', 'setup_ok']
 const CARD_ID = /^[A-Za-z0-9._-]{1,64}$/
 
 function authorized(request: NextRequest): boolean {

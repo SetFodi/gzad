@@ -98,7 +98,7 @@ export function billingRunEvent(run: BillingRunSummary): SystemEvent {
   }
 }
 
-export type DeviceEventKind = 'connected' | 'disconnected' | 'restarted' | 'setup_failed'
+export type DeviceEventKind = 'connected' | 'disconnected' | 'restarted' | 'setup_failed' | 'setup_ok'
 
 /** Screen events reported by the realtime server. */
 export function deviceEvent(cardId: string, kind: DeviceEventKind, detail: Record<string, unknown> = {}): SystemEvent {
@@ -111,6 +111,7 @@ export function deviceEvent(cardId: string, kind: DeviceEventKind, detail: Recor
     ],
     restarted: [`${cardId} restarted`, 'info'],
     setup_failed: [`${cardId}: setting up play reporting failed`, 'error'],
+    setup_ok: [`${cardId}: play reporting set up after a retry`, 'success'],
   }
   const [title, severity] = titles[kind]
   return { category: 'screen', kind, severity, title, device_id: cardId, detail }

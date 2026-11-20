@@ -30,13 +30,23 @@ module.exports = {
   billingTriggerEnabled: process.env.ENABLE_BILLING_TRIGGER === 'true',
   billingIntervalMs: parseInt(process.env.BILLING_INTERVAL_MS) || 15 * 60 * 1000,
 
-  // WebSocket ping interval (ms) — keeps connections alive. A screen that misses
-  // a ping is dropped by the next one, so a dead connection shows as offline
-  // within two intervals.
+  // WebSocket ping interval (ms) — keeps connections alive. A dead connection
+  // shows as offline after heartbeatMisses intervals of silence (90 s by default).
   pingInterval: parseInt(process.env.PING_INTERVAL_MS) || 30000,
 
+  // A screen is dropped only after this many ping intervals with nothing heard
+  // from it: one late answer from a busy screen on mobile data is normal.
+  heartbeatMisses: parseInt(process.env.HEARTBEAT_MISSES) || 3,
+
+  // How often every connected screen is told again where to report its plays,
+  // in case it lost the setting.
+  setupRefreshMs: parseInt(process.env.SETUP_REFRESH_MS) || 15 * 60 * 1000,
+
+  // Waits before retrying a failed play-reporting setup on the same connection.
+  setupRetryDelaysMs: (process.env.SETUP_RETRY_DELAYS_MS || '30000,120000,300000').split(',').map(Number).filter(n => n > 0),
+
   // Command timeout (ms) — how long to wait for controller response
-  commandTimeout: 30000,
+  commandTimeout: parseInt(process.env.COMMAND_TIMEOUT_MS) || 30000,
 
   // Live view: how often a watched screen is asked what it is playing. An ad's
   // start is known to within this interval. Only screens open in the live view

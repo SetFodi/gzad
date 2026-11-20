@@ -532,19 +532,13 @@ app.post('/devices/:cardId/set-log-switch', async (req, res) => {
 // Configure play log + GPS callback URLs
 app.post('/devices/:cardId/setup-callbacks', async (req, res) => {
   const results = {}
-  const key = await fetchDeviceCallbackKey(req.params.cardId)
+  const { cardId } = req.params
+  const key = await fetchDeviceCallbackKey(cardId)
 
-  try {
-    // 1. Set play log upload URL (SDK: direct top-level command, NOT wrapped in commandXixunPlayer)
-    const playlogResult = await sendCommand(req.params.cardId, {
-      type: 'setUploadLogUrl',
-      uploadurl: callbackUrl('playlog', req.params.cardId, key),
-      interval: '5',
-    })
-    results.playlog = playlogResult
-  } catch (err) {
-    results.playlog = { error: err.message }
-  }
+  // 1. Play reporting: the same two commands as the automatic setup.
+  const failures = await runSetup(cardId)
+  noteSetupResult(cardId, devices[cardId]?.ws, failures)
+  results.playlog = failures.length === 2 ? { error: failures.join('; ') } : { ok: true, failures }
 
   try {
     // 2. Set GPS subscription (SDK: direct top-level command, NOT wrapped in commandXixunPlayer)
@@ -652,9 +646,9 @@ wss.on('connection', (ws) => {
   let cardId = null
 
   // Heartbeat: see the ping loop below.
-  ws.isAlive = true
+  ws.lastHeard = Date.now()
   ws.on('pong', () => {
-    ws.isAlive = true
+    ws.lastHeard = Date.now()
     ws.answersPings = true
   })
 
@@ -701,7 +695,7 @@ wss.on('connection', (ws) => {
   }
 
   ws.on('message', (raw) => {
-    ws.isAlive = true
+    ws.lastHeard = Date.now()
     let data
     const rawStr = raw.toString()
     try {
@@ -835,20 +829,26 @@ wss.on('connection', (ws) => {
 })
 
 // Ping all connected devices to keep connections alive, and drop the ones that
-// stopped answering. A screen that loses power or signal never closes its
-// socket, and TCP can take many minutes to notice; until then it would show as
-// online. Only screens that have answered a ping before are dropped, so a
-// controller that doesn't answer pings at all is left alone.
+// went silent. A screen that loses power or signal never closes its socket, and
+// TCP can take many minutes to notice; until then it would show as online.
+// Only screens that have answered a ping before are dropped, so a controller
+// that doesn't answer pings at all is left alone.
+//
+// One late answer is not enough: a screen busy loading a playlist, on a weak
+// mobile link, can take longer than an interval to reply. Dropping it then made
+// it reconnect, rerun setup into the same busy moment and stop reporting plays
+// (y1c-825-61009 on 20 Nov: sessions of ~60 s in a row). So a screen is dropped
+// only after heartbeatMisses intervals with nothing heard from it at all.
 setInterval(() => {
+  const silentLimit = config.pingInterval * config.heartbeatMisses
   for (const [cardId, d] of Object.entries(devices)) {
     const ws = d.ws
     if (!ws || ws.readyState !== 1) continue
-    if (ws.answersPings && !ws.isAlive) {
-      console.log(`[${new Date().toISOString()}] No answer to ping, dropping: ${cardId}`)
+    if (ws.answersPings && Date.now() - ws.lastHeard > silentLimit) {
+      console.log(`[${new Date().toISOString()}] Silent for ${Math.round((Date.now() - ws.lastHeard) / 1000)} s, dropping: ${cardId}`)
       ws.terminate()
       continue
     }
-    ws.isAlive = false
     try { ws.ping() } catch (e) {}
   }
 }, config.pingInterval)
@@ -1134,50 +1134,91 @@ function callbackUrl(kind, cardId, key) {
     + `?key=${encodeURIComponent(key)}&device=${encodeURIComponent(cardId)}`
 }
 
-async function autoSetupDevice(cardId) {
-  // Small delay to let the WebSocket fully establish
-  await new Promise(r => setTimeout(r, 1000))
+// ─── Play-reporting setup ────────────────────────────────────────────────────
+// A screen reports its plays only after it has been told where to, with two
+// commands. That can fail: the commands time out while the screen is busy
+// loading a playlist, or the connection drops half way. A screen whose setup
+// failed keeps playing but stops reporting, and its plays never reach the
+// stats. So:
+//   - a failed setup is retried while the same connection stays up,
+//   - every connected screen is told again every setupRefreshMs, in case it
+//     lost the setting without anyone noticing,
+//   - a success after a reported failure is reported too, clearing the warning.
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
+/** Sends both setup commands. Returns the failures: two means nothing is set. */
+async function runSetup(cardId, { quiet = false } = {}) {
   const key = await fetchDeviceCallbackKey(cardId)
   const playlogUrl = callbackUrl('playlog', cardId, key)
-
-  // Run all setup commands in parallel — each has its own try/catch so one failure won't block others
   const failures = []
   await Promise.allSettled([
-    // 1a. Tell XixunPlayer to upload play logs (player-level command)
+    // Player-level: tell XixunPlayer to upload play logs
     sendCommand(cardId, {
       type: 'commandXixunPlayer',
-      command: {
-        _type: 'UploadPlayLogs',
-        id: uuidv4(),
-        interval: 5, // minutes
-        url: playlogUrl,
-      },
-    }).then(() => {
-      console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) set for ${cardId}`)
-    }).catch((err) => {
-      failures.push(`UploadPlayLogs: ${err.message}`)
-      console.log(`[${new Date().toISOString()}] Auto UploadPlayLogs (player) failed for ${cardId}: ${err.message}`)
-    }),
-
-    // 1b. System-level play log URL (firmware fallback — handles setUploadLogUrl HTTP POST format)
+      command: { _type: 'UploadPlayLogs', id: uuidv4(), interval: 5, url: playlogUrl },
+    }, { quiet }).catch((err) => { failures.push(`UploadPlayLogs: ${err.message}`) }),
+    // System-level play log URL (firmware fallback, setUploadLogUrl HTTP POST format)
     sendCommand(cardId, {
       type: 'setUploadLogUrl',
       uploadurl: playlogUrl,
       interval: '5',
-    }).then(() => {
-      console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) set for ${cardId}`)
-    }).catch((err) => {
-      failures.push(`setUploadLogUrl: ${err.message}`)
-      console.log(`[${new Date().toISOString()}] Auto setUploadLogUrl (system) failed for ${cardId}: ${err.message}`)
-    }),
-
-    // GPS is captured per-ad via the play log callback (lat/lng embedded in each log entry)
+    }, { quiet }).catch((err) => { failures.push(`setUploadLogUrl: ${err.message}`) }),
   ])
-
-  // Both routes failing means this screen won't report plays (or be billed).
-  if (failures.length === 2) postDeviceEvent(cardId, 'setup_failed', { errors: failures })
+  if (!quiet || failures.length) {
+    console.log(`[${new Date().toISOString()}] Play reporting setup for ${cardId}: ${failures.length === 0 ? 'ok' : failures.join('; ')}`)
+  }
+  return failures
 }
+
+/**
+ * Records a setup outcome for this connection: the first failure, and a
+ * recovery after it. Returns whether play reporting is set.
+ */
+function noteSetupResult(cardId, ws, failures) {
+  if (!ws || devices[cardId]?.ws !== ws) return false
+  if (failures.length === 2) {
+    if (!ws.setupFailedReported) {
+      postDeviceEvent(cardId, 'setup_failed', { errors: failures })
+      ws.setupFailedReported = true
+    }
+    return false
+  }
+  if (ws.setupFailedReported) {
+    postDeviceEvent(cardId, 'setup_ok')
+    ws.setupFailedReported = false
+  }
+  return true
+}
+
+/** Retries a failed setup in the background while the same connection is up. */
+async function retrySetup(cardId, ws) {
+  for (const delay of config.setupRetryDelaysMs) {
+    await sleep(delay)
+    if (devices[cardId]?.ws !== ws || ws.readyState !== 1) return   // a new connection runs its own setup
+    if (noteSetupResult(cardId, ws, await runSetup(cardId))) return
+  }
+}
+
+async function autoSetupDevice(cardId) {
+  // Small delay to let the WebSocket fully establish
+  await sleep(1000)
+  const ws = devices[cardId]?.ws
+  if (!noteSetupResult(cardId, ws, await runSetup(cardId))) {
+    // Don't hold up the playlist sync that follows; keep trying alongside it.
+    retrySetup(cardId, ws).catch((err) => console.error(`Setup retry for ${cardId} failed: ${err.message}`))
+  }
+}
+
+// Tell every connected screen again now and then, quietly.
+setInterval(() => {
+  for (const [cardId, d] of Object.entries(devices)) {
+    const ws = d.ws
+    if (!ws || ws.readyState !== 1) continue
+    runSetup(cardId, { quiet: true })
+      .then((failures) => noteSetupResult(cardId, ws, failures))
+      .catch(() => {})
+  }
+}, config.setupRefreshMs).unref()
 
 // ─── Activity log and playlist sync ──────────────────────────────────────────
 // Reports screen events to the app's admin Activity log. Fire and forget: a

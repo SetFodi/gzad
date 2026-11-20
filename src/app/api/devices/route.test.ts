@@ -182,6 +182,20 @@ describe('problems from the latest connection', () => {
     expect(d['y08-s26-60755'].problems).toEqual({ playlistError: null, setupError: null })
   })
 
+  it('clears a failed setup once a retry on the same connection works', async () => {
+    setup([
+      ev('y08-s26-60755', 'setup_ok', '2026-11-20T19:10:11Z'),
+      ev('y08-s26-60755', 'setup_failed', '2026-11-20T19:09:41Z', { errors: ['UploadPlayLogs: Command timeout'] }),
+      ev('y08-s26-60755', 'connected', '2026-11-20T19:09:26Z'),
+      ev('y08-s26-60759', 'setup_failed', '2026-11-20T19:09:41Z', { errors: ['x'] }),
+      ev('y08-s26-60759', 'setup_ok', '2026-11-20T19:05:00Z'),
+      ev('y08-s26-60759', 'connected', '2026-11-20T19:04:00Z'),
+    ])
+    const d = await byId()
+    expect(d['y08-s26-60755'].problems.setupError).toBeNull()       // the retry worked
+    expect(d['y08-s26-60759'].problems.setupError).not.toBeNull()   // failed again after an earlier success
+  })
+
   it('says which screens are in a group', async () => {
     setup([])
     const d = await byId()

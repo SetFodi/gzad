@@ -97,20 +97,24 @@ export async function GET() {
     .from('system_events')
     .select('device_id, kind, occurred_at, detail')
     .eq('category', 'screen')
-    .in('kind', ['connected', 'setup_failed', 'playlist_pushed', 'playlist_failed', 'playlist_skipped'])
+    .in('kind', ['connected', 'setup_failed', 'setup_ok', 'playlist_pushed', 'playlist_failed', 'playlist_skipped'])
     .gte('occurred_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
     .order('occurred_at', { ascending: false })
     .limit(2000)
   const sessionClosed = new Set<string>()
   const playlistSeen = new Set<string>()
+  const setupSeen = new Set<string>()
   for (const e of events ?? []) {
     const id = e.device_id as string | null
     if (!id || sessionClosed.has(id)) continue
     if (e.kind === 'connected') { sessionClosed.add(id); continue }   // newest first: older rows are past sessions
     const entry = problemsMap.get(id) ?? { playlistError: null, setupError: null }
     const detail = (e.detail ?? {}) as { error?: unknown; errors?: unknown }
-    if (e.kind === 'setup_failed' && !entry.setupError) {
-      entry.setupError = { at: e.occurred_at, errors: Array.isArray(detail.errors) ? detail.errors.map(String) : [] }
+    if ((e.kind === 'setup_failed' || e.kind === 'setup_ok') && !setupSeen.has(id)) {
+      setupSeen.add(id)   // only the latest attempt decides: a retry that worked clears the failure
+      if (e.kind === 'setup_failed') {
+        entry.setupError = { at: e.occurred_at, errors: Array.isArray(detail.errors) ? detail.errors.map(String) : [] }
+      }
     }
     if (e.kind.startsWith('playlist_') && !playlistSeen.has(id)) {
       playlistSeen.add(id)   // only the latest push decides

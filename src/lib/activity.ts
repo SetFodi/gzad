@@ -120,6 +120,8 @@ function eventTitle(e: EventRow, t: Translate): string | null {
       return t('{id} restarted', { id })
     case 'setup_failed':
       return t('{id}: setting up play reporting failed', { id })
+    case 'setup_ok':
+      return t('{id}: play reporting set up after a retry', { id })
     case 'playlist_failed':
       return t('{id}: playlist push failed', { id })
     case 'playlist_skipped':
