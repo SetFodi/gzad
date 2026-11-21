@@ -7,6 +7,7 @@ import { Plus, X, Trash2, Search } from 'lucide-react'
 import StatusBadge from '@/components/app/StatusBadge'
 import AppDialog from '@/components/app/AppDialog'
 import { useAdminText } from '@/lib/admin-i18n'
+import { IDLE_PROGRAM_NAME, idleMediaItems } from '@/lib/idle-program'
 
 interface CampaignWithClient {
   id: string
@@ -255,10 +256,15 @@ export default function AdminCampaignsPage() {
 
       for (const device of onlineDevices) {
         if (mediaItems.length === 0) {
+          // Nothing live: the GZAD banner, not a wiped screen (that shows the factory pattern).
           await fetch('/api/devices/command', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cardId: device.cardId, action: 'clear-program' }),
+            body: JSON.stringify({
+              cardId: device.cardId, action: 'push-program',
+              name: IDLE_PROGRAM_NAME, mediaItems: idleMediaItems(),
+              schedule: { startTime: '00:00', endTime: '23:59' }, width: 240, height: 80,
+            }),
           })
         } else {
           await fetch('/api/devices/command', {

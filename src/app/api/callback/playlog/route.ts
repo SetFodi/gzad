@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { authenticateCallback } from '@/lib/callback-auth'
 import { correctPlayTimes } from '@/lib/play-times'
+import { isIdleProgramName } from '@/lib/idle-program'
 
 const TZ = 'Asia/Tbilisi'
 function toTbilisiDate(iso: string): string {
@@ -34,11 +35,14 @@ export async function POST(request: NextRequest) {
     // Device firmware (setUploadLogUrl) POSTs: { "sn": "...", "data": [...] }
     // XixunPlayer HTTP upload POSTs: raw JSON array [...]
     // Realtime-server forwarding POSTs: raw JSON array [...]
-    const logs = Array.isArray(body)
+    const entries = Array.isArray(body)
       ? body
       : Array.isArray(body?.data) ? body.data
       : Array.isArray(body?.logs) ? body.logs
       : [body]
+    // The GZAD banner a screen plays when nothing is live is not an ad: its
+    // plays are neither stored nor billed.
+    const logs = entries.filter((l: Record<string, unknown>) => !isIdleProgramName(l?.name))
 
     if (logs.length === 0) {
       return NextResponse.json({ _type: 'success', count: 0 })

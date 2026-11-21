@@ -269,7 +269,7 @@ export default function AdminCampaignDetailPage() {
       if (result.media === 0) {
         setPushResult({
           ok: false,
-          msg: t('No live campaigns with approved media in "{group}". The screens were cleared.', { group: groupName }),
+          msg: t('No live campaigns with approved media in "{group}". The screens show the GZAD banner.', { group: groupName }),
         })
         return
       }
