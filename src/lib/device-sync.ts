@@ -142,7 +142,7 @@ export interface DeviceSyncResult {
   error?: string
 }
 
-/** Re-syncs a single device with its group's current playlist (the GZAD banner when nothing is live). */
+/** Re-syncs a single device with its group's current playlist: the GZAD banner when it has none. */
 export async function syncDevicePlaylist(
   supabase: SupabaseClient,
   cardId: string,
@@ -153,12 +153,10 @@ export async function syncDevicePlaylist(
     .eq('id', cardId)
     .maybeSingle()
 
-  if (!device?.group_id) {
-    // No group — leave the device alone (it may carry a manually pushed program)
-    return { pushed: false, cleared: false, media: 0, campaigns: 0, overflow: 0, reason: 'no group assigned' }
-  }
-
-  const playlist = await buildGroupPlaylist(supabase, device.group_id)
+  // No group: nothing of ours to play, so the GZAD banner, never the factory pattern.
+  const playlist: GroupPlaylist = device?.group_id
+    ? await buildGroupPlaylist(supabase, device.group_id)
+    : { programName: '', mediaItems: [], campaignNames: [], overflow: 0 }
   const { ok, cleared, idle, error } = await pushPlaylistToDevice(cardId, playlist)
   return {
     pushed: ok && !cleared,
@@ -167,7 +165,8 @@ export async function syncDevicePlaylist(
     media: playlist.mediaItems.length,
     campaigns: playlist.campaignNames.length,
     overflow: playlist.overflow,
-    reason: playlist.mediaItems.length === 0 ? 'no live campaigns — showing the GZAD banner' : undefined,
+    reason: !device?.group_id ? 'not in a group — showing the GZAD banner'
+      : playlist.mediaItems.length === 0 ? 'no live campaigns — showing the GZAD banner' : undefined,
     error,
   }
 }

@@ -51,6 +51,20 @@ module.exports = {
   // Waits before retrying a failed play-reporting setup on the same connection.
   setupRetryDelaysMs: (process.env.SETUP_RETRY_DELAYS_MS || '30000,120000,300000').split(',').map(Number).filter(n => n > 0),
 
+  // What a screen shows when it has nothing to play: the GZAD banner, never the
+  // controller's factory pattern. The name must match IDLE_PROGRAM_NAME in the
+  // app (src/lib/idle-program.ts), which drops these plays so they're never billed.
+  idleProgramName: process.env.IDLE_PROGRAM_NAME || 'gzad-idle',
+  idleMediaUrl: process.env.IDLE_MEDIA_URL ||
+    'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-background-animated-240x80.mp4',
+
+  // The player background (what the player shows with nothing at all, e.g.
+  // right after a wipe) is set to the banner at each screen's canvas size, on
+  // every connect, after every wipe, and again this often. IDLE_BACKGROUND=off
+  // leaves backgrounds alone.
+  idleBackground: process.env.IDLE_BACKGROUND !== 'off',
+  backgroundRefreshMs: parseInt(process.env.BACKGROUND_REFRESH_MS) || 60 * 60 * 1000,
+
   // Command timeout (ms) — how long to wait for controller response
   commandTimeout: parseInt(process.env.COMMAND_TIMEOUT_MS) || 30000,
 

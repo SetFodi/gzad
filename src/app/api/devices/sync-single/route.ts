@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       : skipped
         ? `${cardId}: playlist not pushed (${result.reason ?? 'nothing to do'})`
         : result.cleared
-          ? result.idle ? `${cardId}: no live campaigns, showing the GZAD banner` : `${cardId}: screen cleared, no live campaigns`
+          ? result.idle ? `${cardId}: no ads to play, showing the GZAD banner` : `${cardId}: screen cleared, no live campaigns`
           : `${cardId}: playlist pushed, ${result.campaigns} ${result.campaigns === 1 ? 'campaign' : 'campaigns'}, ${result.media} ${result.media === 1 ? 'file' : 'files'}`,
     device_id: cardId,
     detail: { ...result },
