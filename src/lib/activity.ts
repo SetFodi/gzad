@@ -127,6 +127,7 @@ function eventTitle(e: EventRow, t: Translate): string | null {
     case 'playlist_skipped':
       return t('{id}: playlist not pushed ({reason})', { id, reason: typeof d.reason === 'string' ? d.reason : t('nothing to do') })
     case 'playlist_pushed':
+      if (d.cleared && d.idle) return t('{id}: no live campaigns, showing the GZAD banner', { id })
       if (d.cleared) return t('{id}: screen cleared, no live campaigns', { id })
       if (typeof d.campaigns !== 'number' || typeof d.media !== 'number') return null
       return t('{id}: playlist pushed, {campaigns}, {files}', {

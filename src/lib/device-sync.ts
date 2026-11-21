@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getGroupSlots, SLOTS_PER_DEVICE, type CampaignSlot } from '@/lib/slots'
 import { tbilisiToday } from '@/lib/campaigns'
+import { IDLE_PROGRAM_NAME, idleMediaItems } from '@/lib/idle-program'
 
 // Server-side only — talks to the Realtime Server with the shared secret.
 // Single source of truth for "what should this device be playing right now",
@@ -88,32 +89,41 @@ export async function buildGroupPlaylist(
   }
 }
 
-/** Pushes a playlist to one device, or clears it when the playlist is empty. */
+function postToScreen(cardId: string, action: 'push-program' | 'clear-program', body: object) {
+  return fetch(`${REALTIME_SERVER_URL}/devices/${cardId}/${action}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${REALTIME_SERVER_SECRET}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+function programBody(name: string, mediaItems: PlaylistMediaItem[]) {
+  return { name, mediaItems, schedule: { startTime: '00:00', endTime: '23:59' }, width: 240, height: 80 }
+}
+
+/**
+ * Pushes a playlist to one device. An empty playlist puts the GZAD banner on
+ * instead (`cleared` and `idle`): wiping the screen would show the factory pattern.
+ * If the banner can't be pushed, the screen is wiped after all, so ads whose
+ * campaigns just ran out of budget never keep playing.
+ */
 export async function pushPlaylistToDevice(
   cardId: string,
   playlist: GroupPlaylist,
-): Promise<{ ok: boolean; cleared: boolean; error?: string }> {
+): Promise<{ ok: boolean; cleared: boolean; idle?: boolean; error?: string }> {
   try {
     if (playlist.mediaItems.length === 0) {
-      const res = await fetch(`${REALTIME_SERVER_URL}/devices/${cardId}/clear-program`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${REALTIME_SERVER_SECRET}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-      return { ok: res.ok, cleared: true, error: res.ok ? undefined : `clear-program returned ${res.status}` }
+      const idle = await postToScreen(cardId, 'push-program', programBody(IDLE_PROGRAM_NAME, idleMediaItems()))
+      if (idle.ok) return { ok: true, cleared: true, idle: true }
+      const res = await postToScreen(cardId, 'clear-program', {})
+      return {
+        ok: res.ok,
+        cleared: true,
+        error: `banner push returned ${idle.status}` + (res.ok ? ', screen wiped instead' : `, clear-program returned ${res.status}`),
+      }
     }
 
-    const res = await fetch(`${REALTIME_SERVER_URL}/devices/${cardId}/push-program`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${REALTIME_SERVER_SECRET}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: playlist.programName,
-        mediaItems: playlist.mediaItems,
-        schedule: { startTime: '00:00', endTime: '23:59' },
-        width: 240,
-        height: 80,
-      }),
-    })
+    const res = await postToScreen(cardId, 'push-program', programBody(playlist.programName, playlist.mediaItems))
     return { ok: res.ok, cleared: false, error: res.ok ? undefined : `push-program returned ${res.status}` }
   } catch (err) {
     return { ok: false, cleared: false, error: err instanceof Error ? err.message : 'Realtime Server unreachable' }
@@ -122,7 +132,9 @@ export async function pushPlaylistToDevice(
 
 export interface DeviceSyncResult {
   pushed: boolean
+  /** Nothing live to play: the screen got the GZAD banner (`idle`) or was wiped. */
   cleared: boolean
+  idle?: boolean
   media: number
   campaigns: number
   overflow: number
@@ -130,7 +142,7 @@ export interface DeviceSyncResult {
   error?: string
 }
 
-/** Re-syncs a single device with its group's current playlist (clears if no group/campaigns). */
+/** Re-syncs a single device with its group's current playlist (the GZAD banner when nothing is live). */
 export async function syncDevicePlaylist(
   supabase: SupabaseClient,
   cardId: string,
@@ -147,14 +159,15 @@ export async function syncDevicePlaylist(
   }
 
   const playlist = await buildGroupPlaylist(supabase, device.group_id)
-  const { ok, cleared, error } = await pushPlaylistToDevice(cardId, playlist)
+  const { ok, cleared, idle, error } = await pushPlaylistToDevice(cardId, playlist)
   return {
     pushed: ok && !cleared,
     cleared,
+    idle,
     media: playlist.mediaItems.length,
     campaigns: playlist.campaignNames.length,
     overflow: playlist.overflow,
-    reason: playlist.mediaItems.length === 0 ? 'no live campaigns — device cleared' : undefined,
+    reason: playlist.mediaItems.length === 0 ? 'no live campaigns — showing the GZAD banner' : undefined,
     error,
   }
 }

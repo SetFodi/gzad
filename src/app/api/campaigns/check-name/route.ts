@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { isIdleProgramName } from '@/lib/idle-program'
 
 // POST /api/campaigns/check-name — global campaign-name availability check.
 // Play logs are matched back to campaigns by program name, so names must be
@@ -15,6 +16,9 @@ export async function POST(request: NextRequest) {
   if (!name || typeof name !== 'string') {
     return NextResponse.json({ error: 'name required' }, { status: 400 })
   }
+
+  // Reserved for the banner screens play when nothing is live.
+  if (isIdleProgramName(name)) return NextResponse.json({ available: false })
 
   const service = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

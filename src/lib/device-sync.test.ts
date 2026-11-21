@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { rotationCycles, slotsToMediaItems } from './device-sync'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { pushPlaylistToDevice, rotationCycles, slotsToMediaItems } from './device-sync'
+import { IDLE_PROGRAM_NAME, idleMediaItems, isIdleProgramName } from './idle-program'
 import type { CampaignSlot, SlotCreative } from './slots'
 
 function creative(id: string, durationSeconds: 10 | 20 | 30 = 10): SlotCreative {
@@ -103,5 +104,61 @@ describe('slotsToMediaItems', () => {
 
   it('produces nothing when no campaign is live', () => {
     expect(slotsToMediaItems([])).toEqual([])
+  })
+})
+
+describe('pushPlaylistToDevice with nothing live', () => {
+  const empty = { programName: 'gzad playlist', mediaItems: [], campaignNames: [], overflow: 0 }
+  const calls: { path: string; body: { name?: string; mediaItems?: { url: string; campaignName: string }[] } }[] = []
+  function screenAnswers(status: Record<string, number>) {
+    calls.length = 0
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) => {
+      const path = new URL(url).pathname.split('/').pop() as string
+      calls.push({ path, body: JSON.parse(init.body) })
+      return new Response('{}', { status: status[path] ?? 200 })
+    }))
+  }
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('puts the GZAD banner on instead of wiping the screen', async () => {
+    screenAnswers({})
+    const result = await pushPlaylistToDevice('y08-s26-60755', empty)
+    expect(result).toEqual({ ok: true, cleared: true, idle: true })
+    expect(calls.map(c => c.path)).toEqual(['push-program'])
+    expect(calls[0].body.name).toBe(IDLE_PROGRAM_NAME)
+    expect(calls[0].body.mediaItems?.map(m => m.campaignName)).toEqual([IDLE_PROGRAM_NAME])
+  })
+
+  it('wipes the screen when the banner cannot be pushed, so out-of-budget ads stop', async () => {
+    screenAnswers({ 'push-program': 400 })
+    const result = await pushPlaylistToDevice('y08-s26-60755', empty)
+    expect(calls.map(c => c.path)).toEqual(['push-program', 'clear-program'])
+    expect(result.ok).toBe(true)
+    expect(result.idle).toBeUndefined()
+    expect(result.error).toMatch(/banner push returned 400, screen wiped instead/)
+  })
+
+  it('still pushes real playlists as before', async () => {
+    screenAnswers({})
+    const item = { url: 'https://cdn.example/a.mp4', type: 'video/mp4', duration: 10, campaignName: 'alpha' }
+    const result = await pushPlaylistToDevice('y08-s26-60755', { ...empty, programName: 'alpha', mediaItems: [item], campaignNames: ['alpha'] })
+    expect(result).toEqual({ ok: true, cleared: false, error: undefined })
+    expect(calls[0].body.name).toBe('alpha')
+  })
+})
+
+describe('isIdleProgramName', () => {
+  it('recognises the banner program however the screen cases it', () => {
+    expect(isIdleProgramName('gzad-idle')).toBe(true)
+    expect(isIdleProgramName(' GZAD-Idle ')).toBe(true)
+    expect(isIdleProgramName('gzad playlist')).toBe(false)
+    expect(isIdleProgramName(undefined)).toBe(false)
+  })
+})
+
+describe('idleMediaItems', () => {
+  it('plays the animated banner by default and a still image when pointed at one', () => {
+    expect(idleMediaItems()[0].type).toBe('video/mp4')
+    expect(idleMediaItems('https://x.example/backgrounds/gzad-background-240x80.png')[0].type).toBe('image/png')
   })
 })
