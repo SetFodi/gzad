@@ -173,6 +173,10 @@ app.post('/command/:cardId', async (req, res) => {
   try {
     const result = await sendCommand(cardId, data)
     res.json(result)
+    // A raw wipe still never leaves the factory pattern on screen.
+    if (data?.type === 'clearPlayerTask') {
+      showIdle(cardId).catch((err) => console.error(`[${new Date().toISOString()}] Banner after raw clear on ${cardId} failed: ${err.message}`))
+    }
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -287,11 +291,12 @@ app.post('/devices/:cardId/push-program', async (req, res) => {
   }
 })
 
-// Clear all programs from device (SDK: clearPlayerTask)
+// Stop the ads on a screen: it plays the GZAD banner instead. Only if the
+// banner can't be sent is the screen really wiped (clearPlayerTask), so ads
+// still stop; the background then shows the banner. See showIdle.
 app.post('/devices/:cardId/clear-program', async (req, res) => {
   try {
-    const result = await sendCommand(req.params.cardId, { type: 'clearPlayerTask' })
-    res.json(result)
+    res.json({ success: true, ...(await showIdle(req.params.cardId)) })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -510,6 +515,10 @@ app.post('/devices/:cardId/clean-storage', async (req, res) => {
   } catch (err) {
     results.diskSpace = { error: err.message }
   }
+
+  // Step 4: cleaning removed the programs, so put back what the screen should
+  // play (its playlist, or the banner) and its background.
+  results.restored = await restoreScreen(req.params.cardId)
 
   res.json({ success: true, ...results })
 })
@@ -1218,6 +1227,7 @@ async function autoSetupDevice(cardId) {
   // Small delay to let the WebSocket fully establish
   await sleep(1000)
   const ws = devices[cardId]?.ws
+  refreshBackground(cardId, { force: true })
   if (!noteSetupResult(cardId, ws, await runSetup(cardId))) {
     // Don't hold up the playlist sync that follows; keep trying alongside it.
     retrySetup(cardId, ws).catch((err) => console.error(`Setup retry for ${cardId} failed: ${err.message}`))
@@ -1232,8 +1242,113 @@ setInterval(() => {
     runSetup(cardId, { quiet: true })
       .then((failures) => noteSetupResult(cardId, ws, failures))
       .catch(() => {})
+    refreshBackground(cardId)   // only when backgroundRefreshMs has passed, or it never took
   }
 }, config.setupRefreshMs).unref()
+
+// ─── Idle screen ─────────────────────────────────────────────────────────────
+// A screen never falls back to the controller's factory pattern:
+//   - "clear" means the GZAD banner program (config.idleProgramName), stored on
+//     the controller and looped like any program, so it plays offline too;
+//   - only if the banner can't be sent is the screen really wiped, because ads
+//     that ran out of budget must stop;
+//   - the player background is the banner as well, sized to the screen's
+//     canvas, for what's left: right after a wipe, while a program downloads,
+//     or after someone clears the screen in LEDOK (restored within
+//     backgroundRefreshMs, or on the next connect).
+
+let idleItem = null   // config.idleMediaUrl with its size and MD5, fetched once
+
+async function idleMediaItem() {
+  if (idleItem && idleItem.url === config.idleMediaUrl) return idleItem
+  const res = await fetch(config.idleMediaUrl)
+  if (!res.ok) throw new Error(`banner download returned ${res.status}`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  const url = config.idleMediaUrl
+  idleItem = {
+    url,
+    type: /\.png(\?|$)/i.test(url) ? 'image/png' : /\.jpe?g(\?|$)/i.test(url) ? 'image/jpeg' : 'video/mp4',
+    duration: DEFAULT_SLOT_DURATION,
+    size: buf.length,
+    md5: crypto.createHash('md5').update(buf).digest('hex'),
+    campaignName: config.idleProgramName,
+  }
+  return idleItem
+}
+
+const refused = (result) => typeof result?._type === 'string' && /error|fail/i.test(result._type)
+
+/** Puts the GZAD banner on a screen, or wipes it if that fails. Throws if neither works. */
+async function showIdle(cardId) {
+  try {
+    const item = await idleMediaItem()
+    const result = await sendCommand(cardId, buildProgram({ name: config.idleProgramName, mediaItems: [item], totalSize: item.size }))
+    if (refused(result)) throw new Error(`screen answered ${JSON.stringify(result).slice(0, 160)}`)
+    refreshBackground(cardId)
+    return { idle: true }
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] GZAD banner for ${cardId} failed (${err.message}), wiping the screen instead`)
+    const result = await sendCommand(cardId, { type: 'clearPlayerTask' })
+    refreshBackground(cardId, { force: true })
+    return { idle: false, wiped: true, bannerError: err.message, result }
+  }
+}
+
+/** Sets the player background to the banner at the screen's canvas size. */
+async function setBackground(cardId, ws) {
+  if (!ws.canvas) {
+    const [w, h] = await Promise.all(['getScreenWidth', 'getScreenHeight'].map((fn) =>
+      sendCommand(cardId, { type: 'callCardService', fn }, { quiet: true })))
+    const width = Number(w?.result)
+    const height = Number(h?.result)
+    if (!(width > 0 && height > 0)) throw new Error(`screen size unknown (${JSON.stringify(w)}, ${JSON.stringify(h)})`)
+    ws.canvas = { width, height }
+  }
+  const { width, height } = ws.canvas
+  const url = `${config.gzadAppUrl}/api/idle-background/${width}x${height}.png`
+  const result = await sendCommand(cardId, { type: 'setPlayerBackground', url }, { quiet: true })
+  if (result?._type !== 'success') throw new Error(`screen answered ${JSON.stringify(result).slice(0, 160)}`)
+  if (!ws.backgroundSetAt) console.log(`[${new Date().toISOString()}] Background for ${cardId}: GZAD banner on its ${width}×${height} canvas`)
+  ws.backgroundSetAt = Date.now()
+}
+
+/** Sets the background when forced, when it's due, or when it hasn't taken yet. Never throws. */
+function refreshBackground(cardId, { force = false } = {}) {
+  if (!config.idleBackground) return
+  const ws = devices[cardId]?.ws
+  if (!ws || ws.readyState !== 1) return
+  if (!force && !ws.backgroundTried) return   // the connect setup sets it first
+  if (!force && ws.backgroundSetAt && Date.now() - ws.backgroundSetAt < config.backgroundRefreshMs) return
+  ws.backgroundTried = true
+  if (ws.backgroundBusy) {
+    if (force) ws.backgroundAgain = true   // a wipe landed mid-way: set it once more after
+    return
+  }
+  ws.backgroundBusy = true
+  setBackground(cardId, ws)
+    .then(() => { ws.backgroundFailLogged = false })
+    .catch((err) => {
+      // Once per connection; the refresh keeps trying.
+      if (!ws.backgroundFailLogged) console.error(`[${new Date().toISOString()}] Background for ${cardId} not set: ${err.message}`)
+      ws.backgroundFailLogged = true
+    })
+    .finally(() => {
+      ws.backgroundBusy = false
+      if (ws.backgroundAgain) { ws.backgroundAgain = false; refreshBackground(cardId, { force: true }) }
+    })
+}
+
+/** After the programs were removed (clean storage): the screen's playlist back, or the banner. */
+async function restoreScreen(cardId) {
+  const sync = await syncPlaylist(cardId, { force: true })
+  refreshBackground(cardId, { force: true })
+  if (sync.ok) return { playlist: sync.body }
+  try {
+    return { playlistError: sync.error, ...(await showIdle(cardId)) }
+  } catch (err) {
+    return { playlistError: sync.error, error: err.message }
+  }
+}
 
 // ─── Activity log and playlist sync ──────────────────────────────────────────
 // Reports screen events to the app's admin Activity log. Fire and forget: a
@@ -1254,9 +1369,10 @@ function postDeviceEvent(cardId, kind, detail = {}) {
 const PLAYLIST_SYNC_COOLDOWN_MS = 3 * 60 * 1000
 const lastPlaylistSync = {}
 
-async function syncPlaylistAfterConnect(cardId) {
+/** Asks the app to push this screen's playlist (the banner when it has none). */
+async function syncPlaylist(cardId, { force = false } = {}) {
   const last = lastPlaylistSync[cardId] || 0
-  if (Date.now() - last < PLAYLIST_SYNC_COOLDOWN_MS) return
+  if (!force && Date.now() - last < PLAYLIST_SYNC_COOLDOWN_MS) return { ok: true, skipped: true }
   lastPlaylistSync[cardId] = Date.now()
   try {
     const res = await fetch(`${config.gzadAppUrl}/api/devices/sync-single`, {
@@ -1265,11 +1381,16 @@ async function syncPlaylistAfterConnect(cardId) {
       body: JSON.stringify({ cardId }),
     })
     const body = await res.json().catch(() => ({}))
-    console.log(`[${new Date().toISOString()}] Playlist sync for ${cardId}: ${res.ok ? `pushed=${body.pushed} cleared=${body.cleared} media=${body.media}` : `failed (${res.status})`}`)
+    console.log(`[${new Date().toISOString()}] Playlist sync for ${cardId}: ${res.ok ? `pushed=${body.pushed} cleared=${body.cleared} idle=${body.idle} media=${body.media}` : `failed (${res.status})`}`)
+    if (!res.ok) return { ok: false, error: `sync-single returned ${res.status}` }
+    return body.error ? { ok: false, error: body.error, body } : { ok: true, body }
   } catch (err) {
     console.error(`[${new Date().toISOString()}] Playlist sync for ${cardId} failed: ${err.message}`)
+    return { ok: false, error: err.message }
   }
 }
+
+const syncPlaylistAfterConnect = (cardId) => syncPlaylist(cardId)
 
 // ─── Billing trigger ─────────────────────────────────────────────────────────
 // Vercel's free plan caps scheduled functions at one run per day, but this

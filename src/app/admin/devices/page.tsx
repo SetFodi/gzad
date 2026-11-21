@@ -750,7 +750,7 @@ export default function DevicesPage() {
                               type="button"
                               className="action-btn reject"
                               onClick={() => {
-                                if (confirm(t('Clear the program on this screen? It stops showing ads until playlists are pushed again.'))) {
+                                if (confirm(t('Stop the ads on this screen? It shows the GZAD banner until a playlist is pushed again.'))) {
                                   sendAction(d.cardId, 'clear-program')
                                 }
                               }}

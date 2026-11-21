@@ -16,6 +16,15 @@ export const IDLE_MEDIA_URL =
   'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-background-animated-240x80.mp4'
 
 /**
+ * The still 240×80 banner. The screens' player background (what the player
+ * shows when it has nothing at all, e.g. right after a wipe) is built from it,
+ * sized to each screen: see /api/idle-background.
+ */
+export const IDLE_BANNER_URL =
+  process.env.IDLE_BANNER_URL ||
+  'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-background-240x80.png'
+
+/**
  * The filler program's single item, in the shape push-program takes. The
  * animated banner by default; NEXT_PUBLIC_IDLE_MEDIA_URL can point at a PNG
  * instead (gzad-background-240x80.png), for a screen that won't play the video.
