@@ -110,8 +110,8 @@ export default function DistrictMapEditor({ districts, selectedDistrict, onChang
               <Tooltip sticky>{t(district.name)}</Tooltip>
             </Polygon>
 
-            {/* Draggable vertex markers (only for selected/all) */}
-            {isSelected && district.polygon.map((vertex, vi) => (
+            {/* Draggable vertex markers, for the selected district only: real borders have hundreds of points each */}
+            {selectedDistrict === district.name && district.polygon.map((vertex, vi) => (
               <Marker
                 key={`v-${district.name}-${vi}`}
                 position={vertex}

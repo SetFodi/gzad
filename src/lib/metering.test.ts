@@ -31,8 +31,9 @@ const at = (lat: number, lng: number, n: number, firstAt: string, start = START)
   n,
   first_at: firstAt,
 })
-const vake = (n: number, first = '2026-10-15T08:05:00Z') => at(41.73, 44.75, n, first)
-const saburtalo = (n: number, first = '2026-10-15T08:01:00Z') => at(41.8, 44.75, n, first)
+// Real places: Vake Park and Didi Dighomi.
+const vake = (n: number, first = '2026-10-15T08:05:00Z') => at(41.70854, 44.74779, n, first)
+const saburtalo = (n: number, first = '2026-10-15T08:01:00Z') => at(41.78844, 44.75282, n, first)
 
 describe('priceBlocks (metered)', () => {
   it('prorates each campaign by its plays against the loop', () => {

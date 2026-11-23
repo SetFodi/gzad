@@ -158,9 +158,10 @@ describe('resolveDistrict', () => {
 
 // ─── Metered billing ─────────────────────────────────────────────────────────
 
-const VAKE = { lat: 41.73, lng: 44.75 }
-const SABURTALO = { lat: 41.8, lng: 44.75 }
-const MTATSMINDA = { lat: 41.69, lng: 44.8 }
+// Real places: Vake Park, Didi Dighomi, Freedom Square.
+const VAKE = { lat: 41.70854, lng: 44.74779 }
+const SABURTALO = { lat: 41.78844, lng: 44.75282 }
+const MTATSMINDA = { lat: 41.69383, lng: 44.80142 }
 const pricing = {
   districtTiers: { Vake: 1, Saburtalo: 2, Mtatsminda: 1 } as Record<string, number>,
   districtMultipliers: { '1': 1.45, '2': 1.25, '3': 1.1, '4': 1.0 } as Record<string, number>,

@@ -1,6 +1,12 @@
-// Tbilisi administrative district polygons
-// Coordinates are [lat, lng] pairs forming closed polygons
-// Approximate boundaries based on official raion divisions
+// Tbilisi's ten administrative districts. Billing prices a play by the
+// district its GPS position falls in (pricing_config.district_tiers is keyed by
+// these names), unless Admin has saved its own map (district_polygons).
+//
+// Borders are the official ones as mapped in OpenStreetMap, generated into
+// district-boundaries.ts by scripts/build-district-boundaries.mjs. Polygons are
+// closed rings of [lat, lng] pairs.
+
+import { DISTRICT_BOUNDARIES } from './district-boundaries'
 
 export interface District {
   name: string
@@ -9,126 +15,72 @@ export interface District {
   polygon: [number, number][]
 }
 
+function border(name: string): [number, number][] {
+  const ring = DISTRICT_BOUNDARIES[name]
+  if (!ring) throw new Error(`No border for district ${name}`)
+  return ring
+}
+
 export const TBILISI_DISTRICTS: District[] = [
   {
     name: 'Mtatsminda',
     color: '#FF3333',
-    neighborhoods: ['Rustaveli', 'Liberty Square', 'Sololaki', 'Okrokana'],
-    polygon: [
-      [41.706, 44.768],
-      [41.706, 44.826],
-      [41.693, 44.826],
-      [41.682, 44.812],
-      [41.678, 44.795],
-      [41.680, 44.768],
-    ],
+    neighborhoods: ['Rustaveli', 'Liberty Square', 'Sololaki', 'Vera', 'Okrokana'],
+    polygon: border('Mtatsminda'),
   },
   {
     name: 'Vake',
     color: '#00BFA5',
-    neighborhoods: ['Vake', 'Vera', 'Bagebi', 'Tskneti'],
-    polygon: [
-      [41.776, 44.718],
-      [41.776, 44.800],
-      [41.706, 44.800],
-      [41.706, 44.768],
-      [41.695, 44.718],
-    ],
+    neighborhoods: ['Vake', 'Bagebi', 'Nutsubidze Plateau', 'Tskneti'],
+    polygon: border('Vake'),
   },
   {
     name: 'Saburtalo',
     color: '#0288D1',
-    neighborhoods: ['Saburtalo', 'Didi Dighomi', 'Nutsubidze', 'Lisi'],
-    polygon: [
-      [41.842, 44.718],
-      [41.842, 44.802],
-      [41.776, 44.802],
-      [41.776, 44.718],
-    ],
+    neighborhoods: ['Saburtalo', 'Didi Dighomi', 'Lisi'],
+    polygon: border('Saburtalo'),
   },
   {
     name: 'Chughureti',
     color: '#2E7D32',
     neighborhoods: ['Marjanishvili', 'Plekhanov', 'Station Square'],
-    polygon: [
-      [41.739, 44.782],
-      [41.739, 44.850],
-      [41.683, 44.850],
-      [41.683, 44.826],
-      [41.693, 44.826],
-      [41.706, 44.826],
-      [41.706, 44.782],
-    ],
+    polygon: border('Chughureti'),
   },
   {
     name: 'Didube',
     color: '#F9A825',
     neighborhoods: ['Tsereteli', 'Didube', 'Dighomi Massive'],
-    polygon: [
-      [41.796, 44.782],
-      [41.796, 44.850],
-      [41.739, 44.850],
-      [41.739, 44.782],
-    ],
+    polygon: border('Didube'),
   },
   {
     name: 'Nadzaladevi',
     color: '#AB47BC',
     neighborhoods: ['Temka', 'Sanzona', 'Lotkini'],
-    polygon: [
-      [41.800, 44.848],
-      [41.800, 44.915],
-      [41.739, 44.915],
-      [41.739, 44.848],
-    ],
+    polygon: border('Nadzaladevi'),
   },
   {
     name: 'Gldani',
     color: '#00897B',
     neighborhoods: ['Gldani', 'Mukhiani', 'Avchala'],
-    polygon: [
-      [41.895, 44.798],
-      [41.895, 44.915],
-      [41.800, 44.915],
-      [41.800, 44.798],
-    ],
+    polygon: border('Gldani'),
   },
   {
     name: 'Isani',
     color: '#F57F17',
     neighborhoods: ['Avlabari', 'Isani', 'Vazisubani'],
-    polygon: [
-      [41.706, 44.826],
-      [41.706, 44.910],
-      [41.660, 44.910],
-      [41.660, 44.826],
-      [41.682, 44.812],
-      [41.693, 44.826],
-    ],
+    polygon: border('Isani'),
   },
   {
     name: 'Samgori',
     color: '#E64A19',
     neighborhoods: ['Varketili', 'Airport', 'Lilo', 'Africa'],
-    polygon: [
-      [41.693, 44.908],
-      [41.693, 45.015],
-      [41.605, 45.015],
-      [41.605, 44.908],
-    ],
+    polygon: border('Samgori'),
   },
   {
     name: 'Krtsanisi',
     color: '#1565C0',
-    neighborhoods: ['Old Town', 'Ortachala', 'Ponichala'],
-    polygon: [
-      [41.700, 44.793],
-      [41.700, 44.870],
-      [41.660, 44.870],
-      [41.655, 44.840],
-      [41.660, 44.826],
-      [41.660, 44.793],
-    ],
+    neighborhoods: ['Kala (Old Town)', 'Ortachala', 'Ponichala'],
+    polygon: border('Krtsanisi'),
   },
 ]
 
