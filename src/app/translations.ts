@@ -341,7 +341,8 @@ export const translations = {
                 forgot: "Forgot password?",
                 signIn: "Sign in",
                 signingIn: "Signing in…",
-                invalidCredentials: "That email and password don’t match. Check them and try again.",
+                invalidCredentials: "That email and password don’t match. Check them, or reset your password.",
+                passwordReset: "Your password is changed. Sign in with the new one.",
                 linkFailed: "That sign-in link didn’t work. Sign in with your password instead.",
                 noAccount: "New to Gzad?",
                 createAccount: "Create an account",
@@ -367,6 +368,7 @@ export const translations = {
                 optional: "Optional",
                 password: "Password",
                 passwordHint: "At least 8 characters.",
+                confirmPassword: "Confirm password",
                 signUp: "Create account",
                 signingUp: "Creating account…",
                 agree: "By creating an account you agree to the",
@@ -379,8 +381,22 @@ export const translations = {
                     emailTaken: "An account with this email already exists. Sign in instead.",
                     invalidEmail: "Enter a valid email address.",
                     passwordShort: "Use at least 8 characters for the password.",
+                    passwordMismatch: "The passwords don’t match.",
                     companyRequired: "Add your company or brand name."
                 }
+            },
+            reset: {
+                title: "Reset your password",
+                subtitle: "Enter your account email and we’ll send you a code.",
+                sendCode: "Send code",
+                codeHint: "Check your spam folder if you don’t see the email.",
+                newPassword: "New password",
+                save: "Save new password",
+                saving: "Saving…",
+                mismatch: "The passwords don’t match.",
+                invalidEmail: "Enter a valid email address.",
+                passwordShort: "Use at least 8 characters for the password.",
+                samePassword: "That’s your current password. Choose a new one."
             },
             verification: {
                 signupTitle: "Verify your email",
@@ -1033,7 +1049,8 @@ export const translations = {
                 forgot: "დაგავიწყდათ პაროლი?",
                 signIn: "შესვლა",
                 signingIn: "შესვლა…",
-                invalidCredentials: "ელ-ფოსტა ან პაროლი არასწორია. გადაამოწმეთ და სცადეთ თავიდან.",
+                invalidCredentials: "ელ-ფოსტა ან პაროლი არასწორია. გადაამოწმეთ, ან აღადგინეთ პაროლი.",
+                passwordReset: "პაროლი შეიცვალა. შედით ახალი პაროლით.",
                 linkFailed: "შესვლის ბმული არ იმუშავა. შედით პაროლით.",
                 noAccount: "ჯერ არ გაქვთ ანგარიში?",
                 createAccount: "რეგისტრაცია",
@@ -1059,6 +1076,7 @@ export const translations = {
                 optional: "არასავალდებულო",
                 password: "პაროლი",
                 passwordHint: "მინიმუმ 8 სიმბოლო.",
+                confirmPassword: "გაიმეორეთ პაროლი",
                 signUp: "ანგარიშის შექმნა",
                 signingUp: "იქმნება ანგარიში…",
                 agree: "ანგარიშის შექმნით ეთანხმებით",
@@ -1071,8 +1089,22 @@ export const translations = {
                     emailTaken: "ამ ელ-ფოსტით ანგარიში უკვე არსებობს. შედით სისტემაში.",
                     invalidEmail: "შეიყვანეთ სწორი ელ-ფოსტა.",
                     passwordShort: "პაროლი მინიმუმ 8 სიმბოლო უნდა იყოს.",
+                    passwordMismatch: "პაროლები არ ემთხვევა.",
                     companyRequired: "მიუთითეთ კომპანიის ან ბრენდის სახელი."
                 }
+            },
+            reset: {
+                title: "პაროლის აღდგენა",
+                subtitle: "შეიყვანეთ ანგარიშის ელ-ფოსტა და კოდს გამოგიგზავნით.",
+                sendCode: "კოდის გაგზავნა",
+                codeHint: "თუ წერილს ვერ ხედავთ, შეამოწმეთ სპამის საქაღალდე.",
+                newPassword: "ახალი პაროლი",
+                save: "ახალი პაროლის შენახვა",
+                saving: "ინახება…",
+                mismatch: "პაროლები არ ემთხვევა.",
+                invalidEmail: "შეიყვანეთ სწორი ელ-ფოსტა.",
+                passwordShort: "პაროლი მინიმუმ 8 სიმბოლო უნდა იყოს.",
+                samePassword: "ეს თქვენი მიმდინარე პაროლია. აირჩიეთ ახალი."
             },
             verification: {
                 signupTitle: "დაადასტურეთ ელ-ფოსტა",

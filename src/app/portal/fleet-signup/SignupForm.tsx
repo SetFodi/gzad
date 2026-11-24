@@ -10,11 +10,13 @@ import AuthShell, { AuthAlert, AuthSubmit, PasswordInput } from '@/components/au
 
 export type SignupRole = 'client' | 'fleet'
 
-type Field = 'email' | 'password' | 'company_name'
+type Field = 'email' | 'password' | 'confirm' | 'company_name'
 
 export default function SignupForm({ initialRole, verificationReady }: { initialRole: SignupRole; verificationReady: boolean }) {
   const [role, setRole] = useState<SignupRole>(initialRole)
   const [form, setForm] = useState({ email: '', password: '', contact_name: '', phone: '', company_name: '' })
+  // Typed twice so a typo can't lock someone out of a brand-new account.
+  const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<{ text: string; field?: Field } | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -39,6 +41,10 @@ export default function SignupForm({ initialRole, verificationReady }: { initial
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (form.password !== confirm) {
+      setError({ text: f.errors.passwordMismatch, field: 'confirm' })
+      return
+    }
     setError(null)
     setLoading(true)
 
@@ -107,7 +113,7 @@ export default function SignupForm({ initialRole, verificationReady }: { initial
           ))}
         </fieldset>
 
-        {error && <AuthAlert>{error.text}</AuthAlert>}
+        {error && error.field !== 'confirm' && <AuthAlert>{error.text}</AuthAlert>}
 
         <div className="auth-field">
           <label htmlFor="contact_name" className="auth-label">{f.fullName}</label>
@@ -186,6 +192,21 @@ export default function SignupForm({ initialRole, verificationReady }: { initial
             aria-describedby="password-hint"
           />
           <p id="password-hint" className="auth-hint">{f.passwordHint}</p>
+        </div>
+
+        <div className="auth-field">
+          <label htmlFor="confirm-password" className="auth-label">{f.confirmPassword}</label>
+          <PasswordInput
+            id="confirm-password"
+            value={confirm}
+            onChange={(e) => { setConfirm(e.target.value); if (error?.field === 'confirm') setError(null) }}
+            autoComplete="new-password"
+            minLength={8}
+            required
+            aria-invalid={invalid('confirm')}
+            aria-describedby={error?.field === 'confirm' ? 'confirm-error' : undefined}
+          />
+          {error?.field === 'confirm' && <p id="confirm-error" className="auth-hint auth-hint-error" role="alert">{error.text}</p>}
         </div>
 
         <AuthSubmit busy={loading} label={f.signUp} busyLabel={f.signingUp} />

@@ -833,3 +833,8 @@ body:has(.auth) {
         animation-duration: 1.6s;
     }
 }
+
+/* A field's own error, shown right under it. */
+.auth-hint-error {
+    color: var(--a-danger);
+}

@@ -9,7 +9,7 @@ import AuthShell, { AuthAlert, AuthSubmit, PasswordInput } from '@/components/au
 
 const SUPPORT_EMAIL = 'info@gzadvertisement.ge'
 
-export default function LoginForm({ linkFailed, emailVerified }: { linkFailed: boolean; emailVerified: boolean }) {
+export default function LoginForm({ linkFailed, emailVerified, passwordReset }: { linkFailed: boolean; emailVerified: boolean; passwordReset: boolean }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -45,6 +45,7 @@ export default function LoginForm({ linkFailed, emailVerified }: { linkFailed: b
       <h1 className="auth-title">{p.title}</h1>
       <p className="auth-subtitle">{p.subtitle}</p>
       {emailVerified && <p className="auth-success" role="status">{t.auth.verification.signupComplete}</p>}
+      {passwordReset && <p className="auth-success" role="status">{p.passwordReset}</p>}
 
       <form onSubmit={handleLogin} className="auth-form">
         {message && <AuthAlert>{message}</AuthAlert>}
@@ -69,12 +70,9 @@ export default function LoginForm({ linkFailed, emailVerified }: { linkFailed: b
         <div className="auth-field">
           <div className="auth-label-row">
             <label htmlFor="password" className="auth-label">{p.password}</label>
-            <a
-              className="auth-label-link"
-              href="/contact?topic=account"
-            >
+            <Link className="auth-label-link" href="/portal/forgot-password">
               {p.forgot}
-            </a>
+            </Link>
           </div>
           <PasswordInput
             id="password"
