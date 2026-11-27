@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react'
 import type { Copy, Lang } from './copy'
 import { EASE } from './Reveal'
 import ThemeToggle from './ThemeToggle'
+import GzadLogo from '@/components/brand/GzadLogo'
 
 export function Logo({ className = '' }: { className?: string }) {
   return (
     <span className={`lp-logo ${className}`}>
-      <span className="lp-logo-mark" aria-hidden />
-      gzad
+      <GzadLogo />
     </span>
   )
 }

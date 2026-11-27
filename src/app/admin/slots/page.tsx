@@ -6,6 +6,7 @@ import { AlertTriangle, Megaphone, RefreshCw } from 'lucide-react'
 import ProgressRing from '@/components/app/ProgressRing'
 import StatusBadge from '@/components/app/StatusBadge'
 import { useAdminText } from '@/lib/admin-i18n'
+import GzadLogo from '@/components/brand/GzadLogo'
 
 interface SlotEntry {
   index: number
@@ -86,7 +87,7 @@ function LoopSlot({ slot }: { slot: SlotEntry }) {
             // eslint-disable-next-line @next/next/no-img-element
             : <img src={slot.mediaUrl} alt="" loading="lazy" />
         ) : slot.type === 'house' ? (
-          <span className="loop-slot-house"><span className="app-brand-mark" aria-hidden /> gzad</span>
+          <span className="loop-slot-house"><GzadLogo title="Gzad" /></span>
         ) : slot.type === 'empty' ? (
           <AlertTriangle size={14} aria-hidden />
         ) : null}

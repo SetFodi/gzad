@@ -6,6 +6,7 @@ import { AlertCircle, Check, Eye, EyeOff } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import AuthScreen, { type AuthAd } from './AuthScreen'
 import '@/app/portal/auth.css'
+import GzadLogo from '@/components/brand/GzadLogo'
 
 export type AuthAudience = 'advertiser' | 'fleet'
 
@@ -20,8 +21,7 @@ export default function AuthShell({ audience, children }: { audience: AuthAudien
       <div className="auth-main">
         <header className="auth-top">
           <Link href="/" className="auth-logo" aria-label={a.backToSite}>
-            <span className="auth-logo-mark" aria-hidden />
-            gzad
+            <GzadLogo />
           </Link>
           <div className="auth-lang" role="group" aria-label={a.language}>
             <button type="button" lang="en" aria-pressed={lang === 'en'} onClick={() => setLang('en')}>

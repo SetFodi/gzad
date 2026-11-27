@@ -7,6 +7,7 @@ import { LogOut, Menu, X, type LucideIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from '@/lib/i18n'
 import ThemeSwitch from './ThemeSwitch'
+import GzadLogo from '@/components/brand/GzadLogo'
 
 export interface NavItem {
   href: string
@@ -157,8 +158,7 @@ export default function AppSidebar({
 
   const brand = (
     <Link href={sections[0]?.items[0]?.href ?? '/'} className="app-brand" onClick={close}>
-      <span className="app-brand-mark" aria-hidden />
-      <span className="app-brand-name">gzad</span>
+      <GzadLogo className="app-brand-logo" title="Gzad" />
       {area && <span className="app-brand-area">{area}</span>}
     </Link>
   )

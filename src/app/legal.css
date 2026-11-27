@@ -89,13 +89,12 @@ body:has(.legal-page) {
     border-radius: 6px;
 }
 
-.legal-logo-mark {
-    width: 24px;
-    height: 9px;
-    border-radius: 2.5px;
-    background:
-        radial-gradient(circle at center, transparent 0 0.6px, rgba(0, 0, 0, 0.28) 1px) 0 0 / 3px 3px,
-        var(--legal-accent);
+/* The wordmark takes the text colour; its height sets the size. */
+.legal-logo svg {
+    display: block;
+    height: 32px;
+    width: auto;
+    aspect-ratio: 894 / 416;
 }
 
 .legal-page .legal-login {

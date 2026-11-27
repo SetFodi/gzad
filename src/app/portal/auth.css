@@ -92,15 +92,12 @@ body:has(.auth) {
     border-radius: 6px;
 }
 
-/* A tiny 3:1 LED panel, the shape of the product. */
-.auth-logo-mark {
-    width: 24px;
-    height: 9px;
-    border-radius: 2.5px;
-    background:
-        radial-gradient(circle at center, transparent 0 0.6px, rgba(0, 0, 0, 0.28) 1px) 0 0 / 3px 3px,
-        var(--a-accent);
-    box-shadow: 0 0 10px rgba(11, 77, 60, 0.35);
+/* The wordmark takes the text colour; its height sets the size. */
+.auth-logo svg {
+    display: block;
+    height: 32px;
+    width: auto;
+    aspect-ratio: 894 / 416;
 }
 
 .auth-lang {

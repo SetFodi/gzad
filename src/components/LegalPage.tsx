@@ -7,6 +7,7 @@ import { LanguageProvider, useTranslations } from '@/lib/i18n'
 import ThemeSwitch from '@/components/app/ThemeSwitch'
 import { LEGAL_UPDATED, legalDocuments, legalLabels, type LegalKind } from '@/content/legal'
 import '@/app/legal.css'
+import GzadLogo from '@/components/brand/GzadLogo'
 
 /** The legal copy is trusted static text. Only links and emphasis are formatted. */
 function InlineText({ text }: { text: string }) {
@@ -39,7 +40,7 @@ export function LegalShell({ current, children }: { current: LegalKind | 'contac
       <header className="legal-header">
         <div className="legal-header-inner">
           <Link href="/" className="legal-logo" aria-label={labels.home}>
-            <span className="legal-logo-mark" aria-hidden />gzad
+            <GzadLogo />
           </Link>
           <div className="legal-header-actions">
             <div className="legal-language" role="group" aria-label={labels.language}>
