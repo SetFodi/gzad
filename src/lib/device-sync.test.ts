@@ -202,10 +202,10 @@ describe('the GZAD house banner in every loop', () => {
     }
   })
 
-  it('is 10 seconds of the animated banner, under the name billing stores', () => {
+  it('is the whole 20-second banner video (logo, then phone and website), under the name billing stores', () => {
     const banner = slotsToMediaItems(names(2)).at(-1)!
-    expect(banner).toMatchObject({ campaignName: 'gzad-house', duration: 10, type: 'video/mp4' })
-    expect(banner.url).toMatch(/gzad-logo-animated-240x80\.mp4$/)
+    expect(banner).toMatchObject({ campaignName: 'gzad-house', duration: 20, type: 'video/mp4' })
+    expect(banner.url).toMatch(/gzad-logo-contact-animated-240x80-v2\.mp4$/)
   })
 
   it('closes every cycle when creatives rotate over several cycles', () => {
@@ -225,6 +225,6 @@ describe('the GZAD house banner in every loop', () => {
       ...emptySlotEntries(2),
     ]
     expect(view.filter(s => s.type === 'empty').map(s => s.index)).toEqual([3, 4, 5])
-    expect(cycleTimeSeconds(view)).toBe(40)
+    expect(cycleTimeSeconds(view)).toBe(50)
   })
 })

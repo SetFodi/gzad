@@ -408,7 +408,7 @@ export const KA: Record<string, string> = {
   'No live campaigns: {devices} screen(s) show the GZAD banner': 'აქტიური კამპანია არ არის: {devices} ეკრანზე GZAD-ის ბანერი ჩანს',
   'Pushed {campaigns} campaign(s) plus the GZAD banner to {devices} screen(s)': '{campaigns} კამპანია და GZAD-ის ბანერი გაიგზავნა {devices} ეკრანზე',
   'Not reached: {list}': 'ვერ მიაღწია: {list}',
-  'Every screen plays up to {n} client ads, then a 10-second Gzad banner. Free slots are skipped. Refreshes every 10 seconds.': 'ყოველი ეკრანი უკრავს კლიენტის {n}-მდე რეკლამას, შემდეგ კი 10-წამიან Gzad-ის ბანერს. თავისუფალი სლოტები გამოიტოვება. ახლდება ყოველ 10 წამში.',
+  'Every screen plays up to {n} client ads, then a 20-second Gzad banner with our phone number. Free slots are skipped. Refreshes every 10 seconds.': 'ყოველი ეკრანი უკრავს კლიენტის {n}-მდე რეკლამას, შემდეგ კი 20-წამიან Gzad-ის ბანერს ჩვენი ტელეფონის ნომრით. თავისუფალი სლოტები გამოიტოვება. ახლდება ყოველ 10 წამში.',
   '{n} live campaign(s) have no free slot, so they are not playing: {list}': '{n} აქტიურ კამპანიას თავისუფალი სლოტი არ აქვს, ამიტომ არ გადის: {list}',
   'Waiting for a free slot in this group: {list}': 'ამ ჯგუფში თავისუფალ სლოტს ელოდება: {list}',
   'Slot {n}': 'სლოტი {n}',

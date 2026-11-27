@@ -11,7 +11,7 @@ import { HOUSE_SLOT_SECONDS, houseMediaItem } from '@/lib/idle-program'
 // slot-hour is priced on. A campaign's creatives rotate between cycles.
 //
 // On top of those, every loop with at least one client ad ends with one
-// 10-second GZAD house banner (see HOUSE_PROGRAM_NAME). Free slots play
+// 20-second GZAD house banner (see HOUSE_PROGRAM_NAME). Free slots play
 // nothing: the loop is just shorter.
 
 export const SLOTS_PER_DEVICE = 5

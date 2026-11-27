@@ -1268,7 +1268,7 @@ async function idleMediaItem() {
   idleItem = {
     url,
     type: /\.png(\?|$)/i.test(url) ? 'image/png' : /\.jpe?g(\?|$)/i.test(url) ? 'image/jpeg' : 'video/mp4',
-    duration: DEFAULT_SLOT_DURATION,
+    duration: ALLOWED_SLOT_DURATIONS.includes(config.idleSeconds) ? config.idleSeconds : DEFAULT_SLOT_DURATION,
     size: buf.length,
     md5: crypto.createHash('md5').update(buf).digest('hex'),
     campaignName: config.idleProgramName,

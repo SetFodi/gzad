@@ -58,7 +58,10 @@ module.exports = {
   // Upload a new banner under a new name: the MD5 is cached by URL here, and
   // controllers cache what they downloaded.
   idleMediaUrl: process.env.IDLE_MEDIA_URL ||
-    'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-logo-animated-240x80.mp4',
+    'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-logo-contact-animated-240x80-v2.mp4',
+  // How long that video runs: the program item stops there. Must be 10, 20 or
+  // 30 and match BANNER_SECONDS in the app (src/lib/idle-program.ts).
+  idleSeconds: parseInt(process.env.IDLE_SECONDS) || 20,
 
   // Part of the background's address (…/1280x720-logo.png). Change it whenever
   // the app's still banner changes, so screens download the new one instead

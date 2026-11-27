@@ -12,13 +12,21 @@
 
 export const IDLE_PROGRAM_NAME = 'gzad-idle'
 
-// The animated Gzad logo (led-images/gzad-logo-animated-240x80.mp4). When the
+// The GZAD banner video (led-images/gzad-logo-contact-animated-240x80.mp4):
+// 20 s, the animated logo for 10 s then the phone number and website. When the
 // banner changes, upload it under a new name rather than over the old file:
 // the server caches each file's MD5 by URL and controllers cache downloads.
 // Keep realtime-server/config.js idleMediaUrl the same.
 export const IDLE_MEDIA_URL =
   process.env.NEXT_PUBLIC_IDLE_MEDIA_URL ||
-  'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-logo-animated-240x80.mp4'
+  'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-logo-contact-animated-240x80-v2.mp4'
+
+/**
+ * How long the banner video runs. A program item stops at its duration, so this
+ * must match the video, and be one the realtime server accepts (10, 20 or 30).
+ * Keep realtime-server/config.js idleSeconds the same.
+ */
+export const BANNER_SECONDS = 20
 
 /**
  * The still 240×80 logo. The screens' player background (what the player
@@ -37,21 +45,21 @@ export const IDLE_BANNER_URL =
  */
 export function idleMediaItems(url: string = IDLE_MEDIA_URL) {
   const type = /\.png(\?|$)/i.test(url) ? 'image/png' : /\.jpe?g(\?|$)/i.test(url) ? 'image/jpeg' : 'video/mp4'
-  return [{ url, type, duration: 10, campaignName: IDLE_PROGRAM_NAME }]
+  return [{ url, type, duration: BANNER_SECONDS, campaignName: IDLE_PROGRAM_NAME }]
 }
 
 export function isIdleProgramName(name: unknown): boolean {
   return typeof name === 'string' && name.trim().toLowerCase() === IDLE_PROGRAM_NAME
 }
 
-// The GZAD house slot: one 10-second banner in every loop that has client ads
+// The GZAD house slot: one banner (BANNER_SECONDS long) in every loop that has client ads
 // (1 to SLOTS_PER_DEVICE of them), after the last one. Same media as the idle
 // program, under its own name because its plays ARE stored: billing measures
 // a screen's loop from every program it played, so the banner has to be seen
 // or each block would expect more plays than the loop allows and undercharge.
 // It never matches a campaign, so it is never charged or counted for a client.
 export const HOUSE_PROGRAM_NAME = 'gzad-house'
-export const HOUSE_SLOT_SECONDS = 10
+export const HOUSE_SLOT_SECONDS = BANNER_SECONDS
 
 export function houseMediaItem(url: string = IDLE_MEDIA_URL) {
   return { ...idleMediaItems(url)[0], duration: HOUSE_SLOT_SECONDS, campaignName: HOUSE_PROGRAM_NAME }

@@ -54,7 +54,7 @@ export function rotationCycles(slots: Pick<CampaignSlot, 'creatives'>[], maxCycl
  * Each cycle emits one creative per occupied slot, in slot order, so every
  * campaign gets exactly one appearance per cycle no matter how many files it
  * uploaded — that is the unit that billing charges for. Every cycle then ends
- * with the 10-second GZAD house banner, whether 1 or SLOTS_PER_DEVICE slots
+ * with the GZAD house banner (20 s), whether 1 or SLOTS_PER_DEVICE slots
  * are taken. No slots means no items: the screen gets the idle banner instead.
  */
 export function slotsToMediaItems(slots: CampaignSlot[]): PlaylistMediaItem[] {

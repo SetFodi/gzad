@@ -3,9 +3,9 @@ import { bandMultiplier, estimateBudget, playsPerHour, roughCount } from './budg
 
 describe('budget estimate', () => {
   it('plays a slot once per loop of five client slots and the GZAD banner', () => {
-    expect(playsPerHour(10)).toBe(60) // 60 s loop: 5 × 10 s ads + 10 s banner
-    expect(playsPerHour(20)).toBe(51)
-    expect(playsPerHour(30)).toBe(45)
+    expect(playsPerHour(10)).toBe(51) // 70 s loop: 5 × 10 s ads + 20 s banner
+    expect(playsPerHour(20)).toBe(45)
+    expect(playsPerHour(30)).toBe(40)
   })
 
   it('weights "any time" by the hours each band covers', () => {
@@ -18,14 +18,14 @@ describe('budget estimate', () => {
     // ₾2 × 1.15 = ₾2.30 an hour in standard districts, × 1.45 in prime ones.
     expect(e.hours.max).toBeCloseTo(100 / 2.3, 6)
     expect(e.hours.min).toBeCloseTo(100 / (2.3 * 1.45), 6)
-    expect(e.plays).toEqual({ min: Math.floor((100 / 3.335) * 60), max: Math.floor((100 / 2.3) * 60) })
-    expect(e.costPerPlay.min).toBeCloseTo(2.3 / 60, 6)
+    expect(e.plays).toEqual({ min: Math.floor((100 / 3.335) * 51), max: Math.floor((100 / 2.3) * 51) })
+    expect(e.costPerPlay.min).toBeCloseTo(2.3 / 51, 6)
   })
 
   it('spreads the hours across screens', () => {
     const e = estimateBudget({ budget: 500, adSeconds: 20, band: 'day', screens: 5 })
     expect(e.hoursPerScreen.max).toBeCloseTo(e.hours.max / 5, 6)
-    expect(e.plays.max).toBe(Math.floor((500 / 3.4) * 51)) // 20 s ad: 70 s loop
+    expect(e.plays.max).toBe(Math.floor((500 / 3.4) * 45)) // 20 s ad: 80 s loop
   })
 
   it('treats nonsense input as nothing bought', () => {

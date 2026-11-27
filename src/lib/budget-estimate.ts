@@ -34,7 +34,7 @@ export const PRIME_MULTIPLIER = 1.45
 export const STANDARD_MULTIPLIER = 1.0
 
 /**
- * The loop has five client slots plus the 10-second GZAD banner. The other
+ * The loop has five client slots plus the GZAD banner (20 s). The other
  * four client slots are assumed to be 10-second ads.
  */
 export const OTHER_SLOTS_SECONDS = 4 * 10 + HOUSE_SLOT_SECONDS

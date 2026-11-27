@@ -180,7 +180,7 @@ export default function SlotsPage() {
         <div>
           <h1 className="portal-page-title">{t('Slots')}</h1>
           <p className="portal-subtitle">
-            {t('Every screen plays up to {n} client ads, then a 10-second Gzad banner. Free slots are skipped. Refreshes every 10 seconds.', { n: perDevice })}
+            {t('Every screen plays up to {n} client ads, then a 20-second Gzad banner with our phone number. Free slots are skipped. Refreshes every 10 seconds.', { n: perDevice })}
           </p>
         </div>
         <button type="button" onClick={loadSlots} className="portal-btn-secondary">
