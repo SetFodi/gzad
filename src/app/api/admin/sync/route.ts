@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { syncGroupDevices } from '@/lib/device-sync'
+import { syncDevicePlaylist, syncGroupDevices } from '@/lib/device-sync'
 
 async function verifyAdmin() {
   const supabase = await createClient()
@@ -24,20 +24,38 @@ async function verifyAdmin() {
 //                  status changes, or duration edits)
 //   { clientId }   sync every group holding that client's campaigns (after a
 //                  balance top-up)
+//   { deviceId }   sync one screen with its group, or the GZAD banner when it
+//                  is in no group (after moving it between groups)
 export async function POST(request: NextRequest) {
   if (!await verifyAdmin()) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
   }
 
-  const { groupId, clientId, campaignId } = await request.json()
-  if (!groupId && !clientId && !campaignId) {
-    return NextResponse.json({ error: 'groupId, campaignId or clientId required' }, { status: 400 })
+  const { groupId, clientId, campaignId, deviceId } = await request.json()
+  if (!groupId && !clientId && !campaignId && !deviceId) {
+    return NextResponse.json({ error: 'groupId, campaignId, clientId or deviceId required' }, { status: 400 })
   }
 
   const supabase = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
+
+  if (deviceId) {
+    if (typeof deviceId !== 'string' || !/^[a-zA-Z0-9-]+$/.test(deviceId)) {
+      return NextResponse.json({ error: 'Invalid deviceId' }, { status: 400 })
+    }
+    const result = await syncDevicePlaylist(supabase, deviceId)
+    return NextResponse.json({
+      groups: 0,
+      devices: 1,
+      synced: result.error ? 0 : 1,
+      media: result.media,
+      campaigns: result.campaigns,
+      overflow: result.overflow,
+      errors: result.error ? [`${deviceId}: ${result.error}`] : undefined,
+    })
+  }
 
   const groupIds = new Set<string>()
   if (groupId) groupIds.add(groupId)
@@ -69,6 +87,7 @@ export async function POST(request: NextRequest) {
   let devices = 0
   let synced = 0
   let media = 0
+  let campaignCount = 0
   let overflow = 0
   const errors: string[] = []
 
@@ -77,6 +96,7 @@ export async function POST(request: NextRequest) {
     devices += result.devices
     synced += result.synced
     media = Math.max(media, result.media)
+    campaignCount = Math.max(campaignCount, result.campaigns)
     overflow += result.overflow
     errors.push(...result.errors)
   }
@@ -86,6 +106,7 @@ export async function POST(request: NextRequest) {
     devices,
     synced,
     media,
+    campaigns: campaignCount,
     overflow,
     errors: errors.length ? errors : undefined,
   })

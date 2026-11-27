@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { getDeviceSlots, cycleTimeSeconds, type SlotEntry, SLOTS_PER_DEVICE } from '@/lib/slots'
+import { getDeviceSlots, cycleTimeSeconds, emptySlotEntries, houseSlotEntry, type SlotEntry, SLOTS_PER_DEVICE } from '@/lib/slots'
 
 const REALTIME_SERVER_URL = process.env.REALTIME_SERVER_URL || 'http://localhost:8081'
 const REALTIME_SERVER_SECRET = process.env.REALTIME_SERVER_SECRET || ''
@@ -31,7 +31,7 @@ interface DeviceWithSlots {
   slots: SlotEntry[]
   cycleSeconds: number
   customerSlotCount: number
-  houseSlotCount: number
+  freeSlotCount: number
   configIssue: 'no_group' | 'no_campaigns' | null
 }
 
@@ -97,11 +97,8 @@ export async function GET() {
     const cached = slotCache.get(key)
     if (cached) return cached
     if (!groupId) {
-      const empty: SlotEntry[] = Array.from({ length: SLOTS_PER_DEVICE }, (_, i) => ({
-        index: i + 1,
-        type: 'empty' as const,
-        durationSeconds: 10 as const,
-      }))
+      // A screen in no group plays only the GZAD banner.
+      const empty: SlotEntry[] = [houseSlotEntry(), ...emptySlotEntries(0)]
       slotCache.set(key, empty)
       return empty
     }
@@ -115,7 +112,7 @@ export async function GET() {
   for (const d of registeredDevices || []) {
     const slots = await getSlotsForGroup(d.group_id)
     const customerCount = slots.filter(s => s.type === 'customer').length
-    const houseCount = slots.filter(s => s.type === 'house').length
+    const freeCount = slots.filter(s => s.type === 'empty').length
 
     let configIssue: DeviceWithSlots['configIssue'] = null
     if (!d.group_id) configIssue = 'no_group'
@@ -134,7 +131,7 @@ export async function GET() {
       slots,
       cycleSeconds: cycleTimeSeconds(slots),
       customerSlotCount: customerCount,
-      houseSlotCount: houseCount,
+      freeSlotCount: freeCount,
       configIssue,
     })
   }
@@ -149,7 +146,7 @@ export async function GET() {
   const totalDevices = devices.length
   const totalOnline = devices.filter(d => d.online).length
   const totalCustomerSlots = devices.reduce((s, d) => s + d.customerSlotCount, 0)
-  const totalHouseSlots = devices.reduce((s, d) => s + d.houseSlotCount, 0)
+  const totalFreeSlots = devices.reduce((s, d) => s + d.freeSlotCount, 0)
   const totalConfigIssues = devices.filter(d => d.configIssue).length
 
   const groupSummaries: GroupSummary[] = (groups || []).map(g => ({ id: g.id, name: g.name }))
@@ -161,7 +158,7 @@ export async function GET() {
       totalDevices,
       totalOnline,
       totalCustomerSlots,
-      totalHouseSlots,
+      totalFreeSlots,
       totalConfigIssues,
       totalSlots: totalDevices * SLOTS_PER_DEVICE,
     },

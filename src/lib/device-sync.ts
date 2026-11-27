@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getGroupSlots, SLOTS_PER_DEVICE, type CampaignSlot } from '@/lib/slots'
 import { tbilisiToday } from '@/lib/campaigns'
-import { IDLE_PROGRAM_NAME, idleMediaItems } from '@/lib/idle-program'
+import { IDLE_PROGRAM_NAME, houseMediaItem, idleMediaItems } from '@/lib/idle-program'
 
 // Server-side only — talks to the Realtime Server with the shared secret.
 // Single source of truth for "what should this device be playing right now",
@@ -53,7 +53,9 @@ export function rotationCycles(slots: Pick<CampaignSlot, 'creatives'>[], maxCycl
  *
  * Each cycle emits one creative per occupied slot, in slot order, so every
  * campaign gets exactly one appearance per cycle no matter how many files it
- * uploaded — that is the unit that billing charges for.
+ * uploaded — that is the unit that billing charges for. Every cycle then ends
+ * with the 10-second GZAD house banner, whether 1 or SLOTS_PER_DEVICE slots
+ * are taken. No slots means no items: the screen gets the idle banner instead.
  */
 export function slotsToMediaItems(slots: CampaignSlot[]): PlaylistMediaItem[] {
   const cycles = rotationCycles(slots)
@@ -68,6 +70,7 @@ export function slotsToMediaItems(slots: CampaignSlot[]): PlaylistMediaItem[] {
         campaignName: slot.campaignName,
       })
     }
+    items.push(houseMediaItem())
   }
   return items
 }

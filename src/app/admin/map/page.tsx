@@ -6,6 +6,7 @@ import { RefreshCw, Layers, Monitor } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useAdminText } from '@/lib/admin-i18n'
+import { BANNER_PROGRAMS_FILTER } from '@/lib/idle-program'
 
 const MapView = dynamic(() => import('@/components/admin/MapView'), { ssr: false })
 
@@ -58,6 +59,7 @@ export default function MapPage() {
         .select('id, device_id, lat, lng, began_at')
         .gte('began_at', start)
         .lte('began_at', end)
+        .not('program_name', 'in', BANNER_PROGRAMS_FILTER) // ad plays only, not the GZAD banner
         .not('lat', 'eq', 0)
         .not('lng', 'eq', 0)
         .order('began_at', { ascending: true })

@@ -7,7 +7,8 @@
 // program, so it keeps playing without a connection.
 //
 // Its plays are not logged or billed (see the play-log callback), and no
-// campaign may take its name.
+// campaign may take its name. Screens with ads get the same banner once per
+// loop as the house slot (HOUSE_PROGRAM_NAME, below).
 
 export const IDLE_PROGRAM_NAME = 'gzad-idle'
 
@@ -41,4 +42,27 @@ export function idleMediaItems(url: string = IDLE_MEDIA_URL) {
 
 export function isIdleProgramName(name: unknown): boolean {
   return typeof name === 'string' && name.trim().toLowerCase() === IDLE_PROGRAM_NAME
+}
+
+// The GZAD house slot: one 10-second banner in every loop that has client ads
+// (1 to SLOTS_PER_DEVICE of them), after the last one. Same media as the idle
+// program, under its own name because its plays ARE stored: billing measures
+// a screen's loop from every program it played, so the banner has to be seen
+// or each block would expect more plays than the loop allows and undercharge.
+// It never matches a campaign, so it is never charged or counted for a client.
+export const HOUSE_PROGRAM_NAME = 'gzad-house'
+export const HOUSE_SLOT_SECONDS = 10
+
+export function houseMediaItem(url: string = IDLE_MEDIA_URL) {
+  return { ...idleMediaItems(url)[0], duration: HOUSE_SLOT_SECONDS, campaignName: HOUSE_PROGRAM_NAME }
+}
+
+/** For PostgREST `.not('program_name', 'in', …)`: leaves the GZAD banner's plays out of ad statistics. */
+export const BANNER_PROGRAMS_FILTER = `(${IDLE_PROGRAM_NAME},${HOUSE_PROGRAM_NAME})`
+
+/** Names no campaign may take: the screens use them for the GZAD banner. */
+export function isReservedProgramName(name: unknown): boolean {
+  if (typeof name !== 'string') return false
+  const n = name.trim().toLowerCase()
+  return n === IDLE_PROGRAM_NAME || n === HOUSE_PROGRAM_NAME
 }

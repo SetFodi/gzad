@@ -28,7 +28,7 @@ interface DeviceWithSlots {
   slots: SlotEntry[]
   cycleSeconds: number
   customerSlotCount: number
-  houseSlotCount: number
+  freeSlotCount: number
   configIssue: 'no_group' | 'no_campaigns' | null
 }
 
@@ -44,7 +44,7 @@ interface ApiResponse {
     totalDevices: number
     totalOnline: number
     totalCustomerSlots: number
-    totalHouseSlots: number
+    totalFreeSlots: number
     totalConfigIssues: number
     totalSlots: number
   }
@@ -74,9 +74,9 @@ function formatRelative(iso: string | null, t: (en: string, vars?: Record<string
 /** One slot of a screen's loop, sized by how long it plays. */
 function LoopSlot({ slot }: { slot: SlotEntry }) {
   const { t } = useAdminText()
-  const label = slot.type === 'customer' ? (slot.campaignName ?? t('Unnamed')) : slot.type === 'house' ? t('Gzad house ad') : t('Empty')
+  const label = slot.type === 'customer' ? (slot.campaignName ?? t('Unnamed')) : slot.type === 'house' ? t('Gzad house ad') : t('Free')
   return (
-    <div className="loop-slot" data-type={slot.type} style={{ flexGrow: Math.max(slot.durationSeconds, 1) }} title={`${t('Slot {n}', { n: slot.index + 1 })}: ${label}, ${slot.durationSeconds}s`}>
+    <div className="loop-slot" data-type={slot.type} style={{ flexGrow: Math.max(slot.durationSeconds, 1) }} title={slot.type === 'house' ? `${label}, ${slot.durationSeconds}s` : `${t('Slot {n}', { n: slot.index })}: ${label}${slot.type === 'empty' ? '' : `, ${slot.durationSeconds}s`}`}>
       <div className="loop-slot-media">
         {slot.type === 'customer' && slot.mediaUrl ? (
           slot.mediaType === 'video'
@@ -91,7 +91,7 @@ function LoopSlot({ slot }: { slot: SlotEntry }) {
       </div>
       <div className="loop-slot-meta">
         <span className="loop-slot-name">{label}</span>
-        <span className="loop-slot-dur">{slot.durationSeconds}s</span>
+        {slot.type !== 'empty' && <span className="loop-slot-dur">{slot.durationSeconds}s</span>}
       </div>
     </div>
   )
@@ -208,8 +208,8 @@ export default function SlotsPage() {
               <Megaphone size={24} />
             </div>
             <div className="stat-card-info">
-              <span className="stat-card-value">{data.summary.totalHouseSlots}</span>
-              <span className="stat-card-label">{t('Filled with house ads')}</span>
+              <span className="stat-card-value">{data.summary.totalFreeSlots}</span>
+              <span className="stat-card-label">{t('Free client slots')}</span>
             </div>
           </div>
           <div className="stat-card">

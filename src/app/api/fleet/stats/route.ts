@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { BANNER_PROGRAMS_FILTER } from '@/lib/idle-program'
 
 const PAGE_SIZE = 1000
 
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
         .from('play_logs')
         .select('device_id, duration_seconds, began_at, campaign_id, program_name, lat, lng')
         .in('device_id', assignedDeviceIds)
+        .not('program_name', 'in', BANNER_PROGRAMS_FILTER) // ad plays only, not the GZAD banner
         .gte('began_at', thirtyDaysAgo.toISOString())
         .order('began_at', { ascending: false })
         .range(from, to),

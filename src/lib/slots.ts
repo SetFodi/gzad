@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { applyLiveWindow, tbilisiToday } from '@/lib/campaigns'
+import { HOUSE_SLOT_SECONDS, houseMediaItem } from '@/lib/idle-program'
 
 // The device's advertising inventory model, and the single source of truth for
 // it. Both the admin slot view and the playlist actually pushed to hardware are
@@ -8,6 +9,10 @@ import { applyLiveWindow, tbilisiToday } from '@/lib/campaigns'
 // A device runs SLOTS_PER_DEVICE slots. One live campaign occupies exactly one
 // slot regardless of how many creatives it has uploaded — that is what a
 // slot-hour is priced on. A campaign's creatives rotate between cycles.
+//
+// On top of those, every loop with at least one client ad ends with one
+// 10-second GZAD house banner (see HOUSE_PROGRAM_NAME). Free slots play
+// nothing: the loop is just shorter.
 
 export const SLOTS_PER_DEVICE = 5
 
@@ -37,7 +42,11 @@ export interface GroupSlots {
   overflow: number
 }
 
-/** Flat view of one slot, padded out to SLOTS_PER_DEVICE for the admin UI. */
+/**
+ * Flat view of one slot for the admin UI: SLOTS_PER_DEVICE client positions
+ * (taken or 'empty') plus the GZAD 'house' slot. An empty slot plays nothing,
+ * so it lasts 0 seconds.
+ */
 export interface SlotEntry {
   index: number
   type: SlotType
@@ -46,7 +55,7 @@ export interface SlotEntry {
   mediaId?: string
   mediaUrl?: string
   mediaType?: 'image' | 'video' | string
-  durationSeconds: SlotDuration
+  durationSeconds: number
   /** How many creatives rotate through this slot. */
   creativeCount?: number
 }
@@ -113,9 +122,31 @@ export async function getGroupSlots(
   return { slots, overflow }
 }
 
+/** The GZAD banner slot as the admin UI shows it, after the client slots. */
+export function houseSlotEntry(): SlotEntry {
+  const banner = houseMediaItem()
+  return {
+    index: SLOTS_PER_DEVICE + 1,
+    type: 'house',
+    mediaUrl: banner.url,
+    mediaType: banner.type.startsWith('video') ? 'video' : 'image',
+    durationSeconds: HOUSE_SLOT_SECONDS,
+  }
+}
+
+/** Free client positions, numbered after the taken ones. */
+export function emptySlotEntries(taken: number): SlotEntry[] {
+  return Array.from({ length: Math.max(0, SLOTS_PER_DEVICE - taken) }, (_, i) => ({
+    index: taken + i + 1,
+    type: 'empty' as const,
+    durationSeconds: 0,
+  }))
+}
+
 /**
- * The SLOTS_PER_DEVICE-entry view used by the admin slots page. Occupied slots
- * show their first creative; the rest are house placeholders.
+ * The admin slots page's view of a screen, in the order it plays: the taken
+ * client slots (each showing its first creative), the GZAD house slot, then
+ * the free positions. A screen with no client ads plays just the banner.
  */
 export async function getDeviceSlots(
   supabase: SupabaseClient,
@@ -136,13 +167,10 @@ export async function getDeviceSlots(
     creativeCount: slot.creatives.length,
   }))
 
-  while (entries.length < SLOTS_PER_DEVICE) {
-    entries.push({ index: entries.length + 1, type: 'house', durationSeconds: 10 })
-  }
-  return entries
+  return [...entries, houseSlotEntry(), ...emptySlotEntries(entries.length)]
 }
 
-/** Cycle time = sum of slot durations on a device. */
+/** One pass of a screen's loop: the client slots and the GZAD banner (free slots take no time). */
 export function cycleTimeSeconds(slots: SlotEntry[]): number {
-  return slots.reduce((sum, s) => sum + s.durationSeconds, 0)
+  return slots.reduce((sum, s) => sum + (s.type === 'empty' ? 0 : s.durationSeconds), 0)
 }

@@ -7,7 +7,6 @@ import { Plus, X, Trash2, Search } from 'lucide-react'
 import StatusBadge from '@/components/app/StatusBadge'
 import AppDialog from '@/components/app/AppDialog'
 import { useAdminText } from '@/lib/admin-i18n'
-import { IDLE_PROGRAM_NAME, idleMediaItems } from '@/lib/idle-program'
 
 interface CampaignWithClient {
   id: string
@@ -221,64 +220,15 @@ export default function AdminCampaignsPage() {
     }
   }
 
+  // The same sync the rest of the app uses (slots, rotation, GZAD banner).
   const syncGroupDevices = async (groupId: string | null) => {
     if (!groupId) return // Only sync grouped campaigns
     try {
-      const { data: activeCampaigns } = await supabase
-        .from('campaigns')
-        .select('id, name')
-        .eq('status', 'active')
-        .eq('device_group_id', groupId)
-
-      const mediaItems: { url: string; type: string; duration: number; campaignName: string }[] = []
-      const campaignNames: string[] = []
-      for (const c of activeCampaigns || []) {
-        const { data: approved } = await supabase
-          .from('ad_media')
-          .select('file_url, file_type, display_duration_seconds')
-          .eq('campaign_id', c.id)
-          .eq('status', 'approved')
-        if (approved && approved.length > 0) {
-          campaignNames.push(c.name)
-          for (const m of approved) {
-            mediaItems.push({ url: m.file_url, type: m.file_type, duration: m.display_duration_seconds || 10, campaignName: c.name })
-          }
-        }
-      }
-
-      const { data: groupDevices } = await supabase.from('devices').select('id').eq('group_id', groupId)
-      const groupIds = new Set((groupDevices || []).map((d: { id: string }) => d.id))
-
-      const devicesRes = await fetch('/api/devices')
-      const deviceList = await devicesRes.json()
-      const onlineDevices = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
-        .filter((d: { online: boolean; cardId: string }) => d.online && groupIds.has(d.cardId))
-
-      for (const device of onlineDevices) {
-        if (mediaItems.length === 0) {
-          // Nothing live: the GZAD banner, not a wiped screen (that shows the factory pattern).
-          await fetch('/api/devices/command', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              cardId: device.cardId, action: 'push-program',
-              name: IDLE_PROGRAM_NAME, mediaItems: idleMediaItems(),
-              schedule: { startTime: '00:00', endTime: '23:59' }, width: 240, height: 80,
-            }),
-          })
-        } else {
-          await fetch('/api/devices/command', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              cardId: device.cardId, action: 'push-program',
-              name: campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist',
-              mediaItems, schedule: { startTime: '00:00', endTime: '23:59' },
-              width: 240, height: 80,
-            }),
-          })
-        }
-      }
+      await fetch('/api/admin/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId }),
+      })
     } catch (err) {
       console.error('Failed to sync devices:', err)
     }

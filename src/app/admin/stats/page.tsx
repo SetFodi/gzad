@@ -7,6 +7,7 @@ import { BarChart3, Play, Clock, Monitor, Megaphone, FolderOpen, X, MapPin, Chev
 import StatusBadge from '@/components/app/StatusBadge'
 import HourRange from '@/components/app/HourRange'
 import { useAdminText } from '@/lib/admin-i18n'
+import { BANNER_PROGRAMS_FILTER } from '@/lib/idle-program'
 
 const StatsMapView = dynamic(() => import('@/components/admin/StatsMapView'), { ssr: false })
 
@@ -165,6 +166,7 @@ export default function AdminStatsPage() {
           .from('play_logs')
           .select('campaign_id, program_name, device_id, began_at, duration_seconds, lat, lng')
           .gte('began_at', thirtyDaysAgo.toISOString())
+          .not('program_name', 'in', BANNER_PROGRAMS_FILTER) // ad plays only, not the GZAD banner
           .order('began_at', { ascending: true })
           .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
         if (error) throw error

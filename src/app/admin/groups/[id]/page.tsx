@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { ArrowLeft, Monitor, Send } from 'lucide-react'
 import StatusBadge from '@/components/app/StatusBadge'
 import { useAdminText } from '@/lib/admin-i18n'
-import { IDLE_PROGRAM_NAME, idleMediaItems } from '@/lib/idle-program'
 
 interface DeviceGroup {
   id: string
@@ -126,93 +125,29 @@ export default function GroupDetailPage() {
 
   useEffect(() => { load(); loadOnlineDevices() }, [groupId])
 
+  // The same sync the rest of the app uses: slots, rotation, the GZAD house
+  // banner, and the banner alone when nothing in the group is live.
   const syncGroupToDevices = async () => {
     setSyncing(true)
     setSyncResult(null)
     try {
-      // Fetch fresh from DB (not stale React state)
-      const { data: activeCampaigns } = await supabase
-        .from('campaigns')
-        .select('id, name')
-        .eq('status', 'active')
-        .eq('device_group_id', groupId)
-
-      // Collect approved media
-      const mediaItems: { url: string; type: string; duration: number; campaignName: string }[] = []
-      const campaignNames: string[] = []
-      for (const c of activeCampaigns || []) {
-        const { data: approved } = await supabase
-          .from('ad_media')
-          .select('file_url, file_type, display_duration_seconds')
-          .eq('campaign_id', c.id)
-          .eq('status', 'approved')
-        if (approved && approved.length > 0) {
-          campaignNames.push(c.name)
-          for (const m of approved) {
-            mediaItems.push({
-              url: m.file_url,
-              type: m.file_type,
-              duration: m.display_duration_seconds || 10,
-              campaignName: c.name,
-            })
-          }
-        }
-      }
-
-      // Get online devices in this group (fresh from DB + API)
-      const { data: groupDevices } = await supabase
-        .from('devices')
-        .select('id')
-        .eq('group_id', groupId)
-      const groupDeviceIds = new Set((groupDevices || []).map((d: { id: string }) => d.id))
-
-      const devicesRes = await fetch('/api/devices')
-      const deviceList = await devicesRes.json()
-      const onlineInGroup = (Array.isArray(deviceList) ? deviceList : deviceList.devices || [])
-        .filter((d: { online: boolean; cardId: string }) => d.online && groupDeviceIds.has(d.cardId))
-
-      if (onlineInGroup.length === 0) {
-        setSyncResult({ ok: false, msg: t('No screens in this group are online') })
-        setSyncing(false)
+      const res = await fetch('/api/admin/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        setSyncResult({ ok: false, msg: result.error || t('Push failed') })
         return
       }
-
-      let pushed = 0
-      for (const device of onlineInGroup) {
-        if (mediaItems.length === 0) {
-          // Nothing live: the GZAD banner, not a wiped screen (that shows the factory pattern).
-          await fetch('/api/devices/command', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              cardId: device.cardId, action: 'push-program',
-              name: IDLE_PROGRAM_NAME, mediaItems: idleMediaItems(),
-              schedule: { startTime: '00:00', endTime: '23:59' }, width: 240, height: 80,
-            }),
-          })
-        } else {
-          await fetch('/api/devices/command', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              cardId: device.cardId,
-              action: 'push-program',
-              name: campaignNames.length === 1 ? campaignNames[0] : 'gzad playlist',
-              mediaItems,
-              schedule: { startTime: '00:00', endTime: '23:59' },
-              width: 240,
-              height: 80,
-            }),
-          })
-        }
-        pushed++
-      }
-
+      const failed: string[] = result.errors ?? []
+      const msg = result.campaigns === 0
+        ? t('No live campaigns: {devices} screen(s) show the GZAD banner', { devices: result.synced })
+        : t('Pushed {campaigns} campaign(s) plus the GZAD banner to {devices} screen(s)', { campaigns: result.campaigns, devices: result.synced })
       setSyncResult({
-        ok: true,
-        msg: mediaItems.length === 0
-          ? t('Cleared the playlist on {devices} screen(s)', { devices: pushed })
-          : t('Pushed {ads} ad(s) from {campaigns} campaign(s) to {devices} screen(s)', { ads: mediaItems.length, campaigns: campaignNames.length, devices: pushed }),
+        ok: failed.length === 0,
+        msg: failed.length ? `${msg}. ${t('Not reached: {list}', { list: failed.join('; ') })}` : msg,
       })
     } catch (err) {
       setSyncResult({ ok: false, msg: err instanceof Error ? err.message : t('Push failed') })

@@ -59,7 +59,7 @@ const en = {
       "perScreen": "about {min}–{max} h on each of {n} screens",
       "perPlay": "₾{min}–{max} per play",
       "range": "The range uses current district rates and the average hourly rate for the selected time band. Actual delivery depends on the taxis’ trips and recorded plays.",
-      "assumption": "Assumes the other four slots in the loop are 10-second ads, so a {seconds}-second ad plays about {plays} times an hour. Your exact rates are confirmed when you book."
+      "assumption": "Assumes the other four slots in the loop are 10-second ads, plus the 10-second Gzad banner every loop, so a {seconds}-second ad plays about {plays} times an hour. Your exact rates are confirmed when you book."
     },
     "cta": "Get a quote"
   },
@@ -173,7 +173,7 @@ const ge: CalculatorCopy = {
       "perScreen": "დაახლ. {min}–{max} სთ თითოეულ {n} ეკრანზე",
       "perPlay": "ერთი ჩვენება ₾{min}–{max}",
       "range": "დიაპაზონი ითვლება უბნების მიმდინარე ტარიფებითა და არჩეული დროის მონაკვეთის საშუალო საათობრივი ტარიფით. რეალური შედეგი ტაქსების მგზავრობებსა და აღრიცხულ ჩვენებებზეა დამოკიდებული.",
-      "assumption": "ვთვლით, რომ ციკლის დანარჩენი ოთხი სლოტი 10-წამიანი რეკლამაა, ასე რომ {seconds}-წამიანი რეკლამა საათში დაახლოებით {plays}-ჯერ გადის. ზუსტ ტარიფებს დაჯავშნისას დაგიდასტურებთ."
+      "assumption": "ვთვლით, რომ ციკლის დანარჩენი ოთხი სლოტი 10-წამიანი რეკლამაა და ყოველ ციკლში 10-წამიანი Gzad-ის ბანერიც გადის, ასე რომ {seconds}-წამიანი რეკლამა საათში დაახლოებით {plays}-ჯერ გადის. ზუსტ ტარიფებს დაჯავშნისას დაგიდასტურებთ."
     },
     "cta": "ფასის მოთხოვნა"
   },

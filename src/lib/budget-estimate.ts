@@ -1,4 +1,5 @@
 import { baseRateFor, DEFAULT_BASE_RATES, type PricingConfig } from './billing'
+import { HOUSE_SLOT_SECONDS } from './idle-program'
 
 // Client guide estimates follow the configured rates. The client cannot pick
 // districts, so the result spans the district tiers in use, including fallback.
@@ -32,8 +33,11 @@ export function bandMultiplier(band: Band, config?: PricingConfig): number {
 export const PRIME_MULTIPLIER = 1.45
 export const STANDARD_MULTIPLIER = 1.0
 
-/** The loop has five slots; the other four are assumed to be 10-second ads. */
-export const OTHER_SLOTS_SECONDS = 4 * 10
+/**
+ * The loop has five client slots plus the 10-second GZAD banner. The other
+ * four client slots are assumed to be 10-second ads.
+ */
+export const OTHER_SLOTS_SECONDS = 4 * 10 + HOUSE_SLOT_SECONDS
 
 export function playsPerHour(adSeconds: number): number {
   return Math.floor(3600 / (adSeconds + OTHER_SLOTS_SECONDS))

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { pushPlaylistToDevice, rotationCycles, slotsToMediaItems } from './device-sync'
+import { cycleTimeSeconds, emptySlotEntries, houseSlotEntry } from './slots'
 import { IDLE_PROGRAM_NAME, idleMediaItems, isIdleProgramName } from './idle-program'
 import type { CampaignSlot, SlotCreative } from './slots'
 
@@ -49,7 +50,7 @@ describe('slotsToMediaItems', () => {
     ]
     const items = slotsToMediaItems(slots)
 
-    expect(items).toHaveLength(4) // 2 cycles x 2 slots
+    expect(items).toHaveLength(6) // 2 cycles x (2 slots + the GZAD banner)
     const alpha = items.filter(i => i.campaignName === 'alpha')
     const beta = items.filter(i => i.campaignName === 'beta')
     expect(alpha).toHaveLength(2)
@@ -58,7 +59,7 @@ describe('slotsToMediaItems', () => {
 
   it('rotates creatives instead of repeating the first', () => {
     const slots = [slot(1, 'alpha', [creative('a1'), creative('a2'), creative('a3')])]
-    const urls = slotsToMediaItems(slots).map(i => i.url)
+    const urls = slotsToMediaItems(slots).filter(i => i.campaignName === 'alpha').map(i => i.url)
     expect(urls).toEqual([
       'https://cdn.example/a1.mp4',
       'https://cdn.example/a2.mp4',
@@ -99,7 +100,7 @@ describe('slotsToMediaItems', () => {
       slot(2, 'second', [creative('s1')]),
       slot(3, 'third', [creative('t1')]),
     ]
-    expect(slotsToMediaItems(slots).map(i => i.campaignName)).toEqual(['first', 'second', 'third'])
+    expect(slotsToMediaItems(slots).map(i => i.campaignName)).toEqual(['first', 'second', 'third', 'gzad-house'])
   })
 
   it('produces nothing when no campaign is live', () => {
@@ -160,5 +161,42 @@ describe('idleMediaItems', () => {
   it('plays the animated banner by default and a still image when pointed at one', () => {
     expect(idleMediaItems()[0].type).toBe('video/mp4')
     expect(idleMediaItems('https://x.example/backgrounds/gzad-background-240x80.png')[0].type).toBe('image/png')
+  })
+})
+
+describe('the GZAD house banner in every loop', () => {
+  const names = (n: number) => Array.from({ length: n }, (_, i) => slot(i + 1, `c${i + 1}`, [creative(`c${i + 1}`)]))
+
+  it('plays once per loop, after the client ads, whether 1 or 5 slots are taken', () => {
+    for (const n of [1, 3, 5]) {
+      const items = slotsToMediaItems(names(n))
+      expect(items.map(i => i.campaignName)).toEqual([...names(n).map(s => s.campaignName), 'gzad-house'])
+    }
+  })
+
+  it('is 10 seconds of the animated banner, under the name billing stores', () => {
+    const banner = slotsToMediaItems(names(2)).at(-1)!
+    expect(banner).toMatchObject({ campaignName: 'gzad-house', duration: 10, type: 'video/mp4' })
+    expect(banner.url).toMatch(/gzad-logo-animated-240x80\.mp4$/)
+  })
+
+  it('closes every cycle when creatives rotate over several cycles', () => {
+    const items = slotsToMediaItems([slot(1, 'ab', [creative('a'), creative('b')]), slot(2, 'one', [creative('o')])])
+    expect(items.map(i => i.campaignName)).toEqual(['ab', 'one', 'gzad-house', 'ab', 'one', 'gzad-house'])
+  })
+
+  it('adds nothing when no slot is taken: that screen gets the idle banner instead', () => {
+    expect(slotsToMediaItems([])).toEqual([])
+  })
+
+  it('counts the banner in the loop the admin sees, and free slots as no time', () => {
+    const view = [
+      { index: 1, type: 'customer' as const, durationSeconds: 20 },
+      { index: 2, type: 'customer' as const, durationSeconds: 10 },
+      houseSlotEntry(),
+      ...emptySlotEntries(2),
+    ]
+    expect(view.filter(s => s.type === 'empty').map(s => s.index)).toEqual([3, 4, 5])
+    expect(cycleTimeSeconds(view)).toBe(40)
   })
 })
