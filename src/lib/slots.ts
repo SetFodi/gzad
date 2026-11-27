@@ -36,10 +36,18 @@ export interface CampaignSlot {
   creatives: SlotCreative[]
 }
 
+/** A live campaign that found no free slot, so it is not playing. */
+export interface WaitingCampaign {
+  campaignId: string
+  campaignName: string
+}
+
 export interface GroupSlots {
   slots: CampaignSlot[]
   /** Live campaigns that had no free slot on this device. */
   overflow: number
+  /** The same campaigns by name, oldest first: the next in line for a slot. */
+  waiting: WaitingCampaign[]
 }
 
 /**
@@ -74,7 +82,7 @@ export async function getGroupSlots(
   groupId: string | null | undefined,
   today: string = tbilisiToday(),
 ): Promise<GroupSlots> {
-  if (!groupId) return { slots: [], overflow: 0 }
+  if (!groupId) return { slots: [], overflow: 0, waiting: [] }
 
   const { data: campaigns } = await applyLiveWindow(
     supabase
@@ -85,10 +93,10 @@ export async function getGroupSlots(
     today,
   ).order('created_at', { ascending: true })
 
-  if (!campaigns || campaigns.length === 0) return { slots: [], overflow: 0 }
+  if (!campaigns || campaigns.length === 0) return { slots: [], overflow: 0, waiting: [] }
 
   const slots: CampaignSlot[] = []
-  let overflow = 0
+  const waiting: WaitingCampaign[] = []
 
   for (const campaign of campaigns) {
     const { data: approved } = await supabase
@@ -101,7 +109,7 @@ export async function getGroupSlots(
     if (!approved || approved.length === 0) continue
 
     if (slots.length >= SLOTS_PER_DEVICE) {
-      overflow++
+      waiting.push({ campaignId: campaign.id, campaignName: campaign.name })
       continue
     }
 
@@ -119,7 +127,7 @@ export async function getGroupSlots(
     })
   }
 
-  return { slots, overflow }
+  return { slots, overflow: waiting.length, waiting }
 }
 
 /** The GZAD banner slot as the admin UI shows it, after the client slots. */
@@ -152,8 +160,8 @@ export async function getDeviceSlots(
   supabase: SupabaseClient,
   groupId: string | null | undefined,
   today: string = tbilisiToday(),
-): Promise<SlotEntry[]> {
-  const { slots: occupied } = await getGroupSlots(supabase, groupId, today)
+): Promise<{ slots: SlotEntry[]; waiting: WaitingCampaign[] }> {
+  const { slots: occupied, waiting } = await getGroupSlots(supabase, groupId, today)
 
   const entries: SlotEntry[] = occupied.map(slot => ({
     index: slot.index,
@@ -167,7 +175,7 @@ export async function getDeviceSlots(
     creativeCount: slot.creatives.length,
   }))
 
-  return [...entries, houseSlotEntry(), ...emptySlotEntries(entries.length)]
+  return { slots: [...entries, houseSlotEntry(), ...emptySlotEntries(entries.length)], waiting }
 }
 
 /** One pass of a screen's loop: the client slots and the GZAD banner (free slots take no time). */

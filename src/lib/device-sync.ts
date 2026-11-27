@@ -107,8 +107,10 @@ function programBody(name: string, mediaItems: PlaylistMediaItem[]) {
 /**
  * Pushes a playlist to one device. An empty playlist puts the GZAD banner on
  * instead (`cleared` and `idle`): wiping the screen would show the factory pattern.
- * If the banner can't be pushed, the screen is wiped after all, so ads whose
- * campaigns just ran out of budget never keep playing.
+ * If the banner can't be pushed, the fallback is clear-program, which on the
+ * realtime server tries the banner once more and only wipes the screen if that
+ * fails too, so ads whose campaigns just ran out of budget never keep playing.
+ * Its answer says which happened: { idle: true } or { wiped: true }.
  */
 export async function pushPlaylistToDevice(
   cardId: string,
@@ -119,10 +121,17 @@ export async function pushPlaylistToDevice(
       const idle = await postToScreen(cardId, 'push-program', programBody(IDLE_PROGRAM_NAME, idleMediaItems()))
       if (idle.ok) return { ok: true, cleared: true, idle: true }
       const res = await postToScreen(cardId, 'clear-program', {})
+      const outcome = (await res.json().catch(() => null)) as { idle?: boolean; wiped?: boolean } | null
+      // The server's own retry got the banner on: that is a success, not an error.
+      if (res.ok && outcome?.idle === true) return { ok: true, cleared: true, idle: true }
       return {
         ok: res.ok,
         cleared: true,
-        error: `banner push returned ${idle.status}` + (res.ok ? ', screen wiped instead' : `, clear-program returned ${res.status}`),
+        error: `banner push returned ${idle.status}` + (
+          !res.ok ? `, clear-program returned ${res.status}`
+            : outcome?.wiped ? ', banner retry failed too, screen wiped so ads stop'
+            : ', screen wiped instead'
+        ),
       }
     }
 

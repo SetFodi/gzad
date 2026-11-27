@@ -29,7 +29,8 @@ interface DeviceWithSlots {
   cycleSeconds: number
   customerSlotCount: number
   freeSlotCount: number
-  configIssue: 'no_group' | 'no_campaigns' | null
+  waiting: { campaignId: string; campaignName: string }[]
+  configIssue: 'no_group' | 'no_campaigns' | 'overflow' | null
 }
 
 interface GroupSummary {
@@ -47,6 +48,7 @@ interface ApiResponse {
     totalFreeSlots: number
     totalConfigIssues: number
     totalSlots: number
+    waitingCampaigns: { campaignId: string; campaignName: string; groupName: string | null }[]
   }
   slotsPerDevice: number
   realtimeError?: string
@@ -177,7 +179,7 @@ export default function SlotsPage() {
         <div>
           <h1 className="portal-page-title">{t('Slots')}</h1>
           <p className="portal-subtitle">
-            {t('Every screen plays a loop of {n} slots. Paid slots show the client’s ad; the rest fill with Gzad house ads. Refreshes every 10 seconds.', { n: perDevice })}
+            {t('Every screen plays up to {n} client ads, then a 10-second Gzad banner. Free slots are skipped. Refreshes every 10 seconds.', { n: perDevice })}
           </p>
         </div>
         <button type="button" onClick={loadSlots} className="portal-btn-secondary">
@@ -186,6 +188,15 @@ export default function SlotsPage() {
       </div>
 
       {error && <div className="portal-alert portal-alert-warning">{error}</div>}
+
+      {data && data.summary.waitingCampaigns.length > 0 && (
+        <div className="portal-alert portal-alert-warning" role="status">
+          {t('{n} live campaign(s) have no free slot, so they are not playing: {list}', {
+            n: data.summary.waitingCampaigns.length,
+            list: data.summary.waitingCampaigns.map(w => w.groupName ? `${w.campaignName} (${w.groupName})` : w.campaignName).join(', '),
+          })}
+        </div>
+      )}
 
       {data && (
         <div className="stats-grid">
@@ -270,6 +281,9 @@ export default function SlotsPage() {
               <div className="loop-strip">
                 {d.slots.map(slot => <LoopSlot key={slot.index} slot={slot} />)}
               </div>
+              {d.configIssue === 'overflow' && (
+                <p className="cell-sub" style={{ margin: 0, color: 'var(--portal-warning)' }}>{t('Waiting for a free slot in this group: {list}', { list: d.waiting.map(w => w.campaignName).join(', ') })}</p>
+              )}
               {d.configIssue === 'no_campaigns' && (
                 <p className="cell-sub" style={{ margin: 0, color: 'var(--portal-warning)' }}>{t('No active campaigns in this screen’s group, so it only plays house ads.')}</p>
               )}

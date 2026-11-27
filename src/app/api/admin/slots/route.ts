@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { getDeviceSlots, cycleTimeSeconds, emptySlotEntries, houseSlotEntry, type SlotEntry, SLOTS_PER_DEVICE } from '@/lib/slots'
+import { getDeviceSlots, cycleTimeSeconds, emptySlotEntries, houseSlotEntry, type SlotEntry, type WaitingCampaign, SLOTS_PER_DEVICE } from '@/lib/slots'
 
 const REALTIME_SERVER_URL = process.env.REALTIME_SERVER_URL || 'http://localhost:8081'
 const REALTIME_SERVER_SECRET = process.env.REALTIME_SERVER_SECRET || ''
@@ -32,7 +32,9 @@ interface DeviceWithSlots {
   cycleSeconds: number
   customerSlotCount: number
   freeSlotCount: number
-  configIssue: 'no_group' | 'no_campaigns' | null
+  /** Live campaigns in this screen's group that found no free slot. */
+  waiting: WaitingCampaign[]
+  configIssue: 'no_group' | 'no_campaigns' | 'overflow' | null
 }
 
 interface GroupSummary {
@@ -91,32 +93,33 @@ export async function GET() {
   const liveMap = new Map(liveDevices.map(d => [d.cardId, d]))
 
   // 4. Cache slot computations per group to avoid recomputing for every device in the same group
-  const slotCache = new Map<string, SlotEntry[]>()
-  const getSlotsForGroup = async (groupId: string | null): Promise<SlotEntry[]> => {
+  const slotCache = new Map<string, { slots: SlotEntry[]; waiting: WaitingCampaign[] }>()
+  const getSlotsForGroup = async (groupId: string | null) => {
     const key = groupId ?? '__no_group__'
     const cached = slotCache.get(key)
     if (cached) return cached
     if (!groupId) {
       // A screen in no group plays only the GZAD banner.
-      const empty: SlotEntry[] = [houseSlotEntry(), ...emptySlotEntries(0)]
+      const empty = { slots: [houseSlotEntry(), ...emptySlotEntries(0)], waiting: [] }
       slotCache.set(key, empty)
       return empty
     }
-    const slots = await getDeviceSlots(supabase, groupId)
-    slotCache.set(key, slots)
-    return slots
+    const view = await getDeviceSlots(supabase, groupId)
+    slotCache.set(key, view)
+    return view
   }
 
   // 5. Assemble per-device payload
   const devices: DeviceWithSlots[] = []
   for (const d of registeredDevices || []) {
-    const slots = await getSlotsForGroup(d.group_id)
+    const { slots, waiting } = await getSlotsForGroup(d.group_id)
     const customerCount = slots.filter(s => s.type === 'customer').length
     const freeCount = slots.filter(s => s.type === 'empty').length
 
     let configIssue: DeviceWithSlots['configIssue'] = null
     if (!d.group_id) configIssue = 'no_group'
     else if (customerCount === 0) configIssue = 'no_campaigns'
+    else if (waiting.length > 0) configIssue = 'overflow'
 
     const live = liveMap.get(d.id)
 
@@ -132,6 +135,7 @@ export async function GET() {
       cycleSeconds: cycleTimeSeconds(slots),
       customerSlotCount: customerCount,
       freeSlotCount: freeCount,
+      waiting,
       configIssue,
     })
   }
@@ -149,6 +153,12 @@ export async function GET() {
   const totalFreeSlots = devices.reduce((s, d) => s + d.freeSlotCount, 0)
   const totalConfigIssues = devices.filter(d => d.configIssue).length
 
+  // Each waiting campaign once, with the group it is waiting in.
+  const waitingCampaigns: (WaitingCampaign & { groupName: string | null })[] = []
+  for (const [groupId, view] of slotCache) {
+    for (const w of view.waiting) waitingCampaigns.push({ ...w, groupName: groupMap.get(groupId) ?? null })
+  }
+
   const groupSummaries: GroupSummary[] = (groups || []).map(g => ({ id: g.id, name: g.name }))
 
   return NextResponse.json({
@@ -161,6 +171,7 @@ export async function GET() {
       totalFreeSlots,
       totalConfigIssues,
       totalSlots: totalDevices * SLOTS_PER_DEVICE,
+      waitingCampaigns,
     },
     slotsPerDevice: SLOTS_PER_DEVICE,
     realtimeError: realtimeError || undefined,

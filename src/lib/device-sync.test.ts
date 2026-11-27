@@ -139,6 +139,34 @@ describe('pushPlaylistToDevice with nothing live', () => {
     expect(result.error).toMatch(/banner push returned 400, screen wiped instead/)
   })
 
+  it('reports success when the server\'s own retry put the banner on', async () => {
+    // First push fails (e.g. the screen was busy); clear-program on the realtime
+    // server retries the banner, and it works.
+    calls.length = 0
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) => {
+      const path = new URL(url).pathname.split('/').pop() as string
+      calls.push({ path, body: JSON.parse(init.body) })
+      return path === 'push-program'
+        ? new Response('{}', { status: 500 })
+        : new Response(JSON.stringify({ success: true, idle: true }), { status: 200 })
+    }))
+    const result = await pushPlaylistToDevice('y08-s26-60753', empty)
+    expect(result).toEqual({ ok: true, cleared: true, idle: true })
+  })
+
+  it('says so plainly when the screen really was wiped', async () => {
+    calls.length = 0
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      const path = new URL(url).pathname.split('/').pop() as string
+      return path === 'push-program'
+        ? new Response('{}', { status: 500 })
+        : new Response(JSON.stringify({ success: true, idle: false, wiped: true }), { status: 200 })
+    }))
+    const result = await pushPlaylistToDevice('y08-s26-60753', empty)
+    expect(result.idle).toBeUndefined()
+    expect(result.error).toBe('banner push returned 500, banner retry failed too, screen wiped so ads stop')
+  })
+
   it('still pushes real playlists as before', async () => {
     screenAnswers({})
     const item = { url: 'https://cdn.example/a.mp4', type: 'video/mp4', duration: 10, campaignName: 'alpha' }
