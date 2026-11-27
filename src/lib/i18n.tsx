@@ -58,12 +58,26 @@ const LanguageContext = createContext<LanguageContextType>({
   t: translations[DEFAULT_LANG] as Translations,
 })
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const lang = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+/**
+ * `forceLang` pins the language regardless of the stored choice, for pages whose
+ * address decides it (the landing page: / is Georgian, /en is English).
+ * `onLangChange` runs after a switch is stored, e.g. to move to the other address.
+ */
+export function LanguageProvider({ children, forceLang, onLangChange }: {
+  children: ReactNode
+  forceLang?: Lang
+  onLangChange?: (lang: Lang) => void
+}) {
+  const stored = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const lang = forceLang ?? stored
   const t = translations[lang] as Translations
+  const setLang = (next: Lang) => {
+    writeLang(next)
+    onLangChange?.(next)
+  }
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang: writeLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, t }}>
       {children}
     </LanguageContext.Provider>
   )

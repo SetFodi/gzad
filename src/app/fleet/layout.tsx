@@ -1,7 +1,13 @@
+import type { Metadata } from 'next'
 import FleetSidebar from '@/components/fleet/FleetSidebar'
 import { LanguageProvider } from '@/lib/i18n'
 import { appFonts } from '../fonts'
 import '../portal/portal.css'
+
+export const metadata: Metadata = {
+  title: 'Gzad Fleet',
+  robots: { index: false, follow: false },
+}
 
 export default function FleetLayout({ children }: { children: React.ReactNode }) {
   return (

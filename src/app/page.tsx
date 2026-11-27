@@ -1,28 +1,17 @@
 import type { Metadata } from 'next'
-import type { CSSProperties } from 'react'
-import { Inter, Noto_Sans_Georgian } from 'next/font/google'
 import Landing from '@/components/landing/Landing'
+import { jsonLd, landingMetadata, landingStructuredData } from '@/lib/seo'
+import { landingFonts } from './landing-fonts'
 import './landing.css'
 
-// Self-hosted at build time, so the fonts satisfy the CSP's font-src 'self'.
-const inter = Inter({ subsets: ['latin'], axes: ['opsz'], display: 'swap' })
-const georgian = Noto_Sans_Georgian({ subsets: ['georgian'], display: 'swap' })
-
-// next/font's family strings carry an Arial-based fallback face with no
-// unicode-range, and Noto Sans Georgian also ships Latin glyphs. Stacking just
-// the two real faces, Inter first, gives Latin to Inter and Georgian to Noto.
-const face = (family: string) => family.split(',')[0].trim()
-const fonts = {
-  '--lp-face-latin': face(inter.style.fontFamily),
-  '--lp-face-georgian': face(georgian.style.fontFamily),
-} as CSSProperties
-
-export const metadata: Metadata = {
-  title: 'Gzad · Taxi-top LED advertising in Tbilisi',
-  description:
-    'Double-sided LED screens on taxis across Tbilisi. Your ad travels with the taxis. Pay for airtime and track your campaign on the map.',
-}
+// The Georgian landing page, the site's default. English lives at /en.
+export const metadata: Metadata = landingMetadata('ge')
 
 export default function Home() {
-  return <Landing style={fonts} />
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(landingStructuredData('ge')) }} />
+      <Landing style={landingFonts} lang="ge" />
+    </>
+  )
 }

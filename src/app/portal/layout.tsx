@@ -7,6 +7,8 @@ import { PortalCapabilitiesProvider } from '@/components/portal/Capabilities'
 export const metadata: Metadata = {
   title: 'Gzad Portal',
   description: 'Client dashboard for Gzad advertising campaigns',
+  // Signed-in tools and sign-in forms, not pages to find in search.
+  robots: { index: false, follow: false },
 }
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {

@@ -4,6 +4,7 @@ import LegalPage from '@/components/LegalPage'
 export const metadata: Metadata = {
   title: 'Terms of Service · მომსახურების პირობები | Gzad',
   description: 'Terms for Gzad advertiser accounts, campaign delivery, prepaid balances, billing questions and fleet partnerships.',
+  alternates: { canonical: '/terms' },
 }
 
 export default function TermsPage() {
