@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { authenticateCallback } from '@/lib/callback-auth'
-import { correctPlayTimes } from '@/lib/play-times'
+import { correctPlayTimes, withoutKnownPlays } from '@/lib/play-times'
 import { isIdleProgramName } from '@/lib/idle-program'
 
 const TZ = 'Asia/Tbilisi'
@@ -60,13 +60,17 @@ export async function POST(request: NextRequest) {
       || (!Array.isArray(body) && typeof body?.sn === 'string' ? body.sn : null)
       || 'unknown'
 
-    // Upsert device record (last_seen_at updated on every log batch)
-    await supabase
+    // Upsert device record (last_seen_at updated on every log batch). When it
+    // was registered tells a month-old backlog from a clock that lost the date.
+    const { data: deviceRow } = await supabase
       .from('devices')
       .upsert(
         { id: deviceId, last_seen_at: new Date().toISOString() },
         { onConflict: 'id' }
       )
+      .select('created_at')
+      .maybeSingle()
+    const firstSeenMs = deviceRow?.created_at ? Date.parse(deviceRow.created_at) : null
 
     // Match program names to campaigns (case-insensitive)
     const programNames = [...new Set<string>(
@@ -140,6 +144,7 @@ export async function POST(request: NextRequest) {
     const corrections = correctPlayTimes(
       rows.map((r: typeof rows[number]) => ({ beganAtMs: Date.parse(r.began_at), durationSeconds: r.duration_seconds })),
       receivedMs,
+      firstSeenMs,
     )
     rows.forEach((r: typeof rows[number], i: number) => {
       const fixed = corrections[i]
@@ -151,18 +156,16 @@ export async function POST(request: NextRequest) {
     if (correctedCount) console.log(`[playlog] ${deviceId}: moved ${correctedCount} play(s) off an impossible date`)
 
     // A resent batch must not store its corrected plays twice: the dedup index
-    // sees the corrected time, which is different on every upload.
+    // sees the corrected time, which is different on every upload. Look the
+    // original stamps up both ways: stored as sent, or stored corrected.
     let toInsert = rows
     const reported = rows.filter((r: typeof rows[number]) => r.reported_began_at).map((r: typeof rows[number]) => r.reported_began_at as string)
     if (reported.length > 0) {
-      const { data: seen } = await supabase
-        .from('play_logs')
-        .select('program_name, reported_began_at')
-        .eq('device_id', deviceId)
-        .in('reported_began_at', reported)
-      const seenKeys = new Set((seen ?? []).map(s => `${s.program_name}|${Date.parse(s.reported_began_at)}`))
-      toInsert = rows.filter((r: typeof rows[number]) =>
-        !r.reported_began_at || !seenKeys.has(`${r.program_name}|${Date.parse(r.reported_began_at)}`))
+      const [{ data: storedCorrected }, { data: storedAsSent }] = await Promise.all([
+        supabase.from('play_logs').select('program_name, reported_began_at').eq('device_id', deviceId).in('reported_began_at', reported),
+        supabase.from('play_logs').select('program_name, began_at').eq('device_id', deviceId).in('began_at', reported),
+      ])
+      toInsert = withoutKnownPlays(rows, [...(storedCorrected ?? []), ...(storedAsSent ?? [])])
     }
 
     // Insert with ON CONFLICT DO NOTHING — skips duplicates via unique index
