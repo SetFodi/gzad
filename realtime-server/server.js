@@ -1305,7 +1305,8 @@ async function setBackground(cardId, ws) {
     ws.canvas = { width, height }
   }
   const { width, height } = ws.canvas
-  const url = `${config.gzadAppUrl}/api/idle-background/${width}x${height}.png`
+  const tag = config.idleBackgroundTag ? `-${config.idleBackgroundTag}` : ''
+  const url = `${config.gzadAppUrl}/api/idle-background/${width}x${height}${tag}.png`
   const result = await sendCommand(cardId, { type: 'setPlayerBackground', url }, { quiet: true })
   if (result?._type !== 'success') throw new Error(`screen answered ${JSON.stringify(result).slice(0, 160)}`)
   if (!ws.backgroundSetAt) console.log(`[${new Date().toISOString()}] Background for ${cardId}: GZAD banner on its ${width}×${height} canvas`)

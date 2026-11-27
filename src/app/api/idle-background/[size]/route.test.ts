@@ -29,8 +29,16 @@ describe('GET /api/idle-background/[size]', () => {
     expect(at(0, 80)).toEqual([0, 0, 0])
   })
 
+  it('accepts a tag after the size, which only changes the address', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(new Uint8Array(bannerPng()))))
+    const res = await get('1280x720-logo.png')
+    expect(res.status).toBe(200)
+    const image = decodePng(new Uint8Array(await res.arrayBuffer()))
+    expect([image.width, image.height]).toEqual([1280, 720])
+  })
+
   it('refuses sizes that are not WIDTHxHEIGHT or are too large', async () => {
-    for (const size of ['big.png', '0x720.png', '5000x720.png', '1280x720.gif']) {
+    for (const size of ['big.png', '0x720.png', '5000x720.png', '1280x720.gif', '1280x720-../x.png', '1280x720-UPPER.png']) {
       expect((await get(size)).status).toBe(404)
     }
   })

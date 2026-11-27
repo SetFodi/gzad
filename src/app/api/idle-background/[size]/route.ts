@@ -27,7 +27,9 @@ function loadBanner(): Promise<RgbImage> {
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ size: string }> }) {
-  const match = /^(\d{1,4})x(\d{1,4})(?:\.png)?$/.exec((await params).size)
+  // An optional tag (1280x720-logo.png) only changes the address, so screens
+  // download a new banner instead of keeping their cached copy.
+  const match = /^(\d{1,4})x(\d{1,4})(?:-[a-z0-9]{1,20})?(?:\.png)?$/.exec((await params).size)
   const width = Number(match?.[1])
   const height = Number(match?.[2])
   if (!match || width < 1 || height < 1 || width > MAX_SIDE || height > MAX_SIDE) {

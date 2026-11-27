@@ -11,18 +11,23 @@
 
 export const IDLE_PROGRAM_NAME = 'gzad-idle'
 
+// The animated Gzad logo (led-images/gzad-logo-animated-240x80.mp4). When the
+// banner changes, upload it under a new name rather than over the old file:
+// the server caches each file's MD5 by URL and controllers cache downloads.
+// Keep realtime-server/config.js idleMediaUrl the same.
 export const IDLE_MEDIA_URL =
   process.env.NEXT_PUBLIC_IDLE_MEDIA_URL ||
-  'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-background-animated-240x80.mp4'
+  'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-logo-animated-240x80.mp4'
 
 /**
- * The still 240×80 banner. The screens' player background (what the player
+ * The still 240×80 logo. The screens' player background (what the player
  * shows when it has nothing at all, e.g. right after a wipe) is built from it,
- * sized to each screen: see /api/idle-background.
+ * sized to each screen: see /api/idle-background. When it changes, also change
+ * idleBackgroundTag in realtime-server/config.js so screens fetch it again.
  */
 export const IDLE_BANNER_URL =
   process.env.IDLE_BANNER_URL ||
-  'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-background-240x80.png'
+  'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-logo-240x80.png'
 
 /**
  * The filler program's single item, in the shape push-program takes. The

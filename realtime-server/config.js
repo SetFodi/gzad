@@ -55,8 +55,15 @@ module.exports = {
   // controller's factory pattern. The name must match IDLE_PROGRAM_NAME in the
   // app (src/lib/idle-program.ts), which drops these plays so they're never billed.
   idleProgramName: process.env.IDLE_PROGRAM_NAME || 'gzad-idle',
+  // Upload a new banner under a new name: the MD5 is cached by URL here, and
+  // controllers cache what they downloaded.
   idleMediaUrl: process.env.IDLE_MEDIA_URL ||
-    'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-background-animated-240x80.mp4',
+    'https://pplspgbppqrtadyvjlzn.supabase.co/storage/v1/object/public/ad-media/backgrounds/gzad-logo-animated-240x80.mp4',
+
+  // Part of the background's address (…/1280x720-logo.png). Change it whenever
+  // the app's still banner changes, so screens download the new one instead
+  // of keeping a cached copy.
+  idleBackgroundTag: process.env.IDLE_BACKGROUND_TAG || 'logo',
 
   // The player background (what the player shows with nothing at all, e.g.
   // right after a wipe) is set to the banner at each screen's canvas size, on
